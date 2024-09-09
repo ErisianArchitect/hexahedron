@@ -732,6 +732,7 @@ impl Rotation {
         }
     }
 
+    /// Rotate a [Rotation] by another [Rotation].
     pub const fn reorient(self, rotation: Self) -> Self {
         let up = self.up();
         let fwd = self.forward();
@@ -743,6 +744,7 @@ impl Rotation {
         rot
     }
 
+    /// Rotate a [Rotation] by the inverse of another [Rotation].
     pub const fn deorient(self, rotation: Self) -> Self {
         let up = self.up();
         let fwd = self.forward();
@@ -753,7 +755,8 @@ impl Rotation {
         };
         rot
     }
-
+    
+    /// Creates a [Rotation] that when rotated by the original will create the base [Rotation].
     pub const fn invert(self) -> Self {
         Self::UNROTATED.deorient(self)
     }
