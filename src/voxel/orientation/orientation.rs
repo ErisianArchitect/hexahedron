@@ -4,7 +4,6 @@ use crate::voxel::{
         Rotation,
         orient_table,
         pack_flip_and_rotation,
-        unpack_flip_and_rotation,
     },
     direction::Direction,
 };
