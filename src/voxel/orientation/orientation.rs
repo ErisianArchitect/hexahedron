@@ -9,7 +9,7 @@ use crate::voxel::{
 };
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct Orientation(u8);
+pub struct Orientation(pub(crate) u8);
 
 impl Orientation {
     pub const UNORIENTED: Orientation = Orientation::new(Rotation::new(Direction::PosY, 0), Flip::NONE);
