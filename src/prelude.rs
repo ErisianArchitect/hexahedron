@@ -2,6 +2,7 @@
 pub use crate::{
     voxel::{
         direction::Direction,
+        cardinal::Cardinal,
         orientation::{
             rotation::Rotation,
             flip::Flip,
