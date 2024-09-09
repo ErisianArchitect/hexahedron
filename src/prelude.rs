@@ -2,7 +2,11 @@
 pub use crate::{
     voxel::{
         direction::Direction,
-        orientation::rotation::Rotation,
+        orientation::{
+            rotation::Rotation,
+            flip::Flip,
+            orientation::Orientation,
+        },
     },
     math::axis::Axis,
 };
