@@ -5,3 +5,5 @@ pub mod macros;
 pub mod prelude;
 pub mod io;
 pub mod error;
+pub mod rendering;
+pub mod tag;
