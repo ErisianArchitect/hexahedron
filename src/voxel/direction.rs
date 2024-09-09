@@ -1,6 +1,10 @@
 use bytemuck::NoUninit;
 use glam::Vec3;
 use crate::math::axis::Axis;
+use crate::voxel::orientation::{
+    flip::Flip,
+    rotation::Rotation,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, NoUninit)]
 #[repr(u8)]
@@ -22,7 +26,7 @@ pub enum Direction {
 }
 
 impl Direction {
-    /// All directions, ordered as they are in the code.
+    /// All directions, ordered logically (`NegX`, `NegY`, `NegZ`, `PosX`, `PosY`, `PosZ`).
     pub const ALL: [Direction; 6] = [
         Direction::NegX,
         Direction::NegY,
@@ -49,6 +53,7 @@ impl Direction {
     pub const UP: Direction = Direction::PosY;
     pub const BACKWARD: Direction = Direction::PosZ;
 
+    /// Invert the [Direction]. (`NegX` becomes `PosX`, `PosX` becomes `NegX`, etc.)
     pub const fn invert(self) -> Self {
         match self {
             Direction::NegX => Direction::PosX,
@@ -60,23 +65,26 @@ impl Direction {
         }
     }
 
-    // pub const fn flip(self, flip: Flip) -> Self {
-    //     use Direction::*;
-    //     match self {
-    //         NegX if flip.x() => PosX,
-    //         NegY if flip.y() => PosY,
-    //         NegZ if flip.z() => PosZ,
-    //         PosX if flip.x() => NegX,
-    //         PosY if flip.y() => NegY,
-    //         PosZ if flip.z() => NegZ,
-    //         _ => self
-    //     }
-    // }
+    /// Flips the [Direction] based on [Flip].
+    pub const fn flip(self, flip: Flip) -> Self {
+        use Direction::*;
+        match self {
+            NegX if flip.x() => PosX,
+            NegY if flip.y() => PosY,
+            NegZ if flip.z() => PosZ,
+            PosX if flip.x() => NegX,
+            PosY if flip.y() => NegY,
+            PosZ if flip.z() => NegZ,
+            _ => self
+        }
+    }
 
-    // pub fn rotate(self, rotation: Rotation) -> Self {
-    //     rotation.reface(self)
-    // }
+    /// Rotates the [Direction] by [Rotation].
+    pub fn rotate(self, rotation: Rotation) -> Self {
+        rotation.reface(self)
+    }
 
+    /// Gets the [Axis] of the [Direction]
     pub const fn axis(self) -> Axis {
         use Direction::*;
         match self {
@@ -86,20 +94,23 @@ impl Direction {
         }
     }
 
+    /// Represents discriminant as single bit value.
     pub const fn bit(self) -> u8 {
         1 << self as u8
     }
 
+    /// Gets the discriminant of the value.
     pub const fn discriminant(self) -> u8 {
         self as u8
     }
 
+    /// Iterates in the order: `NegX`, `NegY`, `NegZ`, `PosX`, `PosY`, `PosZ`.
     pub fn iter() -> impl Iterator<Item = Direction> {
         Self::ALL.into_iter()
     }
 
     /// Iterates the [Direction] enum in the order of the variants' discriminants.
-    pub fn iter_index_order() -> impl Iterator<Item = Direction> {
+    pub fn iter_discriminant_order() -> impl Iterator<Item = Direction> {
         Self::INDEX_ORDER.into_iter()
     }
 
@@ -159,6 +170,7 @@ impl Direction {
         }
     }
 
+    /// Converts the [Direction] into a unit vector.
     pub const fn to_vec3(self) -> Vec3 {
         use Direction::*;
         match self {
@@ -168,6 +180,27 @@ impl Direction {
             PosX => Vec3::new( 1.0,  0.0,  0.0),
             PosY => Vec3::new( 0.0,  1.0,  0.0),
             PosZ => Vec3::new( 0.0,  0.0,  1.0),
+        }
+    }
+}
+
+impl std::ops::Neg for Direction {
+    type Output = Self;
+    
+    fn neg(self) -> Self::Output {
+        self.invert()
+    }
+}
+
+impl std::fmt::Display for Direction {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Direction::NegX => write!(f, "NegX"),
+            Direction::NegY => write!(f, "NegY"),
+            Direction::NegZ => write!(f, "NegZ"),
+            Direction::PosX => write!(f, "PosX"),
+            Direction::PosY => write!(f, "PosY"),
+            Direction::PosZ => write!(f, "PosZ"),
         }
     }
 }

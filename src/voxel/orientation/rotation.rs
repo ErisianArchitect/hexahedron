@@ -758,3 +758,9 @@ impl Rotation {
         Self::UNROTATED.deorient(self)
     }
 }
+
+impl std::fmt::Display for Rotation {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Rotation(up={},forward={},angle={})", self.up(), self.forward(), self.angle())
+    }
+}
