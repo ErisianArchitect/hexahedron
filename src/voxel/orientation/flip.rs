@@ -158,11 +158,23 @@ impl std::ops::Add<Flip> for Flip {
     }
 }
 
+impl std::ops::AddAssign<Flip> for Flip {
+    fn add_assign(&mut self, rhs: Flip) {
+        *self = *self | rhs;
+    }
+}
+
 impl std::ops::Sub<Flip> for Flip {
     type Output = Flip;
     
     fn sub(self, rhs: Flip) -> Self::Output {
         self & !rhs
+    }
+}
+
+impl std::ops::SubAssign<Flip> for Flip {
+    fn sub_assign(&mut self, rhs: Flip) {
+        *self = *self & !rhs;
     }
 }
 
