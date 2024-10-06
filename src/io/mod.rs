@@ -18,6 +18,7 @@ use crate::prelude::{
 use crate::tag::{
     Byte,
     NonByte,
+    Tag,
 };
 use glam::{
     IVec2,
@@ -1111,6 +1112,38 @@ impl Writeable for Vec<Axis> {
         writer.write_all(&buf[1..4])?;
         writer.write_all(bytemuck::cast_slice(self.as_slice()))?;
         Ok(self.len() as u64 + 3)
+    }
+}
+
+impl Readable for hashbrown::HashMap<String, Tag> {
+    fn read_from<R: Read>(reader: &mut R) -> Result<Self> {
+        // read name, read tag, use 255 as Stop
+        let mut map = hashbrown::HashMap::new();
+        loop {
+            let id: u8 = u8::read_from(reader)?;
+            // Stop
+            if id == 255 {
+                break;
+            }
+            let name: String = String::read_from(reader)?;
+            let tag: Tag = Tag::read_from(reader)?;
+            map.insert(name, tag);
+        }
+        Ok(map)
+    }
+}
+
+impl Writeable for hashbrown::HashMap<String, Tag> {
+    fn write_to<W: Write>(&self, writer: &mut W) -> Result<u64> {
+        let size = self.iter().try_fold(0u64, |mut size, (name, tag)| {
+            size += tag.id().write_to(writer)?;
+            size += name.write_to(writer)?;
+            size += tag.write_to(writer)?;
+            Result::Ok(size)
+        })?;
+        255u8.write_to(writer)?;
+        // writer.write_value(&255u8)?;
+        Ok(size + 1)
     }
 }
 

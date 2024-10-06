@@ -12,8 +12,20 @@ pub use crate::{
     io::{
         Readable,
         Writeable,
+        write_zeros,
+        WriteExt,
     },
-    math::axis::Axis,
+    math::{
+        axis::Axis,
+        index2,
+        index3,
+        f32_is_zero,
+        f32_not_zero,
+        f64_is_zero,
+        f64_not_zero,
+        minmax,
+        
+    },
     util::extensions::{
         BoolExtension,
         OptionExtension,

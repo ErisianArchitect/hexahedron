@@ -6,8 +6,7 @@ pub trait SwapVal {
 }
 
 impl<T> SwapVal for T {
-    fn swap(&mut self, swap: Self) -> Self {
-        let mut swap = swap;
+    fn swap(&mut self, mut swap: Self) -> Self {
         std::mem::swap(self, &mut swap);
         swap
     }
