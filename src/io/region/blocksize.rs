@@ -36,6 +36,7 @@ impl BlockSize {
         /* 7 */ 4065,4193,4321,4449,4577,4705,4833,4961,5089,5217,5345,5473,5601,5729,5857,5985,6113,6241,6369,6497,6625,6753,6881,7009,7137,7265,7393,7521,7649,7777,7905,8033,
     ];
     
+    #[inline]
     pub const fn new(multiplier: u8, exponent: u8) -> Self {
         assert!(multiplier <= 0b11111, "Multiplier greater than 31");
         assert!(exponent <= 0b111, "Exponent greater than 7");
@@ -43,21 +44,25 @@ impl BlockSize {
     }
 
     /// This isn't really a "multiplier", but instead 
+    #[inline]
     pub const fn multiplier(self) -> u8 {
         self.0 & 0b11111
     }
 
     /// Exponent of 2 which is multiplied by the multiplier.
+    #[inline]
     pub const fn exponent(self) -> u8 {
         self.0 >> 5
     }
 
     /// The 4KiB block count. (multiply this by 4096 to get the size)
+    #[inline]
     pub const fn block_count(self) -> u16 {
         Self::BLOCK_SIZE_TABLE[self.0 as usize]
     }
 
     /// The block size in bytes.
+    #[inline]
     pub const fn file_size(self) -> u64 {
         self.block_count() as u64 * 4096
     }
@@ -98,6 +103,7 @@ impl BlockSize {
 }
 
 impl std::fmt::Display for BlockSize {
+    #[inline]
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "BlockSize({})", self.block_count())
     }

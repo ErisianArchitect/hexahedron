@@ -16,7 +16,6 @@ use crate::prelude::{
     Axis,
 };
 use crate::tag::{
-    Byte,
     NonByte,
     Tag,
 };

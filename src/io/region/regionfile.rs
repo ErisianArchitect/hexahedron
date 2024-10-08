@@ -147,7 +147,7 @@ impl RegionFile {
         })
     }
 
-    pub fn write_timestamped<C: Into<RegionCoord>, Ts: Into<Timestamp>, F: FnMut(&mut GzEncoder<&mut Cursor<Vec<u8>>>) -> Result<()>>(&mut self, coord: C, timestamp: Ts, mut write: F) -> Result<()> {
+    pub fn write_timestamped<C: Into<RegionCoord>, Ts: Into<Timestamp>, F: FnMut(&mut GzEncoder<&mut Cursor<Vec<u8>>>) -> Result<()>>(&mut self, coord: C, timestamp: Ts, write: F) -> Result<()> {
         let coord: RegionCoord = coord.into();
         self.write(coord, write)?;
         let timestamp: Timestamp = timestamp.into();

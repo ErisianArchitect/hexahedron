@@ -3,6 +3,10 @@ name = "hexahedron"
 version = "0.1.0"
 edition = "2021"
 
+[[bin]]
+name = "calc"
+path = "./bin/calc.rs"
+
 [dependencies]
 bytemuck = { version = "1.18.0", features = ["derive"] }
 chrono = "0.4.38"

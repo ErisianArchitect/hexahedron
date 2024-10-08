@@ -1,8 +1,5 @@
-use hashbrown::HashMap;
 use crate::error::{Error, Result};
 use crate::io::{
-    ReadExt,
-    WriteExt,
     Readable,
     Writeable,
 };
@@ -17,7 +14,7 @@ pub trait Byte {}
 macro_rules! tag_table {
     ($macro:path) => {
         $macro! {
-            //  
+            //  ID | Name | Byte-Size or Non-Byte-Size | Boxed | Type
             [ 1 Bool          Byte      unbox   <bool>                                                  ]
             [ 2 BitFlags8     Byte      unbox   <crate::math::bit::BitFlags8>                           ]
             [ 3 BitFlags16    NonByte   unbox   <crate::math::bit::BitFlags16>                          ]
