@@ -14,19 +14,23 @@ struct InnerBlockRegistry {
 }
 
 #[derive(Clone)]
-pub struct BlockRegistry(Arc<Mutex<InnerBlockRegistry>>);
+pub struct BlockRegistry(Arc<RwLock<InnerBlockRegistry>>);
 
 impl BlockRegistry {
     pub fn new() -> Self {
-        Self(Arc::new(Mutex::new(InnerBlockRegistry::default())))
+        Self(Arc::new(RwLock::new(InnerBlockRegistry::default())))
     }
 
-    fn lock<'a>(&'a self) -> Result<MutexGuard<'a, InnerBlockRegistry>> {
-        self.0.lock().map_err(|_| Error::FailedToLock)
+    fn read_lock<'a>(&'a self) -> Result<RwLockReadGuard<'a, InnerBlockRegistry>> {
+        self.0.read().map_err(|_| Error::FailedToLock)
+    }
+
+    fn write_lock<'a>(&'a self) -> Result<RwLockWriteGuard<'a, InnerBlockRegistry>> {
+        self.0.write().map_err(|_| Error::FailedToLock)
     }
 
     pub fn register_block<B: BlockBehavior + 'static + Sized>(&self, block: B) -> Result<BlockId> {
-        let mut reg = self.lock()?;
+        let mut reg = self.write_lock()?;
         if reg.block_lookup.contains_key(block.name()) {
             return Err(Error::DuplicateBlockEntry(block.name().to_owned()));
         }
@@ -43,7 +47,7 @@ impl BlockRegistry {
     }
 
     pub fn register_state<S: RefOrOwned<BlockState>>(&self, state: S) -> Result<StateId> {
-        let mut reg = self.lock()?;
+        let mut reg = self.write_lock()?;
         if let Some(&state_id) = reg.state_lookup.get(state.reference()) {
             Ok(state_id)
         } else {
@@ -74,7 +78,7 @@ impl BlockRegistry {
 
     #[inline]
     pub fn get_state(&self, id: StateId) -> Result<Arc<BlockState>> {
-        let reg = self.lock()?;
+        let reg = self.read_lock()?;
         Ok(Arc::clone(&reg.states[id.index()]))
     }
 
@@ -86,7 +90,7 @@ impl BlockRegistry {
 
     #[inline]
     pub fn block_id(&self, id: StateId) -> Result<BlockId> {
-        let reg = self.lock()?;
+        let reg = self.read_lock()?;
         let block_id = reg.block_ids[id.index()];
         Ok(block_id)
     }
@@ -103,14 +107,14 @@ pub trait BlockGetterId: sealed::BlockGetterSeal {
 
 impl BlockGetterId for BlockId {
     fn get_block(self, registry: &BlockRegistry) -> Result<Arc<dyn BlockBehavior>> {
-        let reg = registry.lock()?;
+        let reg = registry.read_lock()?;
         Ok(Arc::clone(&reg.blocks[self.index()]))
     }
 }
 
 impl BlockGetterId for StateId {
     fn get_block(self, registry: &BlockRegistry) -> Result<Arc<dyn BlockBehavior>> {
-        let reg = registry.lock()?;
+        let reg = registry.read_lock()?;
         let block_id = reg.block_ids[self.index()];
         Ok(Arc::clone(&reg.blocks[block_id.index()]))
     }
