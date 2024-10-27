@@ -12,7 +12,13 @@ impl<T> SwapVal for T {
     }
 }
 
-pub trait OptionExtension<T> {
+mod private {
+    pub trait Sealed<T> {}
+}
+
+impl<T> private::Sealed<Option<T>> for Option<T> {}
+
+pub trait OptionExtension<T>: private::Sealed<Option<T>> {
     fn then<F: FnOnce(T)>(self, then: F);
 }
 
@@ -24,8 +30,10 @@ impl<T> OptionExtension<T> for Option<T> {
     }
 }
 
-pub trait BoolExtension {
-    fn select<T>(self, _true: T, _false: T) -> T;
+impl private::Sealed<bool> for bool {}
+
+pub trait BoolExtension: private::Sealed<bool> {
+    fn select<T>(self, _false: T, _true: T) -> T;
     fn toggle(&mut self) -> Self;
     fn some<T>(self, some: T) -> Option<T>;
     fn some_else<T>(self, some: T) -> Option<T>;
@@ -37,7 +45,7 @@ pub trait BoolExtension {
 impl BoolExtension for bool {
     /// Choose a truth value or a false value.
     #[inline]
-    fn select<T>(self, _true: T, _false: T) -> T {
+    fn select<T>(self, _false: T, _true: T) -> T {
         if self {
             _true
         } else {
@@ -89,13 +97,14 @@ impl BoolExtension for bool {
     }
 }
 
-pub trait NumIter: Sized + Copy {
+pub trait NumIter: Sized + Copy + private::Sealed<()> {
     fn iter(self) -> Range<Self>;
     fn iter_to(self, end: Self) -> Range<Self>;
 }
 
 macro_rules! num_iter_impls {
     ($type:ty) => {
+        impl private::Sealed<()> for $type {}
         impl NumIter for $type {
             #[inline]
             fn iter(self) -> Range<Self> {
@@ -111,12 +120,15 @@ macro_rules! num_iter_impls {
 }
 
 for_each_int_type!(num_iter_impls);
-pub trait ResultExtension {
+
+pub trait ResultExtension: private::Sealed<Result<(), ()>> {
     type Ok;
     type Error;
     fn handle_err<F: FnMut(Self::Error)>(self, f: F);
     fn try_fn<F: FnMut() -> Self>(f: F) -> Self;
 }
+
+impl<T, E> private::Sealed<std::result::Result<(), ()>> for std::result::Result<T, E> {}
 
 impl<T, E> ResultExtension for std::result::Result<T, E> {
     type Ok = T;

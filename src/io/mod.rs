@@ -1,5 +1,6 @@
 pub mod region;
 use crate::error::{Error, Result};
+use crate::math::axisflags::AxisFlags;
 use std::io::{Read, Write};
 use crate::for_each_int_type;
 use crate::math::bit::*;
@@ -14,6 +15,7 @@ use crate::prelude::{
     Flip,
     Orientation,
     Axis,
+    FaceFlags,
 };
 use crate::tag::{
     NonByte,
@@ -150,6 +152,34 @@ impl Writeable for bool {
         let bytes = [*self as u8];
         writer.write_all(&bytes)?;
         Ok(1)
+    }
+}
+
+impl Readable for AxisFlags {
+    fn read_from<R: Read>(reader: &mut R) -> Result<Self> {
+        let mut buffer = [0u8; 1];
+        reader.read_exact(&mut buffer)?;
+        Ok(AxisFlags::from_u8(buffer[0]))
+    }
+}
+
+impl Writeable for AxisFlags {
+    fn write_to<W: Write>(&self, writer: &mut W) -> Result<u64> {
+        self.inner().write_to(writer)
+    }
+}
+
+impl Readable for FaceFlags {
+    fn read_from<R: Read>(reader: &mut R) -> Result<Self> {
+        let mut buffer = [0u8; 1];
+        reader.read_exact(&mut buffer)?;
+        Ok(FaceFlags::from(buffer[0]))
+    }
+}
+
+impl Writeable for FaceFlags {
+    fn write_to<W: Write>(&self, writer: &mut W) -> Result<u64> {
+        self.inner().write_to(writer)
     }
 }
 
@@ -727,6 +757,34 @@ impl Writeable for &str {
     }
 }
 
+impl Readable for std::ops::Range<i64> {
+    fn read_from<R: Read>(reader: &mut R) -> Result<Self> {
+        Ok(i64::read_from(reader)?..i64::read_from(reader)?)
+    }
+}
+
+impl Writeable for std::ops::Range<i64> {
+    fn write_to<W: Write>(&self, writer: &mut W) -> Result<u64> {
+        self.start.write_to(writer)?;
+        self.end.write_to(writer)?;
+        Ok(16)
+    }
+}
+
+impl Readable for std::ops::RangeInclusive<i64> {
+    fn read_from<R: Read>(reader: &mut R) -> Result<Self> {
+        Ok(i64::read_from(reader)?..=i64::read_from(reader)?)
+    }
+}
+
+impl Writeable for std::ops::RangeInclusive<i64> {
+    fn write_to<W: Write>(&self, writer: &mut W) -> Result<u64> {
+        self.start().write_to(writer)?;
+        self.end().write_to(writer)?;
+        Ok(16)
+    }
+}
+
 impl<T: Readable + NonByte> Readable for Vec<T> {
     fn read_from<R: Read>(reader: &mut R) -> Result<Self> {
         let mut buf = [0u8; 4];
@@ -778,6 +836,52 @@ impl Readable for Vec<bool> {
 }
 
 impl Writeable for Vec<bool> {
+    fn write_to<W: Write>(&self, writer: &mut W) -> Result<u64> {
+        if self.len() > MAX_ARRAY_LENGTH {
+            return Err(Error::ArrayTooLong);
+        }
+        let buf = (self.len() as u32).to_be_bytes();
+        writer.write_all(&buf[1..4])?;
+        let bytes: &[u8] = bytemuck::cast_slice(&self.as_slice());
+        writer.write_all(&bytes)?;
+        Ok(self.len() as u64 + 3)
+    }
+}
+
+impl Readable for Vec<AxisFlags> {
+    fn read_from<R: Read>(reader: &mut R) -> Result<Self> {
+        let mut buf = [0u8; 4];
+        reader.read_exact(&mut buf[1..4])?;
+        let length = u32::from_be_bytes(buf);
+        let bytes = read_bytes(reader, length as usize)?;
+        Ok(bytes.into_iter().map(|b| AxisFlags::from_u8(b)).collect())
+    }
+}
+
+impl Writeable for Vec<AxisFlags> {
+    fn write_to<W: Write>(&self, writer: &mut W) -> Result<u64> {
+        if self.len() > MAX_ARRAY_LENGTH {
+            return Err(Error::ArrayTooLong);
+        }
+        let buf = (self.len() as u32).to_be_bytes();
+        writer.write_all(&buf[1..4])?;
+        let bytes: &[u8] = bytemuck::cast_slice(&self.as_slice());
+        writer.write_all(&bytes)?;
+        Ok(self.len() as u64 + 3)
+    }
+}
+
+impl Readable for Vec<FaceFlags> {
+    fn read_from<R: Read>(reader: &mut R) -> Result<Self> {
+        let mut buf = [0u8; 4];
+        reader.read_exact(&mut buf[1..4])?;
+        let length = u32::from_be_bytes(buf);
+        let bytes = read_bytes(reader, length as usize)?;
+        Ok(bytes.into_iter().map(|b| FaceFlags::from(b)).collect())
+    }
+}
+
+impl Writeable for Vec<FaceFlags> {
     fn write_to<W: Write>(&self, writer: &mut W) -> Result<u64> {
         if self.len() > MAX_ARRAY_LENGTH {
             return Err(Error::ArrayTooLong);

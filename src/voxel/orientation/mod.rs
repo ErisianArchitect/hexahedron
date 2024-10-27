@@ -3,8 +3,9 @@ pub mod flip;
 pub mod orientation;
 mod orient_table;
 
-use flip::Flip;
-use rotation::Rotation;
+pub use flip::Flip;
+pub use rotation::Rotation;
+pub use orientation::Orientation;
 
 pub const fn pack_flip_and_rotation(flip: Flip, rotation: Rotation) -> u8 {
     flip.0 | rotation.0 << 3

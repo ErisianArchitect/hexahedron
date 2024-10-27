@@ -45,65 +45,78 @@ impl Orientation {
         ],
     ];
 
+    #[inline]
     pub const fn new(rotation: Rotation, flip: Flip) -> Self {
         Self(pack_flip_and_rotation(flip, rotation))
     }
 
+    #[inline]
     pub const fn flip(self) -> Flip {
         Flip(self.0 & 0b111)
     }
 
-    pub fn set_flip(&mut self, flip: Flip) {
-        self.0 = (self.0 & 0b11111000) | flip.0
-    }
-
+    #[inline]
     pub const fn rotation(self) -> Rotation {
         Rotation(self.0 >> 3)
     }
 
+    #[inline]
+    pub fn set_flip(&mut self, flip: Flip) {
+        self.0 = (self.0 & 0b11111000) | flip.0
+    }
+
+    #[inline]
     pub fn set_rotation(&mut self, rotation: Rotation) {
         self.0 = (self.0 & 0b111) | rotation.0 << 3;
     }
 
     /// `reface` can be used to determine where a face will end up after orientation.
     /// First rotates and then flips the face.
+    #[inline]
     pub const fn reface(self, face: Direction) -> Direction {
         let rotated = self.rotation().reface(face);
         rotated.flip(self.flip())
     }
 
-    /// This determines which face was oriented to `face`. I hope that makes sense.
+    /// This determines which face was oriented to `face`.
+    #[inline]
     pub const fn source_face(self, face: Direction) -> Direction {
         let flipped = face.flip(self.flip());
         self.rotation().source_face(flipped)
     }
 
     /// Gets the direction that [Direction::PosY] is pointing towards.
+    #[inline]
     pub const fn up(self) -> Direction {
         self.reface(Direction::PosY)
     }
 
     /// Gets the direction that [Direction::NegY] is pointing towards.
+    #[inline]
     pub const fn down(self) -> Direction {
         self.reface(Direction::NegY)
     }
 
     /// Gets the direction that [Direction::NegZ] is pointing towards.
+    #[inline]
     pub const fn forward(self) -> Direction {
         self.reface(Direction::NegZ)
     }
 
     /// Gets the direction that [Direction::PosZ] is pointing towards.
+    #[inline]
     pub const fn backward(self) -> Direction {
         self.reface(Direction::PosZ)
     }
 
     /// Gets the direction that [Direction::NegX] is pointing towards.
+    #[inline]
     pub const fn left(self) -> Direction {
         self.reface(Direction::NegX)
     }
 
     /// Gets the direction that [Direction::PosX] is pointing towards.
+    #[inline]
     pub const fn right(self) -> Direction {
         self.reface(Direction::PosX)
     }
@@ -112,6 +125,7 @@ impl Orientation {
     /// reverse your indices if the face will be flipped (for backface culling). To
     /// determine if your indices need to be inverted, simply XOR each axis of the [Orientation]'s [Flip].
     /// This method will rotate and then flip the coordinate.
+    #[inline]
     pub fn transform<T: Copy + std::ops::Neg<Output = T>, C: Into<(T, T, T)> + From<(T, T, T)>>(self, point: C) -> C {
         let rotated = self.rotation().rotate_coord(point);
         self.flip().flip_coord(rotated)
@@ -122,6 +136,7 @@ impl Orientation {
     /// So if you're trying to map a coord within a rect of size (16, 16), you would subtract 8 from the
     /// x and y of the coord, then pass that offset coord to this function, then add 8 back to the x and y
     /// to get your final coord.
+    #[inline]
     pub fn map_face_coord<T: Copy + std::ops::Neg<Output = T>, C: Into<(T, T)> + From<(T, T)>>(self, face: Direction, uv: C) -> C {
         let table_index = orient_table::table_index(self.rotation(), self.flip(), face);
         let coordmap = orient_table::MAP_COORD_TABLE[table_index];
@@ -133,6 +148,7 @@ impl Orientation {
     /// So if you're trying to map a coord within a rect of size (16, 16), you would subtract 8 from the
     /// x and y of the coord, then pass that offset coord to this function, then add 8 back to the x and y
     /// to get your final coord.
+    #[inline]
     pub fn source_face_coord<T: Copy + std::ops::Neg<Output = T>, C: Into<(T, T)> + From<(T, T)>>(self, face: Direction, uv: C) -> C {
         let table_index = orient_table::table_index(self.rotation(), self.flip(), face);
         let coordmap = orient_table::SOURCE_FACE_COORD_TABLE[table_index];
@@ -171,22 +187,27 @@ impl Orientation {
     }
     
     /// Returns the orientation that can be applied to deorient by [self].
+    #[inline]
     pub const fn invert(self) -> Self {
         Orientation::UNORIENTED.deorient(self)
     }
 
+    #[inline]
     pub const fn flip_x(self) -> Self {
         Orientation::new(self.rotation(), self.flip().flip_x())
     }
 
+    #[inline]
     pub const fn flip_y(self) -> Self {
         Orientation::new(self.rotation(), self.flip().flip_y())
     }
 
+    #[inline]
     pub const fn flip_z(self) -> Self {
         Orientation::new(self.rotation(), self.flip().flip_z())
     }
 
+    #[inline]
     pub const fn rotate_x(self, angle: i32) -> Self {
         self.reorient(Orientation::new(
             Orientation::X_ROTATIONS[angle.rem_euclid(4) as usize],
@@ -194,6 +215,7 @@ impl Orientation {
         ))
     }
 
+    #[inline]
     pub const fn rotate_y(self, angle: i32) -> Self {
         self.reorient(Orientation::new(
             Orientation::Y_ROTATIONS[angle.rem_euclid(4) as usize],
@@ -201,6 +223,7 @@ impl Orientation {
         ))
     }
 
+    #[inline]
     pub const fn rotate_z(self, angle: i32) -> Self {
         self.reorient(Orientation::new(
             Orientation::Z_ROTATIONS[angle.rem_euclid(4) as usize],
@@ -210,12 +233,14 @@ impl Orientation {
 }
 
 impl From<Rotation> for Orientation {
+    #[inline]
     fn from(value: Rotation) -> Self {
         Orientation::new(value, Flip::NONE)
     }
 }
 
 impl From<Flip> for Orientation {
+    #[inline]
     fn from(value: Flip) -> Self {
         Orientation::new(Rotation::default(), value)
     }

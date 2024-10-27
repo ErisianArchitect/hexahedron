@@ -1,5 +1,7 @@
 pub mod bit;
 pub mod axis;
+pub mod axisflags;
+
 use glam::Vec3;
 
 pub fn index2<const W: i32>(x: i32, y: i32) -> usize {
