@@ -1,4 +1,4 @@
-use crate::{io::*, prelude::FaceFlags};
+use crate::io::*;
 
 macro_rules! property_table {
     ($macro:path) => {
@@ -108,16 +108,68 @@ macro_rules! build_property_enum {
 
 property_table!(build_property_enum);
 
+impl Property {
+    pub const NULL: Property = Property::Null;
+}
+
+impl From<&str> for Property {
+    fn from(value: &str) -> Self {
+        Property::String(value.to_owned())
+    }
+}
+
+impl From<&String> for Property {
+    fn from(value: &String) -> Self {
+        Property::String(value.clone())
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct BlockProperty {
-    name: String,
-    value: Property
+    pub(in super) name: String,
+    pub(in super) value: Property
+}
+
+impl BlockProperty {
+    pub fn new<S: AsRef<str>, P: Into<Property>>(name: S, value: P) -> Self {
+        Self {
+            name: name.as_ref().to_owned(),
+            value: value.into(),
+        }
+    }
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn value(&self) -> &Property {
+        &self.value
+    }
+}
+
+impl Readable for BlockProperty {
+    fn read_from<R: std::io::Read>(reader: &mut R) -> crate::prelude::VoxelResult<Self> {
+        let name = String::read_from(reader)?;
+        let value = Property::read_from(reader)?;
+        Ok(BlockProperty {
+            name,
+            value
+        })
+    }
+}
+
+impl Writeable for BlockProperty {
+    fn write_to<W: std::io::Write>(&self, writer: &mut W) -> crate::prelude::VoxelResult<u64> {
+        Ok(
+            self.name.write_to(writer)? +
+            self.value.write_to(writer)?
+        )
+    }
 }
 
 impl PartialOrd for BlockProperty {
     #[inline]
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.name.partial_cmp(&other.name)
+        other.name().partial_cmp(self.name())
     }
 }
 

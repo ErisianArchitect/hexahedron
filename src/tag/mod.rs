@@ -53,9 +53,11 @@ macro_rules! tag_table {
             [36 Quat            NonByte     box     <glam::Quat>                                            ]
             [37 Bounds2         NonByte     box     <rollgrid::rollgrid2d::Bounds2D>                        ]
             [38 Bounds3         NonByte     box     <rollgrid::rollgrid3d::Bounds3D>                        ]
-            [39 String          NonByte     box     <String>                                                ]
-            [40 Array           NonByte     box     <crate::tag::Array>                                     ]
-            [41 Map             NonByte     box     <hashbrown::HashMap<String, Tag>>                       ]
+            [39 Range           NonByte     box     <std::ops::Range<i64>>                                  ]
+            [40 RangeInclusive  NonByte     box     <std::ops::RangeInclusive<i64>>                         ]
+            [41 String          NonByte     box     <String>                                                ]
+            [42 Array           NonByte     box     <crate::tag::Array>                                     ]
+            [43 Map             NonByte     box     <hashbrown::HashMap<String, Tag>>                       ]
             /* This line should remain commented out. It is a representation of what I wrote manually (I have no fucking clue what this means)
             [63 Tag           NonByte   box     <Tag>                                                   ]
             Continue writing new rows at index 41
