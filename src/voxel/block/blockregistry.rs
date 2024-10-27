@@ -4,6 +4,8 @@ use super::blockstate::BlockState;
 use super::{block::BlockBehavior, id::{BlockId, StateId}};
 use super::error::{Error, Result};
 
+// main
+
 #[derive(Default, )]
 struct InnerBlockRegistry {
     blocks: Vec<Arc<dyn BlockBehavior>>,
