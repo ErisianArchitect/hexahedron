@@ -9,8 +9,8 @@ pub struct BlockState {
 }
 
 impl BlockState {
-    pub fn new<S: AsRef<str>, It: IntoIterator<Item = BlockProperty>>(block_name: S, it: It) -> Self {
-        let block_name = block_name.as_ref().to_owned();
+    pub fn new<S: Into<String>, It: IntoIterator<Item = BlockProperty>>(block_name: S, it: It) -> Self {
+        let block_name: String = block_name.into();
         let mut sorted_properties = it.into_iter().collect::<Vec<_>>();
         sorted_properties.sort();
         Self {
