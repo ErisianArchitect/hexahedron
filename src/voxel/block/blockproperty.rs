@@ -1,3 +1,5 @@
+use std::{borrow::Cow, rc::Rc, sync::Arc};
+
 use crate::io::*;
 
 macro_rules! property_table {
@@ -124,6 +126,30 @@ impl From<&String> for Property {
     }
 }
 
+impl<'a> From<Cow<'a, str>> for Property {
+    fn from(value: Cow<'a, str>) -> Self {
+        Property::String(value.into())
+    }
+}
+
+impl From<Arc<str>> for Property {
+    fn from(value: Arc<str>) -> Self {
+        Property::String(value.as_ref().to_owned())
+    }
+}
+
+impl From<Rc<str>> for Property {
+    fn from(value: Rc<str>) -> Self {
+        Property::String(value.as_ref().to_owned())
+    }
+}
+
+impl From<Box<str>> for Property {
+    fn from(value: Box<str>) -> Self {
+        Property::String(value.as_ref().to_owned())
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct BlockProperty {
     pub(in super) name: String,
@@ -131,9 +157,9 @@ pub struct BlockProperty {
 }
 
 impl BlockProperty {
-    pub fn new<S: AsRef<str>, P: Into<Property>>(name: S, value: P) -> Self {
+    pub fn new<S: Into<String>, P: Into<Property>>(name: S, value: P) -> Self {
         Self {
-            name: name.as_ref().to_owned(),
+            name: name.into(),
             value: value.into(),
         }
     }
