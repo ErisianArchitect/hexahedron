@@ -4,3 +4,4 @@ pub mod id;
 pub mod blockstate;
 pub mod blockproperty;
 pub mod error;
+pub mod airblock;
