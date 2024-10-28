@@ -1,18 +1,35 @@
 use hashbrown::HashMap;
 use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
+use super::airblock::AirBlock;
 use super::blockstate::BlockState;
 use super::{block::BlockBehavior, id::{BlockId, StateId}};
 use super::error::{Error, Result};
 
 // main
 
-#[derive(Default, )]
 struct InnerBlockRegistry {
     blocks: Vec<Arc<dyn BlockBehavior>>,
     block_lookup: HashMap<String, BlockId>,
     states: Vec<Arc<BlockState>>,
     block_ids: Vec<BlockId>,
     state_lookup: HashMap<Arc<BlockState>, StateId>,
+}
+
+impl Default for InnerBlockRegistry {
+    fn default() -> Self {
+        let air_state = Arc::new(BlockState::new("air", []));
+        Self {
+            blocks: {
+                let mut blocks = Vec::<Arc<dyn BlockBehavior>>::new();
+                blocks.push(Arc::new(AirBlock));
+                blocks
+            },
+            block_lookup: HashMap::from([("air".to_owned(), BlockId(0))]),
+            states: Vec::from([air_state.clone()]),
+            block_ids: Vec::from([BlockId(0)]),
+            state_lookup: HashMap::from([(air_state, StateId(0))]),
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -23,10 +40,12 @@ impl BlockRegistry {
         Self(Arc::new(RwLock::new(InnerBlockRegistry::default())))
     }
 
+    #[inline]
     fn read_lock<'a>(&'a self) -> Result<RwLockReadGuard<'a, InnerBlockRegistry>> {
         self.0.read().map_err(|_| Error::FailedToLock)
     }
 
+    #[inline]
     fn write_lock<'a>(&'a self) -> Result<RwLockWriteGuard<'a, InnerBlockRegistry>> {
         self.0.write().map_err(|_| Error::FailedToLock)
     }
@@ -44,7 +63,7 @@ impl BlockRegistry {
         reg.blocks.push(block.clone());
         reg.block_lookup.insert(block.name().to_owned(), block_id);
         drop(reg);
-        block.on_register();
+        block.on_register(self);
         Ok(block_id)
     }
 
@@ -159,7 +178,7 @@ mod tests {
             fn name(&self) -> &str {
                 "dirt"
             }
-            fn on_register(&self) {
+            fn on_register(&self, _registry: &BlockRegistry) {
                 println!("dirt block registered.");
             }
         }
@@ -167,7 +186,7 @@ mod tests {
             fn name(&self) -> &str {
                 "grass"
             }
-            fn on_register(&self) {
+            fn on_register(&self, _registry: &BlockRegistry) {
                 println!("grass block registered.");
             }
         }
@@ -176,7 +195,7 @@ mod tests {
             fn name(&self) -> &str {
                 &self.0
             }
-            fn on_register(&self) {
+            fn on_register(&self, _registry: &BlockRegistry) {
                 println!("{} block registered.", self.name());
             }
         }
@@ -184,8 +203,13 @@ mod tests {
         let _grass = reg.register_block(GrassBlock)?;
         let _hello = reg.register_block(DebugBlock("hello"))?;
         let world = reg.register_block(DebugBlock("world"))?;
-
         let hello1 = reg.register_state(BlockState::new("hello", []))?;
+        reg.access_state(StateId::AIR, |state| {
+            println!("Air Block: {}", state.name());
+        })?;
+        reg.access_block(StateId::AIR, |block| {
+            println!("Air Description: {}", block.description().as_ref().unwrap_or(&""));
+        })?;
         reg.access_block(hello1, |block| {
             println!("block: {}", block.name());
         })?;

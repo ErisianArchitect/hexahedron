@@ -5,6 +5,7 @@ pub struct BlockId(pub(in super) u32);
 pub struct StateId(pub(in super) u32);
 
 impl BlockId {
+    pub const AIR: Self = Self(0);
     #[inline]
     pub fn index(self) -> usize {
         self.0 as usize
@@ -12,6 +13,8 @@ impl BlockId {
 }
 
 impl StateId {
+    pub const AIR: Self = Self(0);
+
     #[inline]
     pub fn index(self) -> usize {
         self.0 as usize
