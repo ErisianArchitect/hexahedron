@@ -48,11 +48,21 @@ mod tests {
     #[test]
     fn blockstate_test() {
         let state = BlockState::new("test", [
-            BlockProperty::new("first", 1234),
-            BlockProperty::new("second", true),
-            BlockProperty::new("third", "Hello, world!")
+            BlockProperty::new("int", 1234),
+            BlockProperty::new("bool", true),
+            BlockProperty::new("string", "Hello, world!")
         ]);
-        if let Property::String(value) = &state["third"] {
+        if let Property::Int(value) = &state["int"] {
+            println!("{}", value);
+        } else {
+            println!("Failed");
+        }
+        if let Property::String(value) = &state["string"] {
+            println!("{}", value);
+        } else {
+            println!("Failed");
+        }
+        if let Property::Bool(value) = &state["bool"] {
             println!("{}", value);
         } else {
             println!("Failed");
