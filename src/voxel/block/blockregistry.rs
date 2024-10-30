@@ -1,6 +1,6 @@
 use hashbrown::HashMap;
 use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
-use super::airblock::AirBlock;
+use super::blocks::AirBlock;
 use super::blockstate::BlockState;
 use super::{block::BlockBehavior, id::{BlockId, StateId}};
 use super::error::{Error, Result};

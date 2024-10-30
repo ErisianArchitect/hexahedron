@@ -8,3 +8,4 @@ pub mod voxel;
 pub mod error;
 pub mod macros;
 pub mod prelude;
+pub mod collections;

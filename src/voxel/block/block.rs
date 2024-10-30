@@ -9,6 +9,7 @@ pub trait BlockBehavior: Any {
     fn description(&self) -> Option<&str> { None }
 
     // Callbacks
+    #[allow(unused)]
     fn on_register(&self, registry: &BlockRegistry) {}
     
 }

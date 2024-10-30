@@ -1,4 +1,4 @@
-use super::block::BlockBehavior;
+use super::super::block::BlockBehavior;
 
 pub struct AirBlock;
 
