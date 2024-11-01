@@ -6,6 +6,7 @@ pub trait SwapVal {
 }
 
 impl<T> SwapVal for T {
+    #[inline(always)]
     fn swap(&mut self, mut swap: Self) -> Self {
         std::mem::swap(self, &mut swap);
         swap
@@ -23,6 +24,7 @@ pub trait OptionExtension<T>: private::Sealed<Option<T>> {
 }
 
 impl<T> OptionExtension<T> for Option<T> {
+    #[inline]
     fn then<F: FnOnce(T)>(self, then: F) {
         if let Some(value) = self {
             then(value);
@@ -133,12 +135,14 @@ impl<T, E> private::Sealed<std::result::Result<(), ()>> for std::result::Result<
 impl<T, E> ResultExtension for std::result::Result<T, E> {
     type Ok = T;
     type Error = E;
+    #[inline]
     fn handle_err<F: FnMut(E)>(self, mut f: F) {
         if let std::result::Result::Err(err) = self {
             f(err);
         }
     }
 
+    #[inline]
     fn try_fn<F: FnMut() -> Self>(mut f: F) -> Self {
         f()
     }
