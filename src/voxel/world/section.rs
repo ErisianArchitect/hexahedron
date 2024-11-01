@@ -5,5 +5,5 @@ pub struct Section {
     pub blocks: Option<Box<[StateId]>>,
     pub block_light: Option<Box<[u8]>>,
     pub sky_light: Option<Box<[u8]>>,
-    pub block_data_refs: Option<Box<>>
+    pub block_data_refs: Option<Box<[()]>>
 }
