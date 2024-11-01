@@ -2,9 +2,260 @@ use bytemuck::NoUninit;
 
 use std::ops::Range;
 
-use crate::for_each_int_type;
+// macro_rules! bit_length {
+//     ($type:ty) => {
+//         impl BitLength for $type {
+            
+//             fn bit_length(self) -> u32 {
+//                 const BIT_WIDTH: u32 = (std::mem::size_of::<$type>() * 8) as u32;
+//                 BIT_WIDTH - self.leading_zeros()
+//             }
+//         }
+//     };
+// }
 
-pub trait BitFlags: Sized + Default + Clone + Copy + PartialEq + Eq + PartialOrd + Ord + std::hash::Hash {
+// for_each_int_type!(bit_length);
+
+
+// macro_rules! __shiftindex_impls {
+//     ($type:ty) => {
+//         impl ShiftIndex for $type {
+//             fn shift_index(self) -> u32 {
+//                 self as u32
+//             }
+//         }
+//     };
+// }
+
+// for_each_int_type!(__shiftindex_impls);
+
+// macro_rules! __bitsize_impls {
+//     ($type:ty) => {
+//         impl BitSize for $type {
+//             const BITSIZE: u32 = std::mem::size_of::<$type>() as u32 * 8;
+//         }
+//     };
+// }
+
+// for_each_int_type!(__bitsize_impls);
+
+pub trait BitSize {
+    const BIT_SIZE: u32;
+}
+
+pub trait BitLength: BitSize {
+    fn bit_length(self) -> u32;
+}
+
+pub trait ShiftIndex: Copy {
+    /// A `u32` value that represents an index that a `1` bit can be shifted to.
+    /// This simply converts the value to u32.
+    
+    fn shift_index(self) -> u32;
+}
+
+pub trait SetBit {
+    #[must_use]
+    fn set_bit<I: ShiftIndex>(self, index: I, on: bool) -> Self;
+    #[must_use]
+    fn add_bit<I: ShiftIndex>(self, index: I) -> Self;
+    #[must_use]
+    fn remove_bit<I: ShiftIndex>(self, index: I) -> Self;
+    #[must_use]
+    fn set_bitmask(self, mask: Range<u32>, value: Self) -> Self;
+    #[must_use]
+    fn delete_bitmask(self, mask: Range<u32>) -> Self;
+}
+
+pub trait GetBit {
+    
+    #[must_use]
+    fn get_bit<I: ShiftIndex>(self, index: I) -> bool;
+    
+    #[must_use]
+    fn get_bitmask(self, mask: Range<u32>) -> Self;
+
+    #[must_use]
+    fn bitmask_range(mask: Range<u32>) -> Self;
+}
+
+pub trait InvertBit {
+    #[must_use]
+    fn invert_bit<I: ShiftIndex>(self, index: I) -> Self;
+}
+
+/// To allow polymorphism for iterators of different integer types or references to integer types.
+pub trait MoveBitsIteratorItem {
+    fn translate(self) -> usize;
+}
+
+pub trait MoveBits: Sized {
+    fn move_bits<T: MoveBitsIteratorItem, It: IntoIterator<Item = T>>(self, new_indices: It) -> Self;
+    /// Much like move_bits, but takes indices in reverse order. This is useful if you want to have the
+    /// indices laid out more naturally from right to left.
+    fn move_bits_rev<T: MoveBitsIteratorItem, It: IntoIterator<Item = T>>(self, new_indices: It) -> Self
+    where It::IntoIter: DoubleEndedIterator {
+        self.move_bits(new_indices.into_iter().rev())
+    }
+}
+
+impl<T: BitSize + GetBit + SetBit + Copy> MoveBits for T {
+    fn move_bits<I: MoveBitsIteratorItem, It: IntoIterator<Item = I>>(self, source_indices: It) -> Self {
+        source_indices.into_iter()
+            .map(I::translate)
+            .enumerate()
+            .take(Self::BIT_SIZE as usize)
+            .fold(self, |value, (index, swap_index)| {
+                let on = value.get_bit(swap_index);
+                value.set_bit(index, on)
+            })
+    }
+}
+
+macro_rules! __bit_impls {
+    ($type:ty) => {
+        impl BitSize for $type {
+            const BIT_SIZE: u32 = std::mem::size_of::<$type>() as u32 * 8;
+        }
+
+        impl BitLength for $type {
+            fn bit_length(self) -> u32 {
+                Self::BIT_SIZE - self.leading_zeros()
+            }
+        }
+
+        impl ShiftIndex for $type {
+            fn shift_index(self) -> u32 {
+                self as u32
+            }
+        }
+
+        impl InvertBit for $type {
+            #[must_use]
+            fn invert_bit<I: ShiftIndex>(self, index: I) -> Self {
+                let mask = (1 as Self).overflowing_shl(index.shift_index()).0;
+                self ^ mask
+            }
+        }
+
+        impl SetBit for $type {
+            #[must_use]
+            fn set_bit<I: ShiftIndex>(self, index: I, on: bool) -> Self {
+                if let (mask, false) = (1 as $type).overflowing_shl(index.shift_index()) {
+                    if on {
+                        self | mask
+                    } else {
+                        self & !mask
+                    }
+                } else {
+                    self
+                }
+            }
+
+            #[must_use]
+            fn add_bit<I: ShiftIndex>(self, index: I) -> Self {
+                if let (mask, false) = (1 as $type).overflowing_shl(index.shift_index()) {
+                    self | mask
+                } else {
+                    self
+                }
+            }
+
+            #[must_use]
+            fn remove_bit<I: ShiftIndex>(self, index: I) -> Self {
+                if let (mask, false) = (1 as $type).overflowing_shl(index.shift_index()) {
+                    self & !mask
+                } else {
+                    self
+                }
+            }
+
+            #[must_use]
+            fn set_bitmask(self, mask: Range<u32>, value: Self) -> Self {
+                let mask_len = mask.len();
+                let (bitmask, size_mask) = if mask_len as u32 >= Self::BIT_SIZE {
+                    (
+                        Self::MAX.overflowing_shl(mask.start).0,
+                        Self::MAX
+                    )
+                } else {
+                    (
+                        ((1 as Self).overflowing_shl(mask_len as u32).0 - 1).overflowing_shl(mask.start).0,
+                        (1 as Self).overflowing_shl(mask_len as u32).0 - 1
+                    )
+                };
+                let delete = self & !bitmask;
+                let value = value & size_mask;
+                delete | value << mask.start
+            }
+
+            #[must_use]
+            fn delete_bitmask(self, mask: Range<u32>) -> Self {
+                let mask_len = mask.len();
+                let bitmask = if mask_len as u32 >= Self::BIT_SIZE {
+                    Self::MAX.overflowing_shl(mask.start).0
+                } else {
+                    ((1 as Self).overflowing_shl(mask_len as u32).0 - 1).overflowing_shl(mask.start).0
+                };
+                self & !bitmask
+            }
+        
+        }
+
+        impl GetBit for $type {
+
+            #[must_use]
+            fn bitmask_range(range: Range<u32>) -> Self {
+                let range_len = range.len() as u32;
+                if range_len == Self::BIT_SIZE {
+                    Self::MAX.overflowing_shl(range.start).0
+                } else {
+                    ((1 as Self).overflowing_shl(range_len).0 - 1).overflowing_shl(range.start).0
+                }
+            }
+
+            #[must_use]
+            fn get_bit<I: ShiftIndex>(self, index: I) -> bool {
+                if let (mask, false) = (1 as $type).overflowing_shl(index.shift_index()) {
+                    (self & mask) != 0
+                } else {
+                    false
+                }
+            }
+
+            #[must_use]
+            fn get_bitmask(self, mask: Range<u32>) -> Self {
+                let mask_len = mask.len();
+                let bitmask = if mask_len as u32 == Self::BIT_SIZE {
+                    Self::MAX.overflowing_shl(mask.start).0
+                } else {
+                    ((1 as Self).overflowing_shl(mask_len as u32).0 - 1).overflowing_shl(mask.start).0
+                };
+                (self & bitmask).overflowing_shr(mask.start as u32).0
+            }
+        }
+
+        impl MoveBitsIteratorItem for $type {
+            fn translate(self) -> usize {
+                self as usize
+            }
+        }
+
+        impl MoveBitsIteratorItem for &$type {
+            fn translate(self) -> usize {
+                *self as usize
+            }
+        }
+    };
+}
+
+crate::for_each_int_type!(__bit_impls);
+
+mod private {
+    pub trait BitFlagsSealed: Sized + Default + Clone + Copy + PartialEq + Eq + PartialOrd + Ord + std::hash::Hash {}
+}
+
+pub trait BitFlags: private::BitFlagsSealed {
     fn get(self, index: u32) -> bool;
     fn set(&mut self, index: u32, value: bool) -> bool;
     fn iter(self) -> impl Iterator<Item = bool>;
@@ -16,6 +267,8 @@ macro_rules! bitflags_impls {
         #[repr(C)]
         #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, NoUninit)]
         pub struct $type(pub $inner_type);
+
+        impl private::BitFlagsSealed for $type {}
 
         impl std::ops::BitOr<$type> for $type {
             type Output = Self;
@@ -214,239 +467,11 @@ impl std::fmt::Display for BitFlags128 {
     }
 }
 
-pub trait BitSize {
-    const BITSIZE: u32;
-}
-
-pub trait BitLength {
-    fn bit_length(self) -> u32;
-}
-
-macro_rules! bit_length {
-    ($type:ty) => {
-        impl BitLength for $type {
-            
-            fn bit_length(self) -> u32 {
-                const BIT_WIDTH: u32 = (std::mem::size_of::<$type>() * 8) as u32;
-                BIT_WIDTH - self.leading_zeros()
-            }
-        }
-    };
-}
-
-for_each_int_type!(bit_length);
-
-pub trait ShiftIndex: Copy {
-    /// A `u32` value that represents an index that a `1` bit can be shifted to.
-    /// This simply converts the value to u32.
-    
-    fn shift_index(self) -> u32;
-}
-
-macro_rules! __shiftindex_impls {
-    ($type:ty) => {
-        impl ShiftIndex for $type {
-            
-            fn shift_index(self) -> u32 {
-                self as u32
-            }
-        }
-    };
-}
-
-for_each_int_type!(__shiftindex_impls);
-
-macro_rules! __bitsize_impls {
-    ($type:ty) => {
-        impl BitSize for $type {
-            const BITSIZE: u32 = std::mem::size_of::<$type>() as u32 * 8;
-        }
-    };
-}
-
-for_each_int_type!(__bitsize_impls);
-
-pub trait SetBit {
-    #[must_use]
-    fn set_bit<I: ShiftIndex>(self, index: I, on: bool) -> Self;
-    #[must_use]
-    fn add_bit<I: ShiftIndex>(self, index: I) -> Self;
-    #[must_use]
-    fn remove_bit<I: ShiftIndex>(self, index: I) -> Self;
-    #[must_use]
-    fn set_bitmask(self, mask: Range<u32>, value: Self) -> Self;
-}
-
-pub trait GetBit {
-    
-    #[must_use]
-    fn get_bit<I: ShiftIndex>(self, index: I) -> bool;
-    
-    #[must_use]
-    fn get_bitmask(self, mask: Range<u32>) -> Self;
-
-    #[must_use]
-    fn bitmask_range(mask: Range<u32>) -> Self;
-}
-
-pub trait InvertBit {
-    #[must_use]
-    fn invert_bit<I: ShiftIndex>(self, index: I) -> Self;
-}
-
-// impl<T: GetBit + SetBit + Copy> InvertBit for T {
-//     #[must_use]
-//     fn invert_bit<I: ShiftIndex>(self, index: I) -> Self {
-//         let bit = self.get_bit(index);
-//         self.set_bit(index, !bit)
-//     }
-// }
-
-macro_rules! __get_set_invert_impl {
-    ($type:ty) => {
-
-        impl InvertBit for $type {
-            #[must_use]
-            fn invert_bit<I: ShiftIndex>(self, index: I) -> Self {
-                let mask = (1 as Self).overflowing_shl(index.shift_index()).0;
-                self ^ mask
-            }
-        }
-
-        impl SetBit for $type {
-            #[must_use]
-            fn set_bit<I: ShiftIndex>(self, index: I, on: bool) -> Self {
-                if let (mask, false) = (1 as $type).overflowing_shl(index.shift_index()) {
-                    if on {
-                        self | mask
-                    } else {
-                        self & !mask
-                    }
-                } else {
-                    self
-                }
-            }
-
-            #[must_use]
-            fn add_bit<I: ShiftIndex>(self, index: I) -> Self {
-                if let (mask, false) = (1 as $type).overflowing_shl(index.shift_index()) {
-                    self | mask
-                } else {
-                    self
-                }
-            }
-
-            #[must_use]
-            fn remove_bit<I: ShiftIndex>(self, index: I) -> Self {
-                if let (mask, false) = (1 as $type).overflowing_shl(index.shift_index()) {
-                    self & !mask
-                } else {
-                    self
-                }
-            }
-
-            #[must_use]
-            fn set_bitmask(self, mask: Range<u32>, value: Self) -> Self {
-                let mask_len = mask.len();
-                let (bitmask, size_mask) = if mask_len as u32 >= Self::BITSIZE {
-                    (
-                        Self::MAX.overflowing_shl(mask.start).0,
-                        Self::MAX
-                    )
-                } else {
-                    (
-                        ((1 as Self).overflowing_shl(mask_len as u32).0 - 1).overflowing_shl(mask.start).0,
-                        (1 as Self).overflowing_shl(mask_len as u32).0 - 1
-                    )
-                };
-                let delete = self & !bitmask;
-                let value = value & size_mask;
-                delete | value << mask.start
-            }
-
-        
-        }
-
-        impl GetBit for $type {
-
-            #[must_use]
-            fn bitmask_range(range: Range<u32>) -> Self {
-                let range_len = range.len() as u32;
-                if range_len == Self::BITSIZE {
-                    Self::MAX.overflowing_shl(range.start).0
-                } else {
-                    ((1 as Self).overflowing_shl(range_len).0 - 1).overflowing_shl(range.start).0
-                }
-            }
-
-            #[must_use]
-            fn get_bit<I: ShiftIndex>(self, index: I) -> bool {
-                if let (mask, false) = (1 as $type).overflowing_shl(index.shift_index()) {
-                    (self & mask) != 0
-                } else {
-                    false
-                }
-            }
-
-            #[must_use]
-            fn get_bitmask(self, mask: Range<u32>) -> Self {
-                let mask_len = mask.len();
-                let bitmask = if mask_len as u32 == Self::BITSIZE {
-                    Self::MAX.overflowing_shl(mask.start).0
-                } else {
-                    ((1 as Self).overflowing_shl(mask_len as u32).0 - 1).overflowing_shl(mask.start).0
-                };
-                (self & bitmask).overflowing_shr(mask.start as u32).0
-            }
-        }
-
-    };
-}
-
-crate::for_each_int_type!(__get_set_invert_impl);
-
-/// To allow polymorphism for iterators of different integer types or references to integer types.
-pub trait MoveBitsIteratorItem {
-    fn translate(self) -> usize;
-}
-
-pub trait MoveBits: Sized {
-    fn move_bits<T: MoveBitsIteratorItem, It: IntoIterator<Item = T>>(self, new_indices: It) -> Self;
-    /// Much like move_bits, but takes indices in reverse order. This is useful if you want to have the
-    /// indices laid out more naturally from right to left.
-    fn move_bits_rev<T: MoveBitsIteratorItem, It: IntoIterator<Item = T>>(self, new_indices: It) -> Self
-    where It::IntoIter: DoubleEndedIterator {
-        self.move_bits(new_indices.into_iter().rev())
-    }
-}
-
-macro_rules! __movebits_impls {
-    ($type:ty) => {
-        impl MoveBitsIteratorItem for $type {
-            fn translate(self) -> usize {
-                self as usize
-            }
-        }
-
-        impl MoveBitsIteratorItem for &$type {
-            fn translate(self) -> usize {
-                *self as usize
-            }
-        }
-    };
-}
-
-for_each_int_type!(__movebits_impls);
-
-impl<T: BitSize + GetBit + SetBit + Copy> MoveBits for T {
-    fn move_bits<I: MoveBitsIteratorItem, It: IntoIterator<Item = I>>(self, source_indices: It) -> Self {
-        source_indices.into_iter()
-            .map(I::translate)
-            .enumerate()
-            .take(Self::BITSIZE as usize)
-            .fold(self, |value, (index, swap_index)| {
-                let on = value.get_bit(swap_index);
-                value.set_bit(index, on)
-            })
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn delete_bitmask_test() {
+        println!("{:08b}", u8::MAX.delete_bitmask(2..6));
     }
 }
