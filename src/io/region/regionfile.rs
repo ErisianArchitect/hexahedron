@@ -12,6 +12,7 @@ pub struct RegionFile {
     header: RegionHeader,
 }
 
+
 impl RegionFile {
     pub fn get_timestamp<C: Into<RegionCoord>>(&self, coord: C) -> Timestamp {
         self.header.timestamps[coord.into()]
@@ -113,8 +114,8 @@ impl RegionFile {
 
     pub fn write<C: Into<RegionCoord>, F: FnMut(&mut GzEncoder<&mut Cursor<Vec<u8>>>) -> Result<()>>(&mut self, coord: C, mut write: F) -> Result<()> {
         let coord: RegionCoord = coord.into();
-        self.write_buffer.get_mut().clear();
         self.write_buffer.seek(SeekFrom::Start(0))?;
+        self.write_buffer.get_mut().clear();
         let mut encoder = GzEncoder::new(&mut self.write_buffer, Compression::fast());
         write(&mut encoder)?;
         encoder.finish()?;
@@ -150,6 +151,11 @@ impl RegionFile {
     pub fn write_timestamped<C: Into<RegionCoord>, Ts: Into<Timestamp>, F: FnMut(&mut GzEncoder<&mut Cursor<Vec<u8>>>) -> Result<()>>(&mut self, coord: C, timestamp: Ts, write: F) -> Result<()> {
         let coord: RegionCoord = coord.into();
         self.write(coord, write)?;
+        self.write_timestamp(coord, timestamp)
+    }
+
+    pub fn write_timestamp<C: Into<RegionCoord>, Ts: Into<Timestamp>>(&mut self, coord: C, timestamp: Ts) -> Result<()> {
+        let coord: RegionCoord = coord.into();
         let timestamp: Timestamp = timestamp.into();
         self.header.timestamps[coord] = timestamp;
         let mut writer = BufWriter::new(&mut self.io);
