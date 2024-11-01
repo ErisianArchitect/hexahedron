@@ -33,9 +33,12 @@ macro_rules! for_each_int_type {
         $macro!{i8}
     }
 }
+
+pub use crate::for_each_int_type;
+
 #[macro_export]
 macro_rules! pipeline {
-    ($input:expr => $($pipe:expr),+) => {
+    ($input:expr => $($pipe:expr)=>+) => {
         (|piped| {
             $(
                 let piped = ($pipe)(piped);
@@ -44,6 +47,8 @@ macro_rules! pipeline {
         })($input)
     };
 }
+
+pub use crate::pipeline;
 
 #[cfg(test)]
 mod tests {
@@ -81,7 +86,10 @@ mod tests {
             let hex2 = HEX_CHARS[(input & 0xF) as usize];
             format!("{hex1}{hex2}")
         }
-        let result = pipeline!(200 => step1, step2, step3);
-        println!("{result}");
+        let result = pipeline!(200 => step1 => step2 => step3 => |s: String| s.to_lowercase());
+        assert_eq!(result, "ff");
+        let result = pipeline!(100 => |n: i32| n + 1 => |n: i32| n * 2);
+        assert_eq!(result, 202);
+
     }
 }
