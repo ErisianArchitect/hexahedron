@@ -41,8 +41,11 @@ impl<M: Copy> PartialOrd for PoolId<M> {
 }
 
 impl<M: Copy> PoolId<M> {
+    // 32 bits
     const           INDEX_BITS: u64 = 0b0000000000000000000000000000000011111111111111111111111111111111;
+    // 22 bits
     const      GENERATION_BITS: u64 = 0b0000000000111111111111111111111100000000000000000000000000000000;
+    // 10 bits
     const         POOL_ID_BITS: u64 = 0b1111111111000000000000000000000000000000000000000000000000000000;
     // This const isn't used right now, but it might be used in the future, so just leave it in.
     #[allow(unused)]
