@@ -7,9 +7,14 @@ use super::axis::Axis;
 pub struct AxisFlags(u8);
 
 impl AxisFlags {
+    pub const NONE: AxisFlags = AxisFlags(0);
     pub const X: AxisFlags = AxisFlags(0b001);
     pub const Y: AxisFlags = AxisFlags(0b010);
     pub const Z: AxisFlags = AxisFlags(0b100);
+    pub const XY: AxisFlags = AxisFlags(0b011);
+    pub const XZ: AxisFlags = AxisFlags(0b101);
+    pub const YZ: AxisFlags = AxisFlags(0b110);
+    pub const XYZ: AxisFlags = AxisFlags(0b111);
 
     #[inline]
     pub(crate) const fn from_u8(value: u8) -> Self {
@@ -39,6 +44,64 @@ impl AxisFlags {
             Axis::Y => self.0 &= 0b101,
             Axis::Z if value => self.0 |= 0b100,
             Axis::Z => self.0 &= 0b011,
+        }
+    }
+
+    #[inline]
+    pub fn tuple(self) -> (bool, bool, bool) {
+        (
+            (self.0 & AxisFlags::X.0) != 0,
+            (self.0 & AxisFlags::Y.0) != 0,
+            (self.0 & AxisFlags::Z.0) != 0,
+        )
+    }
+
+    #[inline]
+    pub fn array(self) -> [bool; 3] {
+        [
+            (self.0 & AxisFlags::X.0) != 0,
+            (self.0 & AxisFlags::Y.0) != 0,
+            (self.0 & AxisFlags::Z.0) != 0,
+        ]
+    }
+}
+
+impl Into<(bool, bool, bool)> for AxisFlags {
+    #[inline]
+    fn into(self) -> (bool, bool, bool) {
+        self.tuple()
+    }
+}
+
+impl From<(bool, bool, bool)> for AxisFlags {
+    #[inline]
+    fn from(value: (bool, bool, bool)) -> Self {
+        AxisFlags(value.0 as u8 | (value.1 as u8) << 1 | (value.2 as u8) << 2)
+    }
+}
+
+impl Into<[bool; 3]> for AxisFlags {
+    #[inline]
+    fn into(self) -> [bool; 3] {
+        self.array()
+    }
+}
+
+impl From<[bool; 3]> for AxisFlags {
+    #[inline]
+    fn from(value: [bool; 3]) -> Self {
+        let [x, y, z] = value;
+        AxisFlags(x as u8 | (y as u8) << 1 | (z as u8) << 2)
+    }
+}
+
+impl From<Axis> for AxisFlags {
+    #[inline]
+    fn from(value: Axis) -> Self {
+        match value {
+            Axis::X => AxisFlags::X,
+            Axis::Y => AxisFlags::Y,
+            Axis::Z => AxisFlags::Z,
         }
     }
 }
