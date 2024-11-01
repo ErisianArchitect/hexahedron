@@ -2,7 +2,8 @@ pub mod bit;
 pub mod axis;
 pub mod axisflags;
 
-use glam::Vec3;
+use bit::GetBit;
+use glam::{IVec2, IVec3, IVec4, Vec3};
 
 pub fn index2<const W: i32>(x: i32, y: i32) -> usize {
     let x = x.rem_euclid(W);
@@ -77,4 +78,113 @@ pub fn calculate_tri_normal(tri: &[Vec3]) -> Vec3 {
     let ny = a.z * b.x - a.x * b.z;
     let nz = a.x * b.y - a.y * b.x;
     Vec3::new(nx, ny, nz).normalize()
+}
+
+#[inline]
+pub fn checkerboard1<T: GetBit>(x: T) -> bool {
+    x.get_bit(0)
+}
+
+#[inline]
+pub fn checkerboard2<T: GetBit>(x: T, y: T) -> bool {
+    x.get_bit(0) ^ y.get_bit(0)
+}
+
+#[inline]
+pub fn checkerboard3<T: GetBit>(x: T, y: T, z: T) -> bool {
+    x.get_bit(0) ^ y.get_bit(0) ^ z.get_bit(0)
+}
+
+#[inline]
+pub fn checkerboard4<T: GetBit>(x: T, y: T, z: T, w: T) -> bool {
+    x.get_bit(0) ^
+    y.get_bit(0) ^
+    z.get_bit(0) ^
+    w.get_bit(0)
+}
+
+pub trait Checkerboard {
+    fn checkerboard(self) -> bool;
+}
+
+impl<T: GetBit> Checkerboard for T {
+    #[inline]
+    fn checkerboard(self) -> bool {
+        checkerboard1(self)
+    }
+}
+
+impl<T: GetBit> Checkerboard for (T, T) {
+    
+    #[inline]
+    fn checkerboard(self) -> bool {
+        checkerboard2(self.0, self.1)
+    }
+}
+
+impl<T: GetBit> Checkerboard for (T, T, T) {
+    #[inline]
+    fn checkerboard(self) -> bool {
+        checkerboard3(self.0, self.1, self.2)
+    }
+}
+
+impl<T: GetBit> Checkerboard for (T, T, T, T) {
+    #[inline]
+    fn checkerboard(self) -> bool {
+        checkerboard4(self.0, self.1, self.2, self.3)
+    }
+}
+
+impl<T: GetBit> Checkerboard for [T; 1] {
+    #[inline]
+    fn checkerboard(self) -> bool {
+        let [x] = self;
+        checkerboard1(x)
+    }
+}
+
+impl<T: GetBit> Checkerboard for [T; 2] {
+    #[inline]
+    fn checkerboard(self) -> bool {
+        let [x, y] = self;
+        checkerboard2(x, y)
+    }
+}
+
+impl<T: GetBit> Checkerboard for [T; 3] {
+    #[inline]
+    fn checkerboard(self) -> bool {
+        let [x, y, z] = self;
+        checkerboard3(x, y, z)
+    }
+}
+
+impl<T: GetBit> Checkerboard for [T; 4] {
+    #[inline]
+    fn checkerboard(self) -> bool {
+        let [x, y, z, w] = self;
+        checkerboard4(x, y, z, w)
+    }
+}
+
+impl Checkerboard for IVec2 {
+    #[inline]
+    fn checkerboard(self) -> bool {
+        checkerboard2(self.x, self.y)
+    }
+}
+
+impl Checkerboard for IVec3 {
+    #[inline]
+    fn checkerboard(self) -> bool {
+        checkerboard3(self.x, self.y, self.z)
+    }
+}
+
+impl Checkerboard for IVec4 {
+    #[inline]
+    fn checkerboard(self) -> bool {
+        checkerboard4(self.x, self.y, self.z, self.w)
+    }
 }
