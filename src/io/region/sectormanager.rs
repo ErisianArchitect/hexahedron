@@ -61,10 +61,6 @@ impl SectorManager {
 
     /// Attempts to allocate a sector. Panics if `blocks_required` exceed 8033.
     pub fn allocate(&mut self, block_size: BlockSize) -> SectorOffset {
-        // if blocks_required > BlockSize::MAX_BLOCK_COUNT {
-        //     panic!("Requested size exceeds maximum.");
-        // }
-        // let block_size = BlockSize::required(blocks_required);
         let block_count = block_size.block_count();
         // Find sector with needed size
         self.unused.iter().cloned().enumerate()
@@ -95,6 +91,7 @@ impl SectorManager {
             .cloned()
             .enumerate()
             // .find_map for early return
+            // look for the sectors on the left and the right of the freed_sector (if they exist).
             .find_map(|(index, sector)| {
                 match (left, right) {
                     (None, Some(_)) => {
