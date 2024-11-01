@@ -1,8 +1,44 @@
 use std::{iter::Map, marker::PhantomData, sync::atomic::AtomicU64, vec::Drain};
 use crate::util::extensions::SwapVal;
+use std::sync::LazyLock;
 
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Default, Clone, Copy, Eq, Ord, Hash)]
 pub struct PoolId<M: Copy>(u64, PhantomData<M>);
+
+impl<M: Copy> PartialEq for PoolId<M> {
+    #[inline]
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0
+    }
+
+    #[inline]
+    fn ne(&self, other: &Self) -> bool {
+        self.0 != other.0
+    }
+}
+
+impl<M: Copy> PartialOrd for PoolId<M> {
+    #[inline]
+    fn ge(&self, other: &Self) -> bool {
+        self.0.ge(&other.0)
+    }
+    #[inline]
+    fn gt(&self, other: &Self) -> bool {
+        self.0.gt(&other.0)
+    }
+    #[inline]
+    fn le(&self, other: &Self) -> bool {
+        self.0.le(&other.0)
+    }
+    #[inline]
+    fn lt(&self, other: &Self) -> bool {
+        self.0.lt(&other.0)
+    }
+    #[inline]
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.0.partial_cmp(&other.0)
+    }
+}
 
 impl<M: Copy> PoolId<M> {
     const           INDEX_BITS: u64 = 0b0000000000000000000000000000000011111111111111111111111111111111;
@@ -22,21 +58,25 @@ impl<M: Copy> PoolId<M> {
 
     
     #[must_use]
+    #[inline]
     pub fn is_null(self) -> bool {
         self.0 == 0
     }
 
     #[must_use]
+    #[inline]
     pub fn is_non_null(self) -> bool {
         self.0 != 0
     }
 
     /// Swaps this [PoolId] with NULL and returns the old Id.
+    #[inline]
     pub fn swap_null(&mut self) -> Self {
         self.swap(PoolId::NULL)
     }
     
     #[must_use]
+    #[inline]
     fn new(pool_id: u64, index: usize, generation: u64) -> Self {
         let index = index as u64 + 1;
         if index > Self::INDEX_BITS {
@@ -53,33 +93,36 @@ impl<M: Copy> PoolId<M> {
 
     
     #[must_use]
+    #[inline]
     pub fn id(self) -> u64 {
         self.0
     }
 
     /// Do not call this function on a null ID.
     #[must_use]
+    #[inline]
     pub fn index(self) -> usize {
         if self.is_null() {
-            panic!("index() on null PollId.");
+            panic!("index() on PoolId(null).");
         }
         ((self.0 & Self::INDEX_BITS) as usize) - 1
     }
 
     
     #[must_use]
+    #[inline]
     pub fn generation(self) -> u64 {
         self.0 >> Self::GENERATION_ID_OFFSET & Self::GENERATION_MAX
     }
 
     
     #[must_use]
+    #[inline]
     pub fn pool_id(self) -> u64 {
         self.0 >> Self::POOL_ID_OFFSET & Self::POOL_ID_MAX
     }
 
     /// Increment Generation
-    
     #[must_use]
     fn increment_generation(self) -> Self {
         let pool_id = self.pool_id();
@@ -91,20 +134,37 @@ impl<M: Copy> PoolId<M> {
     }
 }
 
+#[derive(Debug)]
+pub struct PoolEntry<T, M: Copy = &'static T> {
+    id: PoolId<M>,
+    value: T,
+}
+
+impl<T, M: Copy> PoolEntry<T, M> {
+    #[inline]
+    fn new(id: PoolId<M>, value: T) -> Self {
+        Self {
+            id,
+            value
+        }
+    }
+}
+
 /// An unordered object pool with O(1) lookup, insertion, deletion, and iteration.
 /// Sounds too good to be true!
 /// You can have 2^10 [ObjectPool]s before [PoolId]s between [ObjectPool]s start to collide.
 /// You can store 2^32 elements.
-/// I
 #[derive(Debug)]
 pub struct ObjectPool<T, M: Copy = &'static T> {
-    pool: Vec<(PoolId<M>, T)>,
+    pool: Vec<PoolEntry<T, M>>,
     indices: Vec<usize>,
     unused: Vec<PoolId<M>>,
     id: u64,
 }
 
-impl<T,M: Copy> ObjectPool<T,M> {
+static OBJECT_POOL_ID_COUNTER: LazyLock<AtomicU64> = LazyLock::new(|| AtomicU64::new(0));
+
+impl<T, M: Copy> ObjectPool<T, M> {
     
     #[must_use]
     pub fn new() -> Self {
@@ -117,11 +177,9 @@ impl<T,M: Copy> ObjectPool<T,M> {
     }
 
     #[must_use]
+    #[inline]
     fn next_id() -> u64 {
-        static mut ID: AtomicU64 = AtomicU64::new(0);
-        unsafe {
-            ID.fetch_add(1, std::sync::atomic::Ordering::SeqCst)
-        }
+        OBJECT_POOL_ID_COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed).rem_euclid(PoolId::<M>::POOL_ID_MAX)
     }
 
     /// Insertion order is not maintained.
@@ -130,21 +188,21 @@ impl<T,M: Copy> ObjectPool<T,M> {
         if let Some(unused_index) = self.unused.pop() {
             let new_id = unused_index.increment_generation();
             self.indices[new_id.index()] = self.pool.len();
-            self.pool.push((new_id, value));
+            self.pool.push(PoolEntry::new(new_id, value));
             new_id
         } else {
             let index = self.indices.len();
             let pool_index = self.pool.len();
             let id = PoolId::new(self.id, index, 0);
-            self.pool.push((id, value));
+            self.pool.push(PoolEntry::new(id, value));
             self.indices.push(pool_index);
             id
         }
     }
     
-    pub fn remove(&mut self, id: PoolId<M>) {
+    pub fn remove(&mut self, id: PoolId<M>) -> T {
         if id.is_null() {
-            return;
+            panic!("ID was null.");
         }
         if id.pool_id() != self.id {
             panic!("Id does not belong to this pool.");
@@ -153,44 +211,58 @@ impl<T,M: Copy> ObjectPool<T,M> {
             panic!("Out of bounds");
         }
         let pool_index = self.indices[id.index()];
-        if self.pool[pool_index].0.0 != id.0 {
+        if self.pool[pool_index].id != id {
             panic!("Dead pool ID");
         }
-        self.pool.swap_remove(pool_index);
-        if pool_index == self.pool.len() {
-            return;
+        let old = self.pool.swap_remove(pool_index).value;
+        // If we didn't just swap_remove the last element, then
+        // we need to adjust the index in the ObjectPool.
+        if pool_index != self.pool.len() {
+            let index_index = self.pool[pool_index].id;
+            self.indices[index_index.index()] = pool_index;
+            self.unused.push(id);
         }
-        let index_index = self.pool[pool_index].0;
-        self.indices[index_index.index()] = pool_index;
-        self.unused.push(id);
+        old
     }
 
-    /// Removes the old id and then inserts the new value and replaces the id with the new id.
-    pub fn swap_insert(&mut self, id: &mut PoolId<M>, insert: T) {
-        let old = id.swap_null();
-        self.remove(old);
-        *id = self.insert(insert);
+    /// Swaps the value with the given ID with a new value.
+    pub fn swap_insert(&mut self, id: PoolId<M>, value: T) -> T {
+        if id.is_null() {
+            panic!("Provided a null ID.");
+        }
+        if id.pool_id() != self.id {
+            panic!("Id does not belong to this pool.");
+        }
+        if id.index() >= self.indices.len() {
+            panic!("Out of bounds.");
+        }
+        let pool_index = self.indices[id.index()];
+        self.pool[pool_index].value.swap(value)
     }
 
     pub fn pop(&mut self) -> Option<T> {
-        let (id, value) = self.pool.pop()?;
+        let PoolEntry {id, value} = self.pool.pop()?;
         self.unused.push(id);
         Some(value)
     }
 
+    #[inline]
     pub fn is_empty(&self) -> bool {
         self.pool.is_empty()
     }
 
+    #[inline]
     pub fn len(&self) -> usize {
         self.pool.len()
     }
 
+    #[inline]
     pub fn id(&self) -> u64 {
         self.id
     }
 
     #[must_use]
+    #[inline]
     pub fn with_capacity(capacity: usize) -> Self {
         Self {
             pool: Vec::with_capacity(capacity),
@@ -206,10 +278,11 @@ impl<T,M: Copy> ObjectPool<T,M> {
             return None;
         }
         let pool_index = self.indices[id.index()];
-        if self.pool[pool_index].0.0 != id.0 {
+        if self.pool[pool_index].id != id {
+            // Actually, I'm pretty sure this would be a bug.
             return None;
         }
-        Some(&self.pool[pool_index].1)
+        Some(&self.pool[pool_index].value)
     }
 
     #[must_use]
@@ -218,10 +291,10 @@ impl<T,M: Copy> ObjectPool<T,M> {
             return None;
         }
         let pool_index = self.indices[id.index()];
-        if self.pool[pool_index].0.0 != id.0 {
+        if self.pool[pool_index].id.0 != id.0 {
             return None;
         }
-        Some(&mut self.pool[pool_index].1)
+        Some(&mut self.pool[pool_index].value)
     }
 
     #[must_use]
@@ -231,24 +304,25 @@ impl<T,M: Copy> ObjectPool<T,M> {
 
     #[must_use]
     pub fn iter(&self) -> impl Iterator<Item = (PoolId<M>, &T)> {
-        self.pool.iter().map(|(id, item)| (*id, item))
+        self.pool.iter().map(|PoolEntry {id, value}| (*id, value))
     }
 
     #[must_use]
     pub fn iter_mut(&mut self) -> impl Iterator<Item = (PoolId<M>, &mut T)> {
-        self.pool.iter_mut().map(|(id, item)| (*id, item))
+        self.pool.iter_mut().map(|PoolEntry {id, value}| (*id, value))
     }
 
     #[must_use]
-    pub fn drain(&mut self) -> Map<Drain<'_, (PoolId<M>, T)>, fn((PoolId<M>, T)) -> T> {
+    pub fn drain(&mut self) -> Map<Drain<'_, PoolEntry<T, M>>, fn(PoolEntry<T, M>) -> T> {
         self.unused.clear();
         self.indices.clear();
-        fn drain_helper<T,M: Copy>((_id, item): (PoolId<M>, T)) -> T {
-            item
+        fn drain_helper<T,M: Copy>(PoolEntry { value, .. }: PoolEntry<T, M>) -> T {
+            value
         }
         self.pool.drain(..).map(drain_helper::<T,M>)
     }
 
+    /// Clears the [ObjectPool].
     pub fn clear(&mut self) {
         self.indices.clear();
         self.unused.clear();
@@ -260,6 +334,7 @@ impl<T,M: Copy> IntoIterator for ObjectPool<T,M> {
     type IntoIter = ObjectPoolIterator<T,M>;
     type Item = T;
 
+    #[inline]
     fn into_iter(self) -> Self::IntoIter {
         ObjectPoolIterator {
             iter: self.pool.into_iter()
@@ -268,30 +343,33 @@ impl<T,M: Copy> IntoIterator for ObjectPool<T,M> {
 }
 
 pub struct ObjectPoolIterator<T,M: Copy> {
-    iter: std::vec::IntoIter<(PoolId<M>, T)>,
+    iter: std::vec::IntoIter<PoolEntry<T, M>>,
 }
 
 impl<T,M: Copy> Iterator for ObjectPoolIterator<T,M> {
     type Item = T;
     
+    #[inline]
     fn size_hint(&self) -> (usize, Option<usize>) {
         self.iter.size_hint()
     }
 
-    
+    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        self.iter.next().map(|(_, value)| value)
+        self.iter.next().map(|PoolEntry { value, .. }| value)
     }
 }
 
 impl<T,M: Copy> std::ops::Index<PoolId<M>> for ObjectPool<T,M> {
     type Output = T;
+    #[inline]
     fn index(&self, index: PoolId<M>) -> &Self::Output {
         self.get(index).expect("PoolId was invalid")
     }
 }
 
 impl<T, M: Copy> std::ops::IndexMut<PoolId<M>> for ObjectPool<T,M> {
+    #[inline]
     fn index_mut(&mut self, index: PoolId<M>) -> &mut Self::Output {
         self.get_mut(index).expect("PoolId was invalid")
     }
@@ -299,6 +377,10 @@ impl<T, M: Copy> std::ops::IndexMut<PoolId<M>> for ObjectPool<T,M> {
 
 impl<M: Copy> std::fmt::Display for PoolId<M> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "PoolId(pool_id={},index={},generation={})", self.pool_id(), self.index(), self.generation())
+        if self.is_null() {
+            write!(f, "PoolId(null)")
+        } else {
+            write!(f, "PoolId(pool_id={},index={},generation={})", self.pool_id(), self.index(), self.generation())
+        }
     }
 }
