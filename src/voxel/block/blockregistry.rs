@@ -17,6 +17,12 @@ struct InnerBlockRegistry {
 
 impl Default for InnerBlockRegistry {
     fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl InnerBlockRegistry {
+    fn new() -> Self {
         let air_state = Arc::new(BlockState::new("air", []));
         Self {
             blocks: {
@@ -32,12 +38,12 @@ impl Default for InnerBlockRegistry {
     }
 }
 
-#[derive(Clone)]
+#[derive(Default, Clone)]
 pub struct BlockRegistry(Arc<RwLock<InnerBlockRegistry>>);
 
 impl BlockRegistry {
     pub fn new() -> Self {
-        Self(Arc::new(RwLock::new(InnerBlockRegistry::default())))
+        Self(Arc::new(RwLock::new(InnerBlockRegistry::new())))
     }
 
     #[inline]
@@ -120,6 +126,7 @@ mod sealed {
     pub trait BlockGetterSeal {}
     impl BlockGetterSeal for super::BlockId {}
     impl BlockGetterSeal for super::StateId {}
+    impl<S: AsRef<str>> BlockGetterSeal for S {}
 }
 
 pub trait BlockGetterId: sealed::BlockGetterSeal {
@@ -138,6 +145,17 @@ impl BlockGetterId for StateId {
         let reg = registry.read_lock()?;
         let block_id = reg.block_ids[self.index()];
         Ok(Arc::clone(&reg.blocks[block_id.index()]))
+    }
+}
+
+impl<S: AsRef<str>> BlockGetterId for S {
+    fn get_block(self, registry: &BlockRegistry) -> Result<Arc<dyn BlockBehavior>> {
+        let reg = registry.read_lock()?;
+        if let Some(id) = reg.block_lookup.get(self.as_ref()) {
+            Ok(Arc::clone(&reg.blocks[id.index()]))
+        } else {
+            Err(Error::BlockNotFound(self.as_ref().to_owned()))
+        }
     }
 }
 
@@ -168,6 +186,8 @@ impl RefOrOwned<BlockState> for BlockState {
 
 #[cfg(test)]
 mod tests {
+    use std::{cell::RefCell, rc::Rc};
+
     use super::*;
     #[test]
     fn registry_test() -> Result<()> {
@@ -178,46 +198,45 @@ mod tests {
             fn name(&self) -> &str {
                 "dirt"
             }
-            fn on_register(&self, _registry: &BlockRegistry) {
-                println!("dirt block registered.");
-            }
         }
         impl BlockBehavior for GrassBlock {
             fn name(&self) -> &str {
                 "grass"
             }
-            fn on_register(&self, _registry: &BlockRegistry) {
-                println!("grass block registered.");
-            }
         }
-        struct DebugBlock(&'static str);
+        struct DebugBlock(&'static str, Rc<RefCell<bool>>);
         impl BlockBehavior for DebugBlock {
             fn name(&self) -> &str {
-                &self.0
+                self.0
             }
             fn on_register(&self, _registry: &BlockRegistry) {
-                println!("{} block registered.", self.name());
+                self.1.replace(true);
             }
         }
         let _dirt = reg.register_block(DirtBlock)?;
         let _grass = reg.register_block(GrassBlock)?;
-        let _hello = reg.register_block(DebugBlock("hello"))?;
-        let world = reg.register_block(DebugBlock("world"))?;
+        // for on_register call which will replace value with true.
+        let hello_cell = Rc::new(RefCell::new(false));
+        let _hello = reg.register_block(DebugBlock("hello", hello_cell.clone()))?;
+        assert!(hello_cell.take());
+        let world_cell = Rc::new(RefCell::new(false));
+        let world = reg.register_block(DebugBlock("world", world_cell.clone()))?;
+        assert!(world_cell.take());
         let hello1 = reg.register_state(BlockState::new("hello", []))?;
         reg.access_state(StateId::AIR, |state| {
-            println!("Air Block: {}", state.name());
+            assert_eq!(state.name(), "air");
         })?;
         reg.access_block(StateId::AIR, |block| {
-            println!("Air Description: {}", block.description().as_ref().unwrap_or(&""));
+            assert_eq!(*block.description().as_ref().unwrap(), "A block of air.");
         })?;
         reg.access_block(hello1, |block| {
-            println!("block: {}", block.name());
+            assert_eq!(block.name(), "hello");
         })?;
         reg.access_block(world, |block| {
-            println!("block: {}", block.name());
+            assert_eq!(block.name(), "world");
         })?;
         reg.access_state(hello1, |state| {
-            println!("state: {}", state.name());
+            assert_eq!(state.name(), "hello");
         })?;
         Ok(())
     }
