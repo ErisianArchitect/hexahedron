@@ -42,11 +42,61 @@ impl<S: AsRef<str>> std::ops::Index<S> for BlockState {
     }
 }
 
+#[macro_export]
+macro_rules! blockstate {
+    ($id:ident [ $($name:ident = $value:expr),* $(,)? ]) => {
+        $crate::voxel::block::blockstate::BlockState::new(
+            stringify!($id),
+            [
+                $(
+                    $crate::voxel::block::blockproperty::BlockProperty::new(
+                        stringify!($name),
+                        $value
+                    ),
+                )*
+            ]
+        )
+    };
+}
+
+pub use crate::blockstate;
+
 #[cfg(test)]
 mod tests {
     use super::*;
     #[test]
     fn blockstate_test() {
+        use crate::voxel::cardinal::Cardinal;
+        use crate::rendering::color::*;
+        let state = blockstate!(chest[facing=Cardinal::North,locked=false, color=Rgb::new(255, 0, 255)]);
+        assert_eq!(state.name(), "chest");
+
+        if let Property::Cardinal(face) = state["facing"] {
+            assert_eq!(face, Cardinal::North);
+        } else {
+            panic!("Property was not Cardinal.");
+        }
+        if let Property::Cardinal(face) = state["facing"] {
+            assert_eq!(face, Cardinal::North);
+        } else {
+            panic!("Property was not Cardinal.");
+        }
+        if let Property::Bool(locked) = state["locked"] {
+            assert_eq!(locked, false);
+        } else {
+            panic!("Property was not Bool.");
+        }
+        if let Property::Bool(locked) = state["locked"] {
+            assert_eq!(locked, false);
+        } else {
+            panic!("Property was not Bool.");
+        }
+        if let Property::Rgb(color) = state["color"] {
+            assert_eq!(color, Rgb::new(255, 0, 255));
+        } else {
+            panic!("Property was not Rgb.");
+        }
+
         let state = BlockState::new("test", [
             BlockProperty::new("int", 1234),
             BlockProperty::new("bool", true),
