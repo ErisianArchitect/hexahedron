@@ -54,6 +54,7 @@ impl Direction {
     pub const BACKWARD: Direction = Direction::PosZ;
 
     /// Invert the [Direction]. (`NegX` becomes `PosX`, `PosX` becomes `NegX`, etc.)
+    #[inline]
     pub const fn invert(self) -> Self {
         match self {
             Direction::NegX => Direction::PosX,
@@ -66,6 +67,7 @@ impl Direction {
     }
 
     /// Flips the [Direction] based on [Flip].
+    #[inline]
     pub const fn flip(self, flip: Flip) -> Self {
         use Direction::*;
         match self {
@@ -80,11 +82,13 @@ impl Direction {
     }
 
     /// Rotates the [Direction] by [Rotation].
+    #[inline]
     pub fn rotate(self, rotation: Rotation) -> Self {
         rotation.reface(self)
     }
 
     /// Gets the [Axis] of the [Direction]
+    #[inline]
     pub const fn axis(self) -> Axis {
         use Direction::*;
         match self {
@@ -95,27 +99,32 @@ impl Direction {
     }
 
     /// Represents discriminant as single bit value.
+    #[inline]
     pub const fn bit(self) -> u8 {
         1 << self as u8
     }
 
     /// Gets the discriminant of the value.
+    #[inline]
     pub const fn discriminant(self) -> u8 {
         self as u8
     }
 
     /// Iterates in the order: `NegX`, `NegY`, `NegZ`, `PosX`, `PosY`, `PosZ`.
+    #[inline]
     pub fn iter() -> impl Iterator<Item = Direction> {
         Self::ALL.into_iter()
     }
 
     /// Iterates the [Direction] enum in the order of the variants' discriminants.
+    #[inline]
     pub fn iter_discriminant_order() -> impl Iterator<Item = Direction> {
         Self::INDEX_ORDER.into_iter()
     }
 
     /// On a non-oriented cube, each face has an "up" face. That's the face
     /// whose normal points to the top of the given face's UV plane.
+    #[inline]
     pub const fn up(self) -> Direction {
         use Direction::*;
         match self {
@@ -130,6 +139,7 @@ impl Direction {
 
     /// On a non-oriented cube, each face has a "down" face. That's the face
     /// whose normal points to the bottom of the given face's UV plane.
+    #[inline]
     pub const fn down(self) -> Direction {
         use Direction::*;
         match self {
@@ -144,6 +154,7 @@ impl Direction {
 
     /// On a non-oriented cube, each face has a "left" face. That's the face
     /// whose normal points to the left of the given face's UV plane.
+    #[inline]
     pub const fn left(self) -> Direction {
         use Direction::*;
         match self {
@@ -158,6 +169,7 @@ impl Direction {
 
     /// On a non-oriented cube, each face has a "right" face. That's the face
     /// whose normal points to the right of the given face's UV plane.
+    #[inline]
     pub const fn right(self) -> Direction {
         use Direction::*;
         match self {
@@ -186,7 +198,7 @@ impl Direction {
 
 impl std::ops::Neg for Direction {
     type Output = Self;
-    
+    #[inline]
     fn neg(self) -> Self::Output {
         self.invert()
     }
