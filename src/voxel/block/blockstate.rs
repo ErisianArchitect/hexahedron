@@ -53,19 +53,19 @@ mod tests {
             BlockProperty::new("string", "Hello, world!")
         ]);
         if let Property::Int(value) = &state["int"] {
-            println!("{}", value);
+            assert_eq!(*value, 1234);
         } else {
-            println!("Failed");
+            panic!("Property was not Int.");
         }
         if let Property::String(value) = &state["string"] {
-            println!("{}", value);
+            assert_eq!(value, "Hello, world!");
         } else {
-            println!("Failed");
+            panic!("Property was not String.");
         }
         if let Property::Bool(value) = &state["bool"] {
-            println!("{}", value);
+            assert_eq!(*value, true);
         } else {
-            println!("Failed");
+            panic!("Property was not Bool.");
         }
     }
 }
