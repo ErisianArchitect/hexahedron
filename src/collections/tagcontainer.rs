@@ -6,11 +6,11 @@ pub struct TagId(u16);
 impl TagId {
     pub const NULL: TagId = TagId(0);
 
-    fn new(index: usize) -> Self {
+    fn new(index: u16) -> Self {
         if index > 0x7fff {
             panic!("Index out of range.");
         }
-        Self(index as u16 | 0x8000)
+        Self(index << 1 | 1)
     }
 
     #[inline]
@@ -20,7 +20,7 @@ impl TagId {
 
     #[inline]
     fn id(self) -> u16 {
-        self.0 & 0x7fff
+        self.0 >> 1
     }
 
     #[inline]
@@ -46,13 +46,13 @@ impl TagContainer {
         let value: Tag = value.into();
         if let Some(index) = self.unused.pop() {
             self.data[index as usize].replace(value);
-            TagId::new(index as usize)
+            TagId::new(index)
         } else {
             // Max length for 15 bits.
             if self.data.len() >= 32768 {
                 panic!("Container overflow.");
             }
-            let index = TagId::new(self.data.len());
+            let index = TagId::new(self.data.len() as u16);
             self.data.push(Some(value));
             index
         }
