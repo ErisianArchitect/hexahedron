@@ -228,8 +228,8 @@ impl<T, M: Copy> ObjectPool<T, M> {
         old
     }
 
-    /// Swaps the value with the given ID with a new value.
-    pub fn swap_insert(&mut self, id: PoolId<M>, value: T) -> T {
+    /// Replaces the value with the given ID with a new value.
+    pub fn replace(&mut self, id: PoolId<M>, value: T) -> T {
         if id.is_null() {
             panic!("Provided a null ID.");
         }
@@ -319,8 +319,8 @@ impl<T, M: Copy> ObjectPool<T, M> {
     pub fn drain(&mut self) -> Map<Drain<'_, PoolEntry<T, M>>, fn(PoolEntry<T, M>) -> T> {
         self.unused.clear();
         self.indices.clear();
-        fn drain_helper<T,M: Copy>(PoolEntry { value, .. }: PoolEntry<T, M>) -> T {
-            value
+        fn drain_helper<T,M: Copy>(entry: PoolEntry<T, M>) -> T {
+            entry.value
         }
         self.pool.drain(..).map(drain_helper::<T,M>)
     }
