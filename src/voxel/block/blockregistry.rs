@@ -1,7 +1,7 @@
 use hashbrown::HashMap;
 use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use super::blocks::AirBlock;
-use super::blockstate::BlockState;
+use super::blockstate::{BlockState, blockstate};
 use super::{block::BlockBehavior, id::{BlockId, StateId}};
 use super::error::{Error, Result};
 
@@ -23,7 +23,7 @@ impl Default for InnerBlockRegistry {
 
 impl InnerBlockRegistry {
     fn new() -> Self {
-        let air_state = Arc::new(BlockState::new("air", []));
+        let air_state = Arc::new(blockstate!(air));
         Self {
             blocks: {
                 let mut blocks = Vec::<Arc<dyn BlockBehavior>>::new();
