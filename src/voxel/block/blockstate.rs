@@ -24,6 +24,11 @@ impl BlockState {
         &self.block_name
     }
 
+    #[inline]
+    pub fn properties(&self) -> &[BlockProperty] {
+        &self.sorted_properties
+    }
+
     pub fn get_property<S: AsRef<str>>(&self, name: S) -> &Property {
         if let Ok(index) = self.sorted_properties.binary_search_by(|prop| {
             name.as_ref().cmp(&prop.name)
@@ -44,16 +49,18 @@ impl<S: AsRef<str>> std::ops::Index<S> for BlockState {
 
 #[macro_export]
 macro_rules! blockstate {
-    ($id:ident [ $($name:ident = $value:expr),* $(,)? ]) => {
+    ($id:ident $([ $($name:ident = $value:expr),* $(,)? ])?) => {
         $crate::voxel::block::blockstate::BlockState::new(
             stringify!($id),
             [
                 $(
-                    $crate::voxel::block::blockproperty::BlockProperty::new(
-                        stringify!($name),
-                        $value
-                    ),
-                )*
+                    $(
+                        $crate::voxel::block::blockproperty::BlockProperty::new(
+                            stringify!($name),
+                            $value
+                        ),
+                    )*
+                )?
             ]
         )
     };
@@ -68,16 +75,25 @@ mod tests {
     fn blockstate_test() {
         use crate::voxel::cardinal::Cardinal;
         use crate::rendering::color::*;
-        let state = blockstate!(chest[facing=Cardinal::North,locked=false, color=Rgb::new(255, 0, 255)]);
+        let air = blockstate!(air);
+        assert_eq!(air.name(), "air");
+        assert!(air.properties().is_empty());
+        let state = blockstate!(chest[
+            facing=Cardinal::West,
+            locked=false,
+            color=Rgb::new(255, 0, 255),
+            password=b"hunter2",
+        ]);
+        assert_eq!(state.properties().len(), 4);
         assert_eq!(state.name(), "chest");
 
         if let Property::Cardinal(face) = state["facing"] {
-            assert_eq!(face, Cardinal::North);
+            assert_eq!(face, Cardinal::West);
         } else {
             panic!("Property was not Cardinal.");
         }
         if let Property::Cardinal(face) = state["facing"] {
-            assert_eq!(face, Cardinal::North);
+            assert_eq!(face, Cardinal::West);
         } else {
             panic!("Property was not Cardinal.");
         }
@@ -96,12 +112,19 @@ mod tests {
         } else {
             panic!("Property was not Rgb.");
         }
+        if let Property::Bytes(password) = &state["password"] {
+            assert_eq!(password, b"hunter2");
+        } else {
+            panic!("Property was not Bytes.");
+        }
 
         let state = BlockState::new("test", [
             BlockProperty::new("int", 1234),
             BlockProperty::new("bool", true),
             BlockProperty::new("string", "Hello, world!")
         ]);
+        assert_eq!(state.name(), "test");
+        assert_eq!(state.properties().len(), 3);
         if let Property::Int(value) = &state["int"] {
             assert_eq!(*value, 1234);
         } else {
