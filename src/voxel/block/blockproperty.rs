@@ -28,6 +28,7 @@ macro_rules! property_table {
             [21     Rgba(crate::rendering::color::Rgba)                 ]
             [22     Range(std::ops::Range<i64>)                         ]
             [23     RangeInclusive(std::ops::RangeInclusive<i64>)       ]
+            [24     Bytes(Vec<u8>)                                      ]
         }
     };
 }
@@ -148,6 +149,24 @@ impl From<Rc<str>> for Property {
 impl From<Box<str>> for Property {
     fn from(value: Box<str>) -> Self {
         Property::String(value.as_ref().to_owned())
+    }
+}
+
+impl<const SIZE: usize> From<[u8; SIZE]> for Property {
+    fn from(value: [u8; SIZE]) -> Self {
+        Property::Bytes(value.into())
+    }
+}
+
+impl<const SIZE: usize> From<&[u8; SIZE]> for Property {
+    fn from(value: &[u8; SIZE]) -> Self {
+        Property::Bytes(value.into())
+    }
+}
+
+impl From<&[u8]> for Property {
+    fn from(value: &[u8]) -> Self {
+        Property::Bytes(value.into())
     }
 }
 
