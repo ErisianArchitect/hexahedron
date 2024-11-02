@@ -7,7 +7,38 @@ pub struct Rotation(pub u8);
 
 impl Rotation {
     pub const UNROTATED: Rotation = Rotation::new(Direction::PosY, 0);
-
+    pub const ROTATE_X: Rotation = Rotation::new(Direction::NegZ, 2);
+    pub const X_ROTATIONS: [Rotation; 4] = [
+        Rotation::new(Direction::PosY, 0),
+        Rotation::new(Direction::NegZ, 2),
+        Rotation::new(Direction::NegY, 0),
+        Rotation::new(Direction::PosZ, 0),
+    ];
+    pub const ROTATE_Y: Rotation = Rotation::new(Direction::PosY, 1);
+    pub const Y_ROTATIONS: [Rotation; 4] = [
+        Rotation::new(Direction::PosY, 0),
+        Rotation::new(Direction::PosY, 1),
+        Rotation::new(Direction::PosY, 2),
+        Rotation::new(Direction::PosY, 3),
+    ];
+    pub const ROTATE_Z: Rotation = Rotation::new(Direction::PosX, 1);
+    pub const Z_ROTATIONS: [Rotation; 4] = [
+        Rotation::new(Direction::PosY, 0),
+        Rotation::new(Direction::PosX, 1),
+        Rotation::new(Direction::NegY, 2),
+        Rotation::new(Direction::NegX, 3),
+    ];
+    pub const CORNER_ROTATIONS_MATRIX: [[[Rotation; 2]; 2]; 2] = [
+        [
+            [Rotation::new(Direction::PosZ, 3), Rotation::new(Direction::NegX, 2)],
+            [Rotation::new(Direction::PosX, 0), Rotation::new(Direction::NegZ, 1)]
+        ],
+        [
+            [Rotation::new(Direction::NegX, 0), Rotation::new(Direction::NegZ, 3)],
+            [Rotation::new(Direction::PosZ, 1), Rotation::new(Direction::PosX, 2)]
+        ],
+    ];
+    
     pub const fn new(up: Direction, angle: i32) -> Self {
         let up = up as u8;
         let angle = angle.rem_euclid(4) as u8;
