@@ -85,6 +85,7 @@ impl TagContainer {
         self.data[id.index()].as_ref().unwrap()
     }
 
+    /// This method can panic if id is invalid.
     pub fn get_mut(&mut self, id: TagId) -> &mut Tag {
         if id.is_null() {
             panic!("id is null.");
