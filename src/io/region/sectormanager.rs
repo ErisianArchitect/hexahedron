@@ -173,8 +173,11 @@ impl SectorManager {
     }
     
     fn reallocate_unchecked(&mut self, free: SectorOffset, new_size: BlockSize) -> Option<SectorOffset> {
+        // left represents the index of the sector to the left of free
         let mut left = Option::<usize>::None;
+        // right represents the index of the sector to the right of free
         let mut right = Option::<usize>::None;
+        // alloc represents the index of the sector to allocate into
         let mut alloc = Option::<usize>::None;
         let mut freed_sector = ManagedSector::from(free);
         
