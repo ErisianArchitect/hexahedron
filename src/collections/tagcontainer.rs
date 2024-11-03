@@ -1,16 +1,21 @@
+use glam::IVec3;
+
+use crate::prelude::SwapVal;
 use crate::tag::*;
+use crate::math;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct TagId(u16);
 
 impl TagId {
     pub const NULL: TagId = TagId(0);
+    pub const MAX: u16 = 0xffff-1;
 
     fn new(index: u16) -> Self {
-        if index > 0x7fff {
+        if index == 0xffff {
             panic!("Index out of range.");
         }
-        Self(index << 1 | 1)
+        Self(index + 1)
     }
 
     #[inline]
@@ -20,11 +25,11 @@ impl TagId {
 
     #[inline]
     fn id(self) -> u16 {
-        self.0 >> 1
+        self.0 - 1
     }
 
     #[inline]
-    pub fn index(self) -> usize {
+    fn index(self) -> usize {
         self.id() as usize
     }
 }
@@ -48,8 +53,7 @@ impl TagContainer {
             self.data[index as usize].replace(value);
             TagId::new(index)
         } else {
-            // Max length for 15 bits.
-            if self.data.len() >= 32768 {
+            if self.data.len() >= u16::MAX as usize {
                 panic!("Container overflow.");
             }
             let index = TagId::new(self.data.len() as u16);
@@ -115,5 +119,104 @@ impl std::ops::Index<TagId> for TagContainer {
 impl std::ops::IndexMut<TagId> for TagContainer {
     fn index_mut(&mut self, index: TagId) -> &mut Self::Output {
         self.get_mut(index)
+    }
+}
+
+#[derive(Default)]
+struct IdContainer(Option<Box<[TagId]>>);
+
+impl IdContainer {
+    #[inline]
+    fn force_ids(&mut self) -> &mut Box<[TagId]> {
+        self.0.get_or_insert_with(|| {
+            (0..32768).map(|_| TagId::NULL).collect()
+        })
+    }
+
+    #[inline]
+    fn unwrap_mut(&mut self) -> &mut Box<[TagId]> {
+        self.0.as_mut().unwrap()
+    }
+}
+
+pub struct TagSection {
+    ids: IdContainer,
+    container: TagContainer,
+}
+
+impl TagSection {
+    pub fn new() -> Self {
+        Self {
+            ids: IdContainer::default(),
+            container: TagContainer::new(),
+        }
+    }
+
+    pub fn insert<T: Into<Tag>>(&mut self, coord: IVec3, value: T) -> Tag {
+        let ids = self.ids.force_ids();
+        let index = math::index3::<32>(coord.x, coord.y, coord.z);
+        let id = ids[index];
+        if !id.is_null() {
+            self.container.replace(id, value)
+        } else {
+            let id = self.container.insert(value);
+            ids[index] = id;
+            Tag::Null
+        }
+    }
+
+    pub fn remove(&mut self, coord: IVec3) -> Tag {
+        if self.ids.0.is_none() {
+            return Tag::Null;
+        }
+        let ids = self.ids.unwrap_mut();
+        let index = math::index3::<32>(coord.x, coord.y, coord.z);
+        let id = ids[index].swap(TagId::NULL);
+        if id.is_null() {
+            Tag::Null
+        } else {
+            self.container.remove(id)
+        }
+    }
+
+    pub fn get(&self, coord: IVec3) -> Option<&Tag> {
+        self.ids.0.as_ref().and_then(|ids| {
+            let index = math::index3::<32>(coord.x, coord.y, coord.z);
+            let id = ids[index];
+            if id.is_null() {
+                None
+            } else {
+                Some(self.container.get(id))
+            }
+        })
+    }
+
+    pub fn get_mut(&mut self, coord: IVec3) -> Option<&mut Tag> {
+        self.ids.0.as_mut().and_then(|ids| {
+            let index = math::index3::<32>(coord.x, coord.y, coord.z);
+            let id = ids[index];
+            if id.is_null() {
+                None
+            } else {
+                Some(self.container.get_mut(id))
+            }
+        })
+    }
+
+    pub fn get_or_insert_with<T: Into<Tag>, F: FnOnce() -> T>(&mut self, coord: IVec3, insert: F) -> &mut Tag {
+        let ids = self.ids.force_ids();
+        let index = math::index3::<32>(coord.x, coord.y, coord.z);
+        let id = ids[index];
+        if id.is_null() {
+            let id = self.container.insert(insert());
+            ids[index] = id;
+            self.container.get_mut(id)
+        } else {
+            self.container.get_mut(id)
+        }
+    }
+
+    pub fn get_or_insert<T: Into<Tag>>(&mut self, coord: IVec3, insert: T) -> &mut Tag {
+        self.get_or_insert_with(coord, || insert)
     }
 }
