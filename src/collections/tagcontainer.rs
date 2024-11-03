@@ -137,11 +137,17 @@ impl IdContainer {
     fn unwrap_mut(&mut self) -> &mut Box<[TagId]> {
         self.0.as_mut().unwrap()
     }
+
+    #[inline]
+    fn clear(&mut self) {
+        self.0.take();
+    }
 }
 
 pub struct TagSection {
     ids: IdContainer,
     container: TagContainer,
+    non_null_count: u16,
 }
 
 impl TagSection {
@@ -149,10 +155,12 @@ impl TagSection {
         Self {
             ids: IdContainer::default(),
             container: TagContainer::new(),
+            non_null_count: 0,
         }
     }
 
-    pub fn insert<T: Into<Tag>>(&mut self, coord: IVec3, value: T) -> Tag {
+    pub fn insert<C: Into<IVec3>, T: Into<Tag>>(&mut self, coord: C, value: T) -> Tag {
+        let coord: IVec3 = coord.into();
         let ids = self.ids.force_ids();
         let index = math::index3::<32>(coord.x, coord.y, coord.z);
         let id = ids[index];
@@ -161,11 +169,13 @@ impl TagSection {
         } else {
             let id = self.container.insert(value);
             ids[index] = id;
+            self.non_null_count += 1;
             Tag::Null
         }
     }
 
-    pub fn remove(&mut self, coord: IVec3) -> Tag {
+    pub fn remove<C: Into<IVec3>>(&mut self, coord: C) -> Tag {
+        let coord: IVec3 = coord.into();
         if self.ids.0.is_none() {
             return Tag::Null;
         }
@@ -175,11 +185,18 @@ impl TagSection {
         if id.is_null() {
             Tag::Null
         } else {
-            self.container.remove(id)
+            let old = self.container.remove(id);
+            self.non_null_count -= 1;
+            if self.non_null_count == 0 {
+                self.ids.clear();
+                self.container.clear(true);
+            }
+            old
         }
     }
 
-    pub fn get(&self, coord: IVec3) -> Option<&Tag> {
+    pub fn get<C: Into<IVec3>>(&self, coord: C) -> Option<&Tag> {
+        let coord: IVec3 = coord.into();
         self.ids.0.as_ref().and_then(|ids| {
             let index = math::index3::<32>(coord.x, coord.y, coord.z);
             let id = ids[index];
@@ -191,7 +208,8 @@ impl TagSection {
         })
     }
 
-    pub fn get_mut(&mut self, coord: IVec3) -> Option<&mut Tag> {
+    pub fn get_mut<C: Into<IVec3>>(&mut self, coord: C) -> Option<&mut Tag> {
+        let coord: IVec3 = coord.into();
         self.ids.0.as_mut().and_then(|ids| {
             let index = math::index3::<32>(coord.x, coord.y, coord.z);
             let id = ids[index];
@@ -203,20 +221,22 @@ impl TagSection {
         })
     }
 
-    pub fn get_or_insert_with<T: Into<Tag>, F: FnOnce() -> T>(&mut self, coord: IVec3, insert: F) -> &mut Tag {
+    pub fn get_or_insert_with<C: Into<IVec3>, T: Into<Tag>, F: FnOnce() -> T>(&mut self, coord: C, insert: F) -> &mut Tag {
+        let coord: IVec3 = coord.into();
         let ids = self.ids.force_ids();
         let index = math::index3::<32>(coord.x, coord.y, coord.z);
         let id = ids[index];
         if id.is_null() {
             let id = self.container.insert(insert());
             ids[index] = id;
+            self.non_null_count += 1;
             self.container.get_mut(id)
         } else {
             self.container.get_mut(id)
         }
     }
 
-    pub fn get_or_insert<T: Into<Tag>>(&mut self, coord: IVec3, insert: T) -> &mut Tag {
-        self.get_or_insert_with(coord, || insert)
+    pub fn get_or_insert<C: Into<IVec3>, T: Into<Tag>>(&mut self, coord: C, insert: T) -> &mut Tag {
+        self.get_or_insert_with(coord, move || insert)
     }
 }
