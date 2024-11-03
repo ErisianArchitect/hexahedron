@@ -7,22 +7,22 @@ pub struct UpdateId(u32);
 
 impl UpdateId {
     pub const NULL: UpdateId = UpdateId(0);
-    const ID_MAX: u32 = (1 << 31) - 1;
+    pub const MAX_ID: u32 = u32::MAX - 1;
     #[inline]
     fn new(id: u32) -> Self {
-        if id > Self::ID_MAX {
+        if id == u32::MAX {
             panic!("id out of bounds.");
         }
-        Self(id << 1 | 1)
+        Self(id + 1)
     }
 
     #[inline]
     fn id(self) -> u32 {
-        self.0 >> 1
+        self.0 - 1
     }
 
     #[inline]
-    pub fn index(self) -> usize {
+    fn index(self) -> usize {
         self.id() as usize
     }
 }
@@ -67,6 +67,9 @@ impl UpdateQueue {
             self.queue.push(UpdateEntry::new(coord, id));
             id
         } else {
+            if self.queue.len() >= u32::MAX as usize {
+                panic!("Queue overflow.");
+            }
             let id = UpdateId::new(self.indices.len() as u32);
             let index = self.queue.len() as u32;
             self.indices.push(index);
