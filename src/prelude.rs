@@ -30,7 +30,7 @@ pub use crate::{
     util::extensions::{
         BoolExtension,
         OptionExtension,
-        SwapVal,
+        Replace,
         NumIter,
         ResultExtension,
     },

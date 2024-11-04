@@ -1,14 +1,15 @@
 use std::ops::Range;
 use crate::for_each_int_type;
 
-pub trait SwapVal {
-    fn swap(&mut self, swap: Self) -> Self;
+pub trait Replace {
+    fn replace(&mut self, src: Self) -> Self;
 }
 
-impl<T> SwapVal for T {
+impl<T> Replace for T {
+    /// Replaces `self` with `src`.
     #[inline(always)]
-    fn swap(&mut self, swap: Self) -> Self {
-        std::mem::replace(self, swap)
+    fn replace(&mut self, src: Self) -> Self {
+        std::mem::replace(self, src)
     }
 }
 
