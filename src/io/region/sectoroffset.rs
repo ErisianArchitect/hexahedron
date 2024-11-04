@@ -1,4 +1,4 @@
-use crate::prelude::{SwapVal, Readable, Writeable};
+use crate::prelude::{Replace, Readable, Writeable};
 use crate::io::region::blocksize::BlockSize;
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -56,7 +56,7 @@ impl Readable for SectorOffset {
     fn read_from<R: std::io::Read>(reader: &mut R) -> crate::prelude::VoxelResult<Self> {
         let mut buf = [0u8; 4];
         reader.read_exact(&mut buf)?;
-        let block_size = BlockSize(buf[0].swap(0));
+        let block_size = BlockSize(buf[0].replace(0));
         let offset = u32::from_be_bytes(buf);
         Ok(SectorOffset::new(block_size, offset))
     }

@@ -4,7 +4,7 @@ use crate::io::{
 };
 use crate::prelude::{
     index2,
-    SwapVal,
+    Replace,
     VoxelResult,
 };
 use super::{regioncoord::RegionCoord, sectoroffset::SectorOffset, timestamp::Timestamp};
@@ -39,7 +39,7 @@ impl<T: RegionTableItem> RegionTable<T> {
 
     pub fn set(&mut self, x: i32, y: i32, value: T) -> T {
         let index = index2::<32>(x, y);
-        self.table[index].swap(value)
+        self.table[index].replace(value)
     }
 
     pub fn iter(&self) -> std::slice::Iter<'_, T> {

@@ -1,5 +1,5 @@
 use std::{iter::Map, marker::PhantomData, sync::atomic::AtomicU64, vec::Drain};
-use crate::util::extensions::SwapVal;
+use crate::util::extensions::Replace;
 use std::sync::LazyLock;
 
 #[derive(Debug, Default, Clone, Copy, Eq, Ord, Hash)]
@@ -75,7 +75,7 @@ impl<M: Copy> PoolId<M> {
     /// Swaps this [PoolId] with NULL and returns the old Id.
     #[inline]
     pub fn swap_null(&mut self) -> Self {
-        self.swap(PoolId::NULL)
+        self.replace(PoolId::NULL)
     }
     
     #[must_use]
@@ -240,7 +240,7 @@ impl<T, M: Copy> ObjectPool<T, M> {
             panic!("Out of bounds.");
         }
         let pool_index = self.indices[id.index()];
-        self.pool[pool_index].value.swap(value)
+        self.pool[pool_index].value.replace(value)
     }
 
     pub fn pop(&mut self) -> Option<T> {
