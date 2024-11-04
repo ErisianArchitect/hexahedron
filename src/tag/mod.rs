@@ -58,7 +58,9 @@ macro_rules! tag_table {
             [41 String          NonByte     box     <String>                                                ]
             [42 Array           NonByte     box     <crate::tag::Array>                                     ]
             [43 Map             NonByte     box     <hashbrown::HashMap<String, Tag>>                       ]
-            /* This line should remain commented out. It is a representation of what I wrote manually (I have no fucking clue what this means)
+            /* This line should remain commented out.
+            This represents a tag ID that I inserted manually into the generation code.
+            (See: TAG_ARRAY_ID)
             [63 Tag           NonByte   box     <Tag>                                                   ]
             Continue writing new rows at index 41
             */
