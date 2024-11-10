@@ -1,5 +1,7 @@
 use std::{borrow::Cow, rc::Rc, sync::Arc};
 
+use glam::{IVec2, IVec3, IVec4};
+
 use crate::io::*;
 
 macro_rules! property_table {
@@ -114,6 +116,27 @@ property_table!(build_property_enum);
 
 impl Property {
     pub const NULL: Property = Property::Null;
+}
+
+impl From<(i32, i32)> for Property {
+    #[inline]
+    fn from((x, y): (i32, i32)) -> Self {
+        Property::IVec2(IVec2::new(x, y))
+    }
+}
+
+impl From<(i32, i32, i32)> for Property {
+    #[inline]
+    fn from((x, y, z): (i32, i32, i32)) -> Self {
+        Property::IVec3(IVec3::new(x, y, z))
+    }
+}
+
+impl From<(i32, i32, i32, i32)> for Property {
+    #[inline]
+    fn from((x, y, z, w): (i32, i32, i32, i32)) -> Self {
+        Property::IVec4(IVec4::new(x, y, z, w))
+    }
 }
 
 impl From<&str> for Property {
