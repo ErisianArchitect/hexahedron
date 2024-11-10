@@ -2,7 +2,7 @@ use crate::prelude::Replace;
 use crate::tag::*;
 use crate::math;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct TagId(u16);
 
 impl TagId {
@@ -30,8 +30,16 @@ impl TagId {
     fn index(self) -> usize {
         self.id() as usize
     }
+
+    #[inline]
+    pub fn inner(self) -> u16 {
+        self.0
+    }
 }
 
+// TODO: Tags should be in some kind of synchronization primitive such as Arc<RwLock<Tag>>.
+//       This will allow sharing across threads.
+#[derive(Debug, Default)]
 pub struct TagContainer {
     data: Vec<Option<Tag>>,
     unused: Vec<u16>,
@@ -120,12 +128,13 @@ impl std::ops::IndexMut<TagId> for TagContainer {
     }
 }
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 struct IdContainer(Option<Box<[TagId]>>);
 
 impl IdContainer {
+    /// return mut ref to inner value if it exists, otherwise allocate inner value and return mut ref.
     #[inline]
-    fn force_ids(&mut self) -> &mut Box<[TagId]> {
+    fn get_or_init(&mut self) -> &mut Box<[TagId]> {
         self.0.get_or_insert_with(|| {
             (0..32768).map(|_| TagId::NULL).collect()
         })
@@ -142,6 +151,7 @@ impl IdContainer {
     }
 }
 
+#[derive(Debug, Default)]
 pub struct TagSection {
     ids: IdContainer,
     container: TagContainer,
@@ -162,7 +172,7 @@ impl TagSection {
     ///
     pub fn insert<C: Into<Coord>, T: Into<Tag>>(&mut self, coord: C, value: T) -> Option<Tag> {
         let coord: Coord = coord.into();
-        let ids = self.ids.force_ids();
+        let ids = self.ids.get_or_init();
         let index = math::index3::<32>(coord.0, coord.1, coord.2);
         let id = ids[index];
         if id.is_null() {
@@ -225,7 +235,7 @@ impl TagSection {
 
     pub fn get_or_insert_with<C: Into<Coord>, T: Into<Tag>, F: FnOnce() -> T>(&mut self, coord: C, insert: F) -> &mut Tag {
         let coord: Coord = coord.into();
-        let ids = self.ids.force_ids();
+        let ids = self.ids.get_or_init();
         let index = math::index3::<32>(coord.0, coord.1, coord.2);
         let id = ids[index];
         if id.is_null() {
