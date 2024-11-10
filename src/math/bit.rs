@@ -2,43 +2,6 @@ use bytemuck::NoUninit;
 
 use std::ops::Range;
 
-// macro_rules! bit_length {
-//     ($type:ty) => {
-//         impl BitLength for $type {
-            
-//             fn bit_length(self) -> u32 {
-//                 const BIT_WIDTH: u32 = (std::mem::size_of::<$type>() * 8) as u32;
-//                 BIT_WIDTH - self.leading_zeros()
-//             }
-//         }
-//     };
-// }
-
-// for_each_int_type!(bit_length);
-
-
-// macro_rules! __shiftindex_impls {
-//     ($type:ty) => {
-//         impl ShiftIndex for $type {
-//             fn shift_index(self) -> u32 {
-//                 self as u32
-//             }
-//         }
-//     };
-// }
-
-// for_each_int_type!(__shiftindex_impls);
-
-// macro_rules! __bitsize_impls {
-//     ($type:ty) => {
-//         impl BitSize for $type {
-//             const BITSIZE: u32 = std::mem::size_of::<$type>() as u32 * 8;
-//         }
-//     };
-// }
-
-// for_each_int_type!(__bitsize_impls);
-
 pub trait BitSize {
     const BIT_SIZE: u32;
 }
@@ -405,28 +368,24 @@ impl std::fmt::Display for BitFlags8 {
 
 impl std::fmt::Display for BitFlags16 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "BitFlags16(")?;
         let low = self.0 & 0xFF;
         let high = self.0 >> 8;
-        write!(f, "{high:08b} {low:08b}")?;
-        write!(f, ")")
+        write!(f, "BitFlags16({high:08b} {low:08b})")
     }
 }
 
 impl std::fmt::Display for BitFlags32 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "BitFlags32(")?;
         let _0 = self.0 & 0xFF;
         let _1 = self.0 >> 8 & 0xFF;
         let _2 = self.0 >> 16 & 0xFF;
         let _3 = self.0 >> 24 & 0xFF;
-        write!(f, "{_3:08b} {_2:08b} {_1:08b} {_0:08b})")
+        write!(f, "BitFlags32({_3:08b} {_2:08b} {_1:08b} {_0:08b})")
     }
 }
 
 impl std::fmt::Display for BitFlags64 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "BitFlags64(")?;
         let _0 = self.0 & 0xFF;
         let _1 = self.0 >> 8 & 0xFF;
         let _2 = self.0 >> 16 & 0xFF;
@@ -435,14 +394,12 @@ impl std::fmt::Display for BitFlags64 {
         let _5 = self.0 >> 40 & 0xFF;
         let _6 = self.0 >> 48 & 0xFF;
         let _7 = self.0 >> 56 & 0xFF;
-        write!(f, "{_7:08b} {_6:08b} {_5:08b} {_4:08b} {_3:08b} {_2:08b} {_1:08b} {_0:08b})")
+        write!(f, "BitFlags64({_7:08b} {_6:08b} {_5:08b} {_4:08b} {_3:08b} {_2:08b} {_1:08b} {_0:08b})")
     }
 }
 
 impl std::fmt::Display for BitFlags128 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "BitFlags128(")?;
-
         let _0  = self.0 >> ( 0 * 8) & 0xFF;
         let _1  = self.0 >> ( 1 * 8) & 0xFF;
         let _2  = self.0 >> ( 2 * 8) & 0xFF;
@@ -463,7 +420,7 @@ impl std::fmt::Display for BitFlags128 {
         let _14 = self.0 >> (14 * 8) & 0xFF;
         let _15 = self.0 >> (15 * 8) & 0xFF;
 
-        write!(f, "{_15:08b} {_14:08b} {_13:08b} {_12:08b} {_11:08b} {_10:08b} {_9:08b} {_8:08b} {_7:08b} {_6:08b} {_5:08b} {_4:08b} {_3:08b} {_2:08b} {_1:08b} {_0:08b})")
+        write!(f, "BitFlags128({_15:08b} {_14:08b} {_13:08b} {_12:08b} {_11:08b} {_10:08b} {_9:08b} {_8:08b} {_7:08b} {_6:08b} {_5:08b} {_4:08b} {_3:08b} {_2:08b} {_1:08b} {_0:08b})")
     }
 }
 
@@ -472,6 +429,6 @@ mod tests {
     use super::*;
     #[test]
     fn delete_bitmask_test() {
-        println!("{:08b}", u8::MAX.delete_bitmask(2..6));
+        assert_eq!(0b11000011, u8::MAX.delete_bitmask(2..6));
     }
 }
