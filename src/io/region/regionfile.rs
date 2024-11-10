@@ -12,7 +12,6 @@ pub struct RegionFile {
     header: RegionHeader,
 }
 
-
 impl RegionFile {
     pub fn get_timestamp<C: Into<RegionCoord>>(&self, coord: C) -> Timestamp {
         self.header.timestamps[coord.into()]
@@ -117,7 +116,14 @@ impl RegionFile {
         self.write_buffer.seek(SeekFrom::Start(0))?;
         self.write_buffer.get_mut().clear();
         let mut encoder = GzEncoder::new(&mut self.write_buffer, Compression::fast());
+        // write to encoder in the write buffer
         write(&mut encoder)?;
+        // Check if length is zero, which means nothing was written.
+        // This will be treated as deleting the chunk.
+        if encoder.get_ref().get_ref().len() == 0 {
+            encoder.finish()?;
+            return self.delete_data(coord);
+        }
         encoder.finish()?;
         let length = self.write_buffer.get_ref().len() as u64;
         let padded_size = padded_size(length + 4);
@@ -133,8 +139,10 @@ impl RegionFile {
         writer.seek(SeekFrom::Start(new_sector.file_offset()))?;
         let len = length as u32;
         len.write_to(&mut writer)?;
+        // write write_buffer to file.
         writer.write_all(self.write_buffer.get_ref().as_slice())?;
         write_zeros(&mut writer, pad_size(length as u64 + 4))?;
+        // Write sector to header
         writer.seek(SeekFrom::Start(coord.sector_offset()))?;
         new_sector.write_to(&mut writer)?;
         writer.flush()?;
