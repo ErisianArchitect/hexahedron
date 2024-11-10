@@ -184,12 +184,13 @@ impl RegionFile {
     }
 } 
 
+#[inline]
 fn pad_size(length: u64) -> u64 {
     4096 - (length & 4095) & 4095
 }
 
+#[inline]
 fn padded_size(length: u64) -> u64 {
-    const INEG4096: i64 = -4096;
-    const NEG4096: u64 = INEG4096 as u64;
-    (length + 4095) & NEG4096
+    const NEG4096_U64: u64 = -4096i64 as u64;
+    (length + 4095) & NEG4096_U64
 }
