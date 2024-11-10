@@ -1,5 +1,5 @@
 use bytemuck::NoUninit;
-use glam::Vec3;
+use glam::{IVec3, Vec3};
 use crate::math::axis::Axis;
 use crate::voxel::orientation::{
     flip::Flip,
@@ -9,6 +9,7 @@ use crate::voxel::orientation::{
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, NoUninit)]
 #[repr(u8)]
 // The ids are out of order so that they can have a certain order for orientations.
+// If you change the discriminants, then some code might break.
 /// Represents each direction of a cube face.
 pub enum Direction {
     /// Left
@@ -101,13 +102,12 @@ impl Direction {
     /// Represents discriminant as single bit value.
     #[inline]
     pub const fn bit(self) -> u8 {
-        1 << self as u8
+        1 << self.discriminant()
     }
 
     /// Gets the discriminant of the value.
     #[inline]
     pub const fn discriminant(self) -> u8 {
-        
         self as u8
     }
 
@@ -196,6 +196,7 @@ impl Direction {
     }
 
     /// Converts the [Direction] into a unit vector.
+    #[inline]
     pub const fn to_vec3(self) -> Vec3 {
         use Direction::*;
         match self {
@@ -207,6 +208,58 @@ impl Direction {
             PosZ => Vec3::new( 0.0,  0.0,  1.0),
         }
     }
+
+    /// Converts the [Direction] into a unit integer vector.
+    #[inline]
+    pub const fn to_ivec3(self) -> IVec3 {
+        use Direction::*;
+        match self {
+            NegX => IVec3::new(-1,  0,  0),
+            NegY => IVec3::new( 0, -1,  0),
+            NegZ => IVec3::new( 0,  0, -1),
+            PosX => IVec3::new( 1,  0,  0),
+            PosY => IVec3::new( 0,  1,  0),
+            PosZ => IVec3::new( 0,  0,  1),
+        }
+    }
+
+    #[inline]
+    pub const fn to_ftuple(self) -> (f32, f32, f32) {
+        use Direction::*;
+        match self {
+            NegX => (-1.0,  0.0,  0.0),
+            NegY => ( 0.0, -1.0,  0.0),
+            NegZ => ( 0.0,  0.0, -1.0),
+            PosX => ( 1.0,  0.0,  0.0),
+            PosY => ( 0.0,  1.0,  0.0),
+            PosZ => ( 0.0,  0.0,  1.0),
+        }
+    }
+
+    #[inline]
+    pub const fn to_ituple(self) -> (i32, i32, i32) {
+        use Direction::*;
+        match self {
+            NegX => (-1,  0,  0),
+            NegY => ( 0, -1,  0),
+            NegZ => ( 0,  0, -1),
+            PosX => ( 1,  0,  0),
+            PosY => ( 0,  1,  0),
+            PosZ => ( 0,  0,  1),
+        }
+    }
+
+    #[inline]
+    pub const fn to_farray(self) -> [f32; 3] {
+        let (x, y, z) = self.to_ftuple();
+        [x, y, z]
+    }
+
+    #[inline]
+    pub const fn to_iarray(self) -> [i32; 3] {
+        let (x, y, z) = self.to_ituple();
+        [x, y, z]
+    }
 }
 
 impl std::ops::Neg for Direction {
@@ -214,6 +267,48 @@ impl std::ops::Neg for Direction {
     #[inline]
     fn neg(self) -> Self::Output {
         self.invert()
+    }
+}
+
+impl Into<Vec3> for Direction {
+    #[inline]
+    fn into(self) -> Vec3 {
+        self.to_vec3()
+    }
+}
+
+impl Into<IVec3> for Direction {
+    #[inline]
+    fn into(self) -> IVec3 {
+        self.to_ivec3()
+    }
+}
+
+impl Into<(i32, i32, i32)> for Direction {
+    #[inline]
+    fn into(self) -> (i32, i32, i32) {
+        self.to_ituple()
+    }
+}
+
+impl Into<(f32, f32, f32)> for Direction {
+    #[inline]
+    fn into(self) -> (f32, f32, f32) {
+        self.to_ftuple()
+    }
+}
+
+impl Into<[i32; 3]> for Direction {
+    #[inline]
+    fn into(self) -> [i32; 3] {
+        self.to_iarray()
+    }
+}
+
+impl Into<[f32; 3]> for Direction {
+    #[inline]
+    fn into(self) -> [f32; 3] {
+        self.to_farray()
     }
 }
 
