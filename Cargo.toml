@@ -7,6 +7,14 @@ edition = "2021"
 name = "calc"
 path = "./bin/calc.rs"
 
+[[bin]]
+name = "codegen"
+path = "./bin/codegen.rs"
+
+[[bin]]
+name = "sandbox"
+path = "./bin/sandbox.rs"
+
 [dependencies]
 bytemuck = { version = "1.18.0", features = ["derive"] }
 chrono = "0.4.38"
