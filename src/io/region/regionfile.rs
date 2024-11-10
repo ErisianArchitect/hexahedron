@@ -111,6 +111,8 @@ impl RegionFile {
         self.read(coord, read_inner)
     }
 
+    /// If nothing is written to the writer, then it will delete the entry in the
+    /// region file.
     pub fn write<C: Into<RegionCoord>, F: FnMut(&mut GzEncoder<&mut Cursor<Vec<u8>>>) -> Result<()>>(&mut self, coord: C, mut write: F) -> Result<()> {
         let coord: RegionCoord = coord.into();
         self.write_buffer.seek(SeekFrom::Start(0))?;
