@@ -3,7 +3,7 @@ use super::direction::Direction;
 macro_rules! make_face_constants {
     ($($name:ident = $dir:ident;)*) => {
         $(
-            pub const $name: Self = Occlusion(1 << Direction::$dir as u8);
+            pub const $name: Self = Occlusion(Direction::$dir.bit());
         )*
     };
 }
@@ -24,12 +24,12 @@ impl Occlusion {
     );
     // const FLAGS_MASK: u8 = 0b111111;
 
-    
+    #[inline]
     pub fn is_fully_occluded(self) -> bool {
         self == Self::OCCLUDED
     }
 
-    
+    #[inline]
     pub fn show(&mut self, face: Direction) -> bool {
         let bit = face.bit();
         let old = self.0 & bit == bit;
@@ -37,7 +37,7 @@ impl Occlusion {
         old
     }
 
-    
+    #[inline]
     pub fn hide(&mut self, face: Direction) -> bool {
         let bit = face.bit();
         let old = self.0 & bit == bit;
@@ -45,44 +45,50 @@ impl Occlusion {
         old
     }
 
-    
+    #[inline]
     pub fn is_visible(self, face: Direction) -> bool {
         let bit = face.bit();
         self.0 & bit != bit
     }
 
-    
+    #[inline]
     pub fn is_hidden(self, face: Direction) -> bool {
         let bit = face.bit();
         self.0 & bit == bit
     }
 
     /// Returns true if visible.
+    #[inline]
     pub fn neg_x(self) -> bool {
         self.is_visible(Direction::NegX)
     }
 
     /// Returns true if visible.
+    #[inline]
     pub fn neg_y(self) -> bool {
         self.is_visible(Direction::NegY)
     }
 
     /// Returns true if visible.
+    #[inline]
     pub fn neg_z(self) -> bool {
         self.is_visible(Direction::NegZ)
     }
 
     /// Returns true if visible.
+    #[inline]
     pub fn pos_x(self) -> bool {
         self.is_visible(Direction::PosX)
     }
 
     /// Returns true if visible.
+    #[inline]
     pub fn pos_y(self) -> bool {
         self.is_visible(Direction::PosY)
     }
 
     /// Returns true if visible.
+    #[inline]
     pub fn pos_z(self) -> bool {
         self.is_visible(Direction::PosZ)
     }
@@ -90,7 +96,7 @@ impl Occlusion {
 
 impl std::ops::BitOr<Occlusion> for Occlusion {
     type Output = Occlusion;
-    
+    #[inline]
     fn bitor(self, rhs: Occlusion) -> Self::Output {
         Self(self.0 | rhs.0)
     }
@@ -98,7 +104,7 @@ impl std::ops::BitOr<Occlusion> for Occlusion {
 
 impl std::ops::BitAnd<Occlusion> for Occlusion {
     type Output = Occlusion;
-    
+    #[inline]
     fn bitand(self, rhs: Occlusion) -> Self::Output {
         Self(self.0 & rhs.0)
     }
@@ -106,7 +112,7 @@ impl std::ops::BitAnd<Occlusion> for Occlusion {
 
 impl std::ops::Sub<Occlusion> for Occlusion {
     type Output = Occlusion;
-    
+    #[inline]
     fn sub(self, rhs: Occlusion) -> Self::Output {
         Self(self.0 & !rhs.0)
     }
@@ -114,6 +120,7 @@ impl std::ops::Sub<Occlusion> for Occlusion {
 
 impl std::ops::BitAnd<Direction> for Occlusion {
     type Output = bool;
+    #[inline]
     fn bitand(self, rhs: Direction) -> Self::Output {
         self.is_visible(rhs)
     }
@@ -121,6 +128,7 @@ impl std::ops::BitAnd<Direction> for Occlusion {
 
 impl std::ops::BitOr<Direction> for Occlusion {
     type Output = Occlusion;
+    #[inline]
     fn bitor(self, rhs: Direction) -> Self::Output {
         Self(self.0 | rhs.bit())
     }
