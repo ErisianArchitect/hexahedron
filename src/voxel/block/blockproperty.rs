@@ -175,6 +175,12 @@ impl From<Box<str>> for Property {
     }
 }
 
+impl From<Box<[u8]>> for Property {
+    fn from(value: Box<[u8]>) -> Self {
+        Property::Bytes(value.into_vec())
+    }
+}
+
 impl<const SIZE: usize> From<[u8; SIZE]> for Property {
     fn from(value: [u8; SIZE]) -> Self {
         Property::Bytes(value.into())
