@@ -28,6 +28,7 @@ impl Cardinal {
     ];
 
     /// Rotates the [Cardinal] direction clockwise by `rotation`.
+    #[inline]
     pub const fn rotate(self, rotation: i32) -> Self {
         const CARDS: [Cardinal; 4] = [
             Cardinal::West,
@@ -41,6 +42,7 @@ impl Cardinal {
     }
 
     /// Inverts the [Cardinal] to the opposite direction.
+    #[inline]
     pub const fn invert(self) -> Self {
         match self {
             Cardinal::West => Cardinal::East,
@@ -51,14 +53,17 @@ impl Cardinal {
     }
 
     /// Gets the [Cardinal] as a single bit based on discriminant.
+    #[inline]
     pub const fn bit(self) -> u8 {
         1 << self as u8
     }
 
+    #[inline]
     pub const fn discriminant(self) -> u8 {
         self as u8
     }
 
+    #[inline]
     pub fn iter() -> impl Iterator<Item = Cardinal> {
         Self::ALL.into_iter()
     }
