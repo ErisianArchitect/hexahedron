@@ -1,41 +1,20 @@
-use flate2::Compression;
+#![allow(unused)]
 use hexahedron::util::extensions::*;
-use std::io::{Cursor, Write};
 use hexahedron::io::region::blocksize::*;
-use flate2::write::GzEncoder;
 
-struct Gzipper<'a>(GzEncoder<&'a mut Cursor<Vec<u8>>>, bool);
 
-impl<'a> std::io::Write for Gzipper<'a> {
-    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-        self.1 = true;
-        self.0.write(buf)
-    }
-    
-    fn flush(&mut self) -> std::io::Result<()> {
-        self.0.flush()
-    }
+struct Seven0(([u8; 7]));
+struct Seven1([u8; 7]);
+struct Seven2([u8; 7]);
 
-    fn write_all(&mut self, buf: &[u8]) -> std::io::Result<()> {
-        self.0.write_all(buf)
-    }
-
-    fn write_fmt(&mut self, fmt: std::fmt::Arguments<'_>) -> std::io::Result<()> {
-        self.0.write_fmt(fmt)
-    }
-
-    fn write_vectored(&mut self, bufs: &[std::io::IoSlice<'_>]) -> std::io::Result<usize> {
-        self.0.write_vectored(bufs)
-    }
+enum Seven {
+    Seven0(Seven0),
+    Seven1(Seven1),
+    Seven2(Seven2),
 }
 
 fn main() {
-    let mut buffer = Cursor::new(Vec::<u8>::new());
-    let encoder = GzEncoder::new(&mut buffer, Compression::new(5));
-    drop(encoder);
-    println!("Length: {}", buffer.get_ref().len());
-    // encoder.finish().unwrap();
-    // println!("Length: {}", buffer.get_ref().len());
+    println!("{}", 256i32.rem_euclid(256));
 }
 
 #[allow(unused)]
