@@ -59,7 +59,7 @@ impl SectorManager {
         }
     }
 
-    /// Attempts to allocate a sector. Panics if `blocks_required` exceed 8033.
+    /// Attempts to allocate a sector. Panics if `blocks_required` exceed 8034.
     pub fn allocate(&mut self, block_size: BlockSize) -> SectorOffset {
         let block_count = block_size.block_count();
         // Find sector with needed size
@@ -329,8 +329,8 @@ impl ManagedSector {
     pub fn allocate(&mut self, size: BlockSize) -> Option<SectorOffset> {
         let block_count = size.block_count();
         let new_start = self.start + block_count as u32;
-                                //  2.pow(24) + 8033 (max block size)
-        if new_start > self.end.min(0x1001f61) {
+                                //  2.pow(24) + 8034 (max block size)
+        if new_start > self.end.min(0x1001f62) {
             return None;
         }
         let start = self.start;
