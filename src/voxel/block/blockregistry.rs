@@ -7,6 +7,17 @@ use super::error::{Error, Result};
 
 // main
 
+
+/// `blocks` represents the list of [BlockBehavior]s (the trait that has functions for blocks).
+/// 
+/// `block_lookup` allows for looking up a [BlockBehavior]'s [BlockId], which points
+/// back to the [BlockBehavior] in `blocks`.
+/// 
+/// `states` contains each [BlockState] contained in this registry.
+/// 
+/// `block_ids` contains the [BlockId]s associated with each state.
+/// 
+/// `state_lookup` is a lookup table of [BlockState]s that will return its [StateId].
 struct InnerBlockRegistry {
     blocks: Vec<Arc<dyn BlockBehavior>>,
     block_lookup: HashMap<String, BlockId>,
@@ -26,6 +37,10 @@ impl InnerBlockRegistry {
         let air_state = Arc::new(blockstate!(air));
         Self {
             blocks: {
+                // I know it looks weird, but I have to do it this way
+                // because of the typing of the Arc<dyn BlockBehavior>.
+                // Type coercion shits the bed if I try to construct it
+                // from an array.
                 let mut blocks = Vec::<Arc<dyn BlockBehavior>>::new();
                 blocks.push(Arc::new(AirBlock));
                 blocks
@@ -58,11 +73,11 @@ impl BlockRegistry {
 
     pub fn register_block<B: BlockBehavior + 'static + Sized>(&self, block: B) -> Result<BlockId> {
         let mut reg = self.write_lock()?;
-        if reg.block_lookup.contains_key(block.name()) {
-            return Err(Error::DuplicateBlockEntry(block.name().to_owned()));
-        }
         if reg.blocks.len() > u32::MAX as usize {
             return Err(Error::RegistryOverflow);
+        }
+        if reg.block_lookup.contains_key(block.name()) {
+            return Err(Error::DuplicateBlockEntry(block.name().to_owned()));
         }
         let block_id = BlockId(reg.blocks.len() as u32);
         let block = Arc::new(block);
@@ -78,13 +93,15 @@ impl BlockRegistry {
         if let Some(&state_id) = reg.state_lookup.get(state.reference()) {
             Ok(state_id)
         } else {
-            let state = state.owned();
-            let state_id = StateId(reg.states.len() as u32);
-            if let Some(&block_id) = reg.block_lookup.get(state.name()) {
-                reg.block_ids.push(block_id);
-            } else {
-                return Err(Error::BlockNotFound(state.name().to_owned()));
+            if reg.states.len() > u32::MAX as usize {
+                return Err(Error::RegistryOverflow);
             }
+            let state = state.owned();
+            let Some(&block_id) = reg.block_lookup.get(state.name()) else {
+                return Err(Error::BlockNotFound(state.name().to_owned()));
+            };
+            let state_id = StateId(reg.states.len() as u32);
+            reg.block_ids.push(block_id);
             let state = Arc::new(state);
             reg.state_lookup.insert(state.clone(), state_id);
             reg.states.push(state);
@@ -162,6 +179,15 @@ impl<S: AsRef<str>> BlockGetterId for S {
 pub trait RefOrOwned<T> {
     fn owned(self) -> T;
     fn reference(&self) -> &T;
+}
+
+impl RefOrOwned<BlockState> for Arc<BlockState> {
+    fn reference(&self) -> &BlockState {
+        self.as_ref()
+    }
+    fn owned(self) -> BlockState {
+        BlockState::clone(self.as_ref())
+    }
 }
 
 impl RefOrOwned<BlockState> for &BlockState {
