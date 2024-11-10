@@ -13,28 +13,28 @@ pub struct Orientation(pub(crate) u8);
 
 impl Orientation {
     pub const UNORIENTED: Orientation = Orientation::new(Rotation::new(Direction::PosY, 0), Flip::NONE);
-    pub const ROTATE_X: Orientation = Orientation::new(Rotation::new(Direction::NegZ, 2), Flip::NONE);
+    pub const ROTATE_X: Orientation = Rotation::ROTATE_X.orientation();
     pub const X_ROTATIONS: [Orientation; 4] = [
-        Orientation::new(Rotation::new(Direction::PosY, 0), Flip::NONE),
-        Orientation::new(Rotation::new(Direction::NegZ, 2), Flip::NONE),
-        Orientation::new(Rotation::new(Direction::NegY, 0), Flip::NONE),
-        Orientation::new(Rotation::new(Direction::PosZ, 0), Flip::NONE),
+        Rotation::X_ROTATIONS[0].orientation(),
+        Rotation::X_ROTATIONS[1].orientation(),
+        Rotation::X_ROTATIONS[2].orientation(),
+        Rotation::X_ROTATIONS[3].orientation(),
     ];
-    pub const ROTATE_Y: Orientation = Orientation::new(Rotation::new(Direction::PosY, 1), Flip::NONE);
+    pub const ROTATE_Y: Orientation = Rotation::ROTATE_Y.orientation();
     pub const Y_ROTATIONS: [Orientation; 4] = [
-        Orientation::new(Rotation::new(Direction::PosY, 0), Flip::NONE),
-        Orientation::new(Rotation::new(Direction::PosY, 1), Flip::NONE),
-        Orientation::new(Rotation::new(Direction::PosY, 2), Flip::NONE),
-        Orientation::new(Rotation::new(Direction::PosY, 3), Flip::NONE),
+        Rotation::Y_ROTATIONS[0].orientation(),
+        Rotation::Y_ROTATIONS[1].orientation(),
+        Rotation::Y_ROTATIONS[2].orientation(),
+        Rotation::Y_ROTATIONS[3].orientation(),
     ];
-    pub const ROTATE_Z: Orientation = Orientation::new(Rotation::new(Direction::PosX, 1), Flip::NONE);
+    pub const ROTATE_Z: Orientation = Rotation::ROTATE_Z.orientation();
     pub const Z_ROTATIONS: [Orientation; 4] = [
-        Orientation::new(Rotation::new(Direction::PosY, 0), Flip::NONE),
-        Orientation::new(Rotation::new(Direction::PosX, 1), Flip::NONE),
-        Orientation::new(Rotation::new(Direction::NegY, 2), Flip::NONE),
-        Orientation::new(Rotation::new(Direction::NegX, 3), Flip::NONE),
+        Rotation::Z_ROTATIONS[0].orientation(),
+        Rotation::Z_ROTATIONS[1].orientation(),
+        Rotation::Z_ROTATIONS[2].orientation(),
+        Rotation::Z_ROTATIONS[3].orientation(),
     ];
-    pub const CORNER_ROTATIONS_MATRIX: [[[Orientation; 2]; 2]; 2] = [
+    pub const CORNER_ORIENTATIONS_MATRIX: [[[Orientation; 2]; 2]; 2] = [
         [
             [Orientation::new(Rotation::new(Direction::PosZ, 3), Flip::NONE), Orientation::new(Rotation::new(Direction::NegX, 2), Flip::NONE)],
             [Orientation::new(Rotation::new(Direction::PosX, 0), Flip::NONE), Orientation::new(Rotation::new(Direction::NegZ, 1), Flip::NONE)]
@@ -220,6 +220,20 @@ impl Orientation {
     #[inline]
     pub const fn rotate_z(self, angle: i32) -> Self {
         self.reorient(Orientation::Z_ROTATIONS[angle.rem_euclid(4) as usize])
+    }
+}
+
+impl From<u8> for Orientation {
+    #[inline]
+    fn from(value: u8) -> Self {
+        Orientation(value)
+    }
+}
+
+impl Into<u8> for Orientation {
+    #[inline]
+    fn into(self) -> u8 {
+        self.0
     }
 }
 
