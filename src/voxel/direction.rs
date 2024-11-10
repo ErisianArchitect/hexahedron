@@ -107,7 +107,20 @@ impl Direction {
     /// Gets the discriminant of the value.
     #[inline]
     pub const fn discriminant(self) -> u8 {
+        
         self as u8
+    }
+
+    #[inline]
+    pub const fn rotation_discriminant(self) -> u8 {
+        match self {
+            Direction::PosY => 0,
+            Direction::PosX => 1,
+            Direction::PosZ => 2,
+            Direction::NegY => 3,
+            Direction::NegX => 4,
+            Direction::NegZ => 5,
+        }
     }
 
     /// Iterates in the order: `NegX`, `NegY`, `NegZ`, `PosX`, `PosY`, `PosZ`.
