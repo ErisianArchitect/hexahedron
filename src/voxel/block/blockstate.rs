@@ -47,20 +47,41 @@ impl<S: AsRef<str>> std::ops::Index<S> for BlockState {
     }
 }
 
+/// # Usage
+/// You could also replace `block_name` with `"block_name"`. Either is valid. Or even `(block_name)` if `block_name` is a variable.
+/// ```rust
+/// let state = blockstate!(block_name[
+///     facing=Cardinal::West,
+///     locked=false,
+///     color=Rgb::new(255, 0, 255),
+///     "password"=b"hunter2",
+///     // If you would like to use a variable for the key, wrap it in parentheses.
+///     (some_value)="Hello, world!",
+/// ]);
+/// ```
+/// This macro will not identify identifiers as variables.
+/// Instead, they will be converted to strings.
 #[macro_export]
 macro_rules! blockstate {
-    ($id:ident $([ $($name:ident = $value:expr),* $(,)? ])?) => {
+    (@token_to_string: $token:ident) => {
+        stringify!($token)
+    };
+    (@token_to_string: $token:literal) => {
+        $token
+    };
+    (@token_to_string: $token:expr) => {
+        ($token).to_string()
+    };
+    ($id:tt $([ $($name:tt = $value:expr),* $(,)? ])?) => {
         $crate::voxel::block::blockstate::BlockState::new(
-            stringify!($id),
+            $crate::blockstate!(@token_to_string: $id),
             [
-                $(
-                    $(
-                        $crate::voxel::block::blockproperty::BlockProperty::new(
-                            stringify!($name),
-                            $value
-                        ),
-                    )*
-                )?
+                $($(
+                    $crate::voxel::block::blockproperty::BlockProperty::new(
+                        $crate::blockstate!(@token_to_string: $name),
+                        $value
+                    ),
+                )*)?
             ]
         )
     };
@@ -78,8 +99,9 @@ mod tests {
         let air = blockstate!(air);
         assert_eq!(air.name(), "air");
         assert!(air.properties().is_empty());
-        let state = blockstate!(chest[
-            facing=Cardinal::West,
+        let facing = "facing";
+        let state = blockstate!("chest"[
+            (facing)=Cardinal::West,
             locked=false,
             color=Rgb::new(255, 0, 255),
             password=b"hunter2",
