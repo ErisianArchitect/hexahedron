@@ -59,6 +59,21 @@ impl<M: Copy> PoolId<M> {
     const          POOL_ID_MAX: u64 = Self::POOL_ID_BITS >> Self::POOL_ID_OFFSET;
     pub const NULL: Self = Self(0, PhantomData);
 
+    #[must_use]
+    #[inline]
+    fn new(pool_id: u64, index: usize, generation: u64) -> Self {
+        let index = index as u64 + 1;
+        if index > Self::INDEX_BITS {
+            panic!("Index out of bounds.");
+        }
+        if generation > Self::GENERATION_MAX {
+            panic!("Generation out of bounds.");
+        }
+        if pool_id > Self::POOL_ID_MAX {
+            panic!("Pool Id out of bounds.");
+        }
+        Self(index | pool_id << Self::POOL_ID_OFFSET | generation << Self::GENERATION_ID_OFFSET, PhantomData)
+    }
     
     #[must_use]
     #[inline]
@@ -77,23 +92,6 @@ impl<M: Copy> PoolId<M> {
     pub fn swap_null(&mut self) -> Self {
         self.replace(PoolId::NULL)
     }
-    
-    #[must_use]
-    #[inline]
-    fn new(pool_id: u64, index: usize, generation: u64) -> Self {
-        let index = index as u64 + 1;
-        if index > Self::INDEX_BITS {
-            panic!("Index out of bounds.");
-        }
-        if generation > Self::GENERATION_MAX {
-            panic!("Generation out of bounds.");
-        }
-        if pool_id > Self::POOL_ID_MAX {
-            panic!("Pool Id out of bounds.");
-        }
-        Self(index | pool_id << Self::POOL_ID_OFFSET | generation << Self::GENERATION_ID_OFFSET, PhantomData)
-    }
-
     
     #[must_use]
     #[inline]
@@ -132,7 +130,7 @@ impl<M: Copy> PoolId<M> {
         let index = self.index();
         let generation = self.generation()
             // Roll the generation around. It's unlikely for IDs to collide.
-            .rem_euclid(Self::GENERATION_MAX);
+            .rem_euclid(const { Self::GENERATION_MAX + 1 });
         Self::new(pool_id, index, generation + 1)
     }
 }
