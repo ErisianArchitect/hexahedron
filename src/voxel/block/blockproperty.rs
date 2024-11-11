@@ -4,6 +4,7 @@ use glam::{IVec2, IVec3, IVec4};
 
 use crate::io::*;
 
+#[rustfmt::skip]
 macro_rules! property_table {
     ($macro:path) => {
         $macro! {
@@ -140,60 +141,70 @@ impl From<(i32, i32, i32, i32)> for Property {
 }
 
 impl From<&str> for Property {
+    #[inline]
     fn from(value: &str) -> Self {
         Property::String(value.to_owned())
     }
 }
 
 impl From<&String> for Property {
+    #[inline]
     fn from(value: &String) -> Self {
         Property::String(value.clone())
     }
 }
 
 impl<'a> From<Cow<'a, str>> for Property {
+    #[inline]
     fn from(value: Cow<'a, str>) -> Self {
         Property::String(value.into())
     }
 }
 
 impl From<Arc<str>> for Property {
+    #[inline]
     fn from(value: Arc<str>) -> Self {
         Property::String(value.as_ref().to_owned())
     }
 }
 
 impl From<Rc<str>> for Property {
+    #[inline]
     fn from(value: Rc<str>) -> Self {
         Property::String(value.as_ref().to_owned())
     }
 }
 
 impl From<Box<str>> for Property {
+    #[inline]
     fn from(value: Box<str>) -> Self {
         Property::String(value.as_ref().to_owned())
     }
 }
 
 impl From<Box<[u8]>> for Property {
+    #[inline]
     fn from(value: Box<[u8]>) -> Self {
         Property::Bytes(value.into_vec())
     }
 }
 
 impl<const SIZE: usize> From<[u8; SIZE]> for Property {
+    #[inline]
     fn from(value: [u8; SIZE]) -> Self {
         Property::Bytes(value.into())
     }
 }
 
 impl<const SIZE: usize> From<&[u8; SIZE]> for Property {
+    #[inline]
     fn from(value: &[u8; SIZE]) -> Self {
         Property::Bytes(value.into())
     }
 }
 
 impl From<&[u8]> for Property {
+    #[inline]
     fn from(value: &[u8]) -> Self {
         Property::Bytes(value.into())
     }
@@ -206,16 +217,20 @@ pub struct BlockProperty {
 }
 
 impl BlockProperty {
+    #[inline]
     pub fn new<S: Into<String>, P: Into<Property>>(name: S, value: P) -> Self {
         Self {
             name: name.into(),
             value: value.into(),
         }
     }
+
+    #[inline]
     pub fn name(&self) -> &str {
         &self.name
     }
 
+    #[inline]
     pub fn value(&self) -> &Property {
         &self.value
     }
