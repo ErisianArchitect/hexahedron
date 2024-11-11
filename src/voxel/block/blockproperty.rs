@@ -27,11 +27,12 @@ macro_rules! property_table {
             [17     BitFlags32(crate::math::bit::BitFlags32)            ]
             [18     BitFlags64(crate::math::bit::BitFlags64)            ]
             [19     BitFlags128(crate::math::bit::BitFlags128)          ]
-            [20     Rgb(crate::rendering::color::Rgb)                   ]
-            [21     Rgba(crate::rendering::color::Rgba)                 ]
-            [22     Range(std::ops::Range<i64>)                         ]
-            [23     RangeInclusive(std::ops::RangeInclusive<i64>)       ]
-            [24     Bytes(Vec<u8>)                                      ]
+            [20     Color(crate::rendering::color::Color)               ]
+            [21     Rgb(crate::rendering::color::Rgb)                   ]
+            [22     Rgba(crate::rendering::color::Rgba)                 ]
+            [23     Range(std::ops::Range<i64>)                         ]
+            [24     RangeInclusive(std::ops::RangeInclusive<i64>)       ]
+            [25     Bytes(Vec<u8>)                                      ]
         }
     };
 }
