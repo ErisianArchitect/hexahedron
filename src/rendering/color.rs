@@ -1,4 +1,6 @@
 use bytemuck::NoUninit;
+use std::slice::Iter;
+use std::iter::Cloned;
 
 // The html_colors macro is in colors.rs
 // It was just really big and I didn't want it to clutter up this code.
@@ -63,45 +65,60 @@ macro_rules! color_enum {
                 $camel_name,
             )*
         }
+
+        impl Color {
+            const SORTED_COLORS: [Color; 140] = [
+                $(
+                    Color::$camel_name,
+                )*
+            ];
+        }
     };
 }
 
 impl Color {
     #[inline]
-    pub const fn index(self) -> usize {
+    const fn index(self) -> usize {
         self as usize
     }
 
+    /// Gets the name in a `Human Readable Format`.
     #[inline]
     pub const fn readable_name(self) -> &'static str {
         HTML_COLORS[self.index()].readable_name
     }
 
+    /// Gets the `CamelCase` name.
     #[inline]
     pub const fn camel_name(self) -> &'static str {
         HTML_COLORS[self.index()].camel_name
     }
 
+    /// Gets the `UPPER_SNAKE_CASE` name.
     #[inline]
     pub const fn const_name(self) -> &'static str {
         HTML_COLORS[self.index()].const_name
     }
 
+    /// Gets the `snake_case` name.
     #[inline]
     pub const fn var_name(self) -> &'static str {
         HTML_COLORS[self.index()].var_name
     }
 
+    /// Gets the hex value.
     #[inline]
     pub const fn hex(self) -> &'static str {
         HTML_COLORS[self.index()].hex
     }
 
+    /// Gets [Rgb] value.
     #[inline]
     pub const fn rgb(self) -> Rgb {
         HTML_COLORS[self.index()].rgb
     }
 
+    /// Gets [Rgba] value.
     #[inline]
     pub const fn rgba(self) -> Rgba {
         self.rgb().rgba()
@@ -111,7 +128,7 @@ impl Color {
     pub const fn from_byte(byte: u8) -> Option<Self> {
         let index = byte as usize;
         if index < HTML_COLORS.len() {
-            Some(HTML_COLORS[index].color)
+            Some(Color::SORTED_COLORS[index])
         } else {
             None
         }
@@ -122,8 +139,9 @@ impl Color {
         self as u8
     }
 
-    pub fn iter() -> impl Iterator<Item = Self> {
-        HTML_COLORS.iter().map(|entry| entry.color)
+    #[inline]
+    pub fn iter() -> Cloned<Iter<'static, Color>> {
+        Color::SORTED_COLORS.iter().cloned()
     }
 
     #[inline]
@@ -196,6 +214,11 @@ impl Rgb {
     #[inline]
     pub const fn transparent(self) -> Rgba {
         Rgba::new(self.r, self.g, self.b, 0)
+    }
+
+    #[inline]
+    pub const fn opaque(self) -> Rgba {
+        Rgba::new(self.r, self.g, self.b, 255)
     }
 
     #[inline]
@@ -639,6 +662,63 @@ macro_rules! color_table {
 
 html_colors!(color_table);
 
+
+
+enum NameCase {
+    Unknown,
+    Readable,
+    Camel,
+    LowerSnake,
+    UpperSnake,
+}
+
+fn get_name_case(name: &str) -> NameCase {
+    // has lowercase letter
+    let mut has_lower = false;
+    // has uppercase letter
+    let mut has_upper = false;
+    // has underscore
+    let mut has_under = false;
+    // has space
+    let mut has_space = false;
+    for chr in name.chars() {
+        match chr {
+            ' ' => {
+                has_space = true;
+            }
+            '_' => {
+                has_under = true;
+            }
+            'a'..='z' => {
+                has_lower = true;
+            }
+            'A'..='Z' => {
+                has_upper = true;
+            }
+            _ => {
+                return NameCase::Unknown;
+            }
+        }
+    }
+    match (has_space, has_under, has_lower, has_upper) {
+        (true, false, true, true) => NameCase::Readable,
+        (false, false, true, true) => NameCase::Camel,
+        (false, _, true, false) => NameCase::LowerSnake,
+        (false, _, false, true) => NameCase::UpperSnake,
+        _ => NameCase::Unknown,
+    }
+}
+
+pub fn find_color(name: &str) -> Option<Color> {
+    Some(Color::SORTED_COLORS[match get_name_case(name) {
+        NameCase::Unknown => return None,
+        NameCase::Readable => HTML_COLORS.binary_search_by_key(&name, |entry| entry.readable_name).ok()?,
+        NameCase::Camel => HTML_COLORS.binary_search_by_key(&name, |entry| entry.camel_name).ok()?,
+        NameCase::LowerSnake => HTML_COLORS.binary_search_by_key(&name, |entry| entry.var_name).ok()?,
+        NameCase::UpperSnake => HTML_COLORS.binary_search_by_key(&name, |entry| entry.const_name).ok()?,
+    }])
+}
+
 impl std::cmp::PartialEq<Color> for Rgb {
     fn eq(&self, other: &Color) -> bool {
         self.eq(&other.rgb())
@@ -686,16 +766,18 @@ mod testing_sandbox {
     #[test]
     fn sandbox() {
         // const CB: Rgba = Color::CornflowerBlue.rgb().transparent();
-        let memory = HTML_COLORS.iter().map(|entry| {
+        let _memory = HTML_COLORS.iter().map(|entry| {
             entry.camel_name.len() +
             entry.const_name.len() +
             entry.hex.len() +
             entry.readable_name.len() +
             entry.var_name.len()
         }).sum::<usize>() + std::mem::size_of_val(&HTML_COLORS);
-        println!("Memory: {memory}");
-        println!("{}", std::mem::size_of::<[u8; 4]>());
-        println!("\"{}\" = #{}", Color::CornflowerBlue.readable_name(), Color::CornflowerBlue.hex());
-        println!("{}", Color::Black == Rgb::gray(0));
+        let color = find_color("cornflower_blue").expect("Failed to find color.");
+        println!("{color}");
+        // println!("Memory: {memory}");
+        // println!("{}", std::mem::size_of::<[u8; 4]>());
+        // println!("\"{}\" = #{}", Color::CornflowerBlue.readable_name(), Color::CornflowerBlue.hex());
+        // println!("{}", Color::Black == Rgb::gray(0));
     }
 }
