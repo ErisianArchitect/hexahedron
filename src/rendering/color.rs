@@ -524,8 +524,9 @@ pub struct Gray {
 }
 
 impl Gray {
-    pub const WHITE: Self = Self::new(255);
     pub const BLACK: Self = Self::new(0);
+    pub const MID: Self = Self::new(128);
+    pub const WHITE: Self = Self::new(255);
 
     #[inline]
     pub const fn new(level: u8) -> Self {
