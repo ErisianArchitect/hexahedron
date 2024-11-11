@@ -5,8 +5,7 @@ use std::io::{Read, Write};
 use crate::for_each_int_type;
 use crate::math::bit::*;
 use crate::rendering::color::{
-    Rgb,
-    Rgba,
+    Color, Rgb, Rgba
 };
 use crate::prelude::{
     Direction,
@@ -394,6 +393,18 @@ impl Readable for Axis {
 impl Writeable for Axis {
     fn write_to<W: Write>(&self, writer: &mut W) -> Result<u64> {
         (*self as u8).write_to(writer)
+    }
+}
+
+impl Readable for Color {
+    fn read_from<R: Read>(reader: &mut R) -> Result<Self> {
+        Ok(Color::from_byte(u8::read_from(reader)?).unwrap_or(Color::Black))
+    }
+}
+
+impl Writeable for Color {
+    fn write_to<W: Write>(&self, writer: &mut W) -> Result<u64> {
+        self.to_byte().write_to(writer)
     }
 }
 
@@ -959,6 +970,28 @@ impl Writeable for Vec<i8> {
     }
 }
 
+impl Readable for Vec<Color> {
+    fn read_from<R: Read>(reader: &mut R) -> Result<Self> {
+        let mut buf = [0u8; 4];
+        reader.read_exact(&mut buf[1..4])?;
+        let length = u32::from_be_bytes(buf);
+        let bytes = read_bytes(reader, length as usize)?;
+        Ok(bytes.into_iter().map(|byte| Color::from_byte(byte).unwrap_or(Color::Black)).collect())
+    }
+}
+
+impl Writeable for Vec<Color> {
+    fn write_to<W: Write>(&self, writer: &mut W) -> Result<u64> {
+        if self.len() > MAX_ARRAY_LENGTH {
+            return Err(Error::ArrayTooLong);
+        }
+        let buf = (self.len() as u32).to_be_bytes();
+        writer.write_all(&buf[1..4])?;
+        writer.write_all(bytemuck::cast_slice(self.as_slice()))?;
+        Ok(self.len() as u64 + 3)
+    }
+}
+
 impl Readable for Vec<Direction> {
     fn read_from<R: Read>(reader: &mut R) -> Result<Self> {
         let mut buf = [0u8; 4];
@@ -1023,20 +1056,6 @@ impl Writeable for Vec<Cardinal> {
         writer.write_all(bytemuck::cast_slice(self.as_slice()))?;
         Ok(self.len() as u64 + 3)
     }
-}
-
-macro_rules! read_tuple_impls {
-    ($($tn:ident),+) => {
-        impl<$($tn: Readable),*> Readable for ($($tn),*) {
-            fn read_from<R: Read>(reader: &mut R) -> Result<Self> {
-                Ok((
-                    $(
-                        $tn::read_from(reader)?,
-                    )*
-                ))
-            }
-        }
-    };
 }
 
 impl Readable for Vec<Rotation> {
@@ -1248,6 +1267,20 @@ impl Writeable for hashbrown::HashMap<String, Tag> {
         // writer.write_value(&255u8)?;
         Ok(size + 1)
     }
+}
+
+macro_rules! read_tuple_impls {
+    ($($tn:ident),+) => {
+        impl<$($tn: Readable),*> Readable for ($($tn),*) {
+            fn read_from<R: Read>(reader: &mut R) -> Result<Self> {
+                Ok((
+                    $(
+                        $tn::read_from(reader)?,
+                    )*
+                ))
+            }
+        }
+    };
 }
 
 macro_rules! write_tuple_impls {
