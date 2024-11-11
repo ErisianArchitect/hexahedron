@@ -686,6 +686,15 @@ mod testing_sandbox {
     #[test]
     fn sandbox() {
         // const CB: Rgba = Color::CornflowerBlue.rgb().transparent();
+        let memory = HTML_COLORS.iter().map(|entry| {
+            entry.camel_name.len() +
+            entry.const_name.len() +
+            entry.hex.len() +
+            entry.readable_name.len() +
+            entry.var_name.len()
+        }).sum::<usize>() + std::mem::size_of_val(&HTML_COLORS);
+        println!("Memory: {memory}");
+        println!("{}", std::mem::size_of::<[u8; 4]>());
         println!("\"{}\" = #{}", Color::CornflowerBlue.readable_name(), Color::CornflowerBlue.hex());
         println!("{}", Color::Black == Rgb::gray(0));
     }
