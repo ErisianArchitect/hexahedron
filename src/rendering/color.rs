@@ -1,5 +1,267 @@
 use bytemuck::NoUninit;
 
+macro_rules! html_colors {
+    ($macro:path) => {
+        $macro!{
+["Alice Blue"               AliceBlue               ALICE_BLUE                  alice_blue                  "F0F8FF"    "F0F8FFFF"  RGB(240, 248, 255)  ]
+["Antique White"            AntiqueWhite            ANTIQUE_WHITE               antique_white               "FAEBD7"    "FAEBD7FF"  RGB(250, 235, 215)  ]
+["Aqua"                     Aqua                    AQUA                        aqua                        "00FFFF"    "00FFFFFF"  RGB(0, 255, 255)    ]
+["Aquamarine"               Aquamarine              AQUAMARINE                  aquamarine                  "7FFFD4"    "7FFFD4FF"  RGB(127, 255, 212)  ]
+["Azure"                    Azure                   AZURE                       azure                       "F0FFFF"    "F0FFFFFF"  RGB(240, 255, 255)  ]
+["Beige"                    Beige                   BEIGE                       beige                       "F5F5DC"    "F5F5DCFF"  RGB(245, 245, 220)  ]
+["Bisque"                   Bisque                  BISQUE                      bisque                      "FFE4C4"    "FFE4C4FF"  RGB(255, 228, 196)  ]
+["Black"                    Black                   BLACK                       black                       "000000"    "000000FF"  RGB(0, 0, 0)        ]
+["Blanched Almond"          BlanchedAlmond          BLANCHED_ALMOND             blanched_almond             "FFEBCD"    "FFEBCDFF"  RGB(255, 235, 205)  ]
+["Blue"                     Blue                    BLUE                        blue                        "0000FF"    "0000FFFF"  RGB(0, 0, 255)      ]
+["Blue Violet"              BlueViolet              BLUE_VIOLET                 blue_violet                 "8A2BE2"    "8A2BE2FF"  RGB(138, 43, 226)   ]
+["Brown"                    Brown                   BROWN                       brown                       "A52A2A"    "A52A2AFF"  RGB(165, 42, 42)    ]
+["Burly Wood"               BurlyWood               BURLY_WOOD                  burly_wood                  "DEB887"    "DEB887FF"  RGB(222, 184, 135)  ]
+["Cadet Blue"               CadetBlue               CADET_BLUE                  cadet_blue                  "5F9EA0"    "5F9EA0FF"  RGB(95, 158, 160)   ]
+["Chartreuse"               Chartreuse              CHARTREUSE                  chartreuse                  "7FFF00"    "7FFF00FF"  RGB(127, 255, 0)    ]
+["Chocolate"                Chocolate               CHOCOLATE                   chocolate                   "D2691E"    "D2691EFF"  RGB(210, 105, 30)   ]
+["Coral"                    Coral                   CORAL                       coral                       "FF7F50"    "FF7F50FF"  RGB(255, 127, 80)   ]
+["Cornflower Blue"          CornflowerBlue          CORNFLOWER_BLUE             cornflower_blue             "6495ED"    "6495EDFF"  RGB(100, 149, 237)  ]
+["Cornsilk"                 Cornsilk                CORNSILK                    cornsilk                    "FFF8DC"    "FFF8DCFF"  RGB(255, 248, 220)  ]
+["Crimson"                  Crimson                 CRIMSON                     crimson                     "DC143C"    "DC143CFF"  RGB(220, 20, 60)    ]
+["Cyan"                     Cyan                    CYAN                        cyan                        "00FFFF"    "00FFFFFF"  RGB(0, 255, 255)    ]
+["Dark Blue"                DarkBlue                DARK_BLUE                   dark_blue                   "00008B"    "00008BFF"  RGB(0, 0, 139)      ]
+["Dark Cyan"                DarkCyan                DARK_CYAN                   dark_cyan                   "008B8B"    "008B8BFF"  RGB(0, 139, 139)    ]
+["Dark Goldenrod"           DarkGoldenrod           DARK_GOLDENROD              dark_goldenrod              "B8860B"    "B8860BFF"  RGB(184, 134, 11)   ]
+["Dark Gray"                DarkGray                DARK_GRAY                   dark_gray                   "A9A9A9"    "A9A9A9FF"  RGB(169, 169, 169)  ]
+["Dark Green"               DarkGreen               DARK_GREEN                  dark_green                  "006400"    "006400FF"  RGB(0, 100, 0)      ]
+["Dark Khaki"               DarkKhaki               DARK_KHAKI                  dark_khaki                  "BDB76B"    "BDB76BFF"  RGB(189, 183, 107)  ]
+["Dark Magenta"             DarkMagenta             DARK_MAGENTA                dark_magenta                "8B008B"    "8B008BFF"  RGB(139, 0, 139)    ]
+["Dark Olive Green"         DarkOliveGreen          DARK_OLIVE_GREEN            dark_olive_green            "556B2F"    "556B2FFF"  RGB(85, 107, 47)    ]
+["Dark Orange"              DarkOrange              DARK_ORANGE                 dark_orange                 "FF8C00"    "FF8C00FF"  RGB(255, 140, 0)    ]
+["Dark Orchid"              DarkOrchid              DARK_ORCHID                 dark_orchid                 "9932CC"    "9932CCFF"  RGB(153, 50, 204)   ]
+["Dark Red"                 DarkRed                 DARK_RED                    dark_red                    "8B0000"    "8B0000FF"  RGB(139, 0, 0)      ]
+["Dark Salmon"              DarkSalmon              DARK_SALMON                 dark_salmon                 "E9967A"    "E9967AFF"  RGB(233, 150, 122)  ]
+["Dark Sea Green"           DarkSeaGreen            DARK_SEA_GREEN              dark_sea_green              "8FBC8F"    "8FBC8FFF"  RGB(143, 188, 143)  ]
+["Dark Slate Blue"          DarkSlateBlue           DARK_SLATE_BLUE             dark_slate_blue             "483D8B"    "483D8BFF"  RGB(72, 61, 139)    ]
+["Dark Slate Gray"          DarkSlateGray           DARK_SLATE_GRAY             dark_slate_gray             "2F4F4F"    "2F4F4FFF"  RGB(47, 79, 79)     ]
+["Dark Turquoise"           DarkTurquoise           DARK_TURQUOISE              dark_turquoise              "00CED1"    "00CED1FF"  RGB(0, 206, 209)    ]
+["Dark Violet"              DarkViolet              DARK_VIOLET                 dark_violet                 "9400D3"    "9400D3FF"  RGB(148, 0, 211)    ]
+["Deep Pink"                DeepPink                DEEP_PINK                   deep_pink                   "FF1493"    "FF1493FF"  RGB(255, 20, 147)   ]
+["Deep Sky Blue"            DeepSkyBlue             DEEP_SKY_BLUE               deep_sky_blue               "00BFFF"    "00BFFFFF"  RGB(0, 191, 255)    ]
+["Dim Gray"                 DimGray                 DIM_GRAY                    dim_gray                    "696969"    "696969FF"  RGB(105, 105, 105)  ]
+["Dodger Blue"              DodgerBlue              DODGER_BLUE                 dodger_blue                 "1E90FF"    "1E90FFFF"  RGB(30, 144, 255)   ]
+["Fire Brick"               FireBrick               FIRE_BRICK                  fire_brick                  "B22222"    "B22222FF"  RGB(178, 34, 34)    ]
+["Floral White"             FloralWhite             FLORAL_WHITE                floral_white                "FFFAF0"    "FFFAF0FF"  RGB(255, 250, 240)  ]
+["Forest Green"             ForestGreen             FOREST_GREEN                forest_green                "228B22"    "228B22FF"  RGB(34, 139, 34)    ]
+["Fuchsia"                  Fuchsia                 FUCHSIA                     fuchsia                     "FF00FF"    "FF00FFFF"  RGB(255, 0, 255)    ]
+["Gainsboro"                Gainsboro               GAINSBORO                   gainsboro                   "DCDCDC"    "DCDCDCFF"  RGB(220, 220, 220)  ]
+["Ghost White"              GhostWhite              GHOST_WHITE                 ghost_white                 "F8F8FF"    "F8F8FFFF"  RGB(248, 248, 255)  ]
+["Gold"                     Gold                    GOLD                        gold                        "FFD700"    "FFD700FF"  RGB(255, 215, 0)    ]
+["Goldenrod"                Goldenrod               GOLDENROD                   goldenrod                   "DAA520"    "DAA520FF"  RGB(218, 165, 32)   ]
+["Gray"                     Gray                    GRAY                        gray                        "808080"    "808080FF"  RGB(128, 128, 128)  ]
+["Green"                    Green                   GREEN                       green                       "008000"    "008000FF"  RGB(0, 128, 0)      ]
+["Green Yellow"             GreenYellow             GREEN_YELLOW                green_yellow                "ADFF2F"    "ADFF2FFF"  RGB(173, 255, 47)   ]
+["Honeydew"                 Honeydew                HONEYDEW                    honeydew                    "F0FFF0"    "F0FFF0FF"  RGB(240, 255, 240)  ]
+["Hot Pink"                 HotPink                 HOT_PINK                    hot_pink                    "FF69B4"    "FF69B4FF"  RGB(255, 105, 180)  ]
+["Indian Red"               IndianRed               INDIAN_RED                  indian_red                  "CD5C5C"    "CD5C5CFF"  RGB(205, 92, 92)    ]
+["Indigo"                   Indigo                  INDIGO                      indigo                      "4B0082"    "4B0082FF"  RGB(75, 0, 130)     ]
+["Ivory"                    Ivory                   IVORY                       ivory                       "FFFFF0"    "FFFFF0FF"  RGB(255, 255, 240)  ]
+["Khaki"                    Khaki                   KHAKI                       khaki                       "F0E68C"    "F0E68CFF"  RGB(240, 230, 140)  ]
+["Lavender"                 Lavender                LAVENDER                    lavender                    "E6E6FA"    "E6E6FAFF"  RGB(230, 230, 250)  ]
+["Lavender Blush"           LavenderBlush           LAVENDER_BLUSH              lavender_blush              "FFF0F5"    "FFF0F5FF"  RGB(255, 240, 245)  ]
+["Lawn Green"               LawnGreen               LAWN_GREEN                  lawn_green                  "7CFC00"    "7CFC00FF"  RGB(124, 252, 0)    ]
+["Lemon Chiffon"            LemonChiffon            LEMON_CHIFFON               lemon_chiffon               "FFFACD"    "FFFACDFF"  RGB(255, 250, 205)  ]
+["Light Blue"               LightBlue               LIGHT_BLUE                  light_blue                  "ADD8E6"    "ADD8E6FF"  RGB(173, 216, 230)  ]
+["Light Coral"              LightCoral              LIGHT_CORAL                 light_coral                 "F08080"    "F08080FF"  RGB(240, 128, 128)  ]
+["Light Cyan"               LightCyan               LIGHT_CYAN                  light_cyan                  "E0FFFF"    "E0FFFFFF"  RGB(224, 255, 255)  ]
+["Light Goldenrod Yellow"   LightGoldenrodYellow    LIGHT_GOLDENROD_YELLOW      light_goldenrod_yellow      "FAFAD2"    "FAFAD2FF"  RGB(250, 250, 210)  ]
+["Light Gray"               LightGray               LIGHT_GRAY                  light_gray                  "D3D3D3"    "D3D3D3FF"  RGB(211, 211, 211)  ]
+["Light Green"              LightGreen              LIGHT_GREEN                 light_green                 "90EE90"    "90EE90FF"  RGB(144, 238, 144)  ]
+["Light Pink"               LightPink               LIGHT_PINK                  light_pink                  "FFB6C1"    "FFB6C1FF"  RGB(255, 182, 193)  ]
+["Light Salmon"             LightSalmon             LIGHT_SALMON                light_salmon                "FFA07A"    "FFA07AFF"  RGB(255, 160, 122)  ]
+["Light Sea Green"          LightSeaGreen           LIGHT_SEA_GREEN             light_sea_green             "20B2AA"    "20B2AAFF"  RGB(32, 178, 170)   ]
+["Light Sky Blue"           LightSkyBlue            LIGHT_SKY_BLUE              light_sky_blue              "87CEFA"    "87CEFAFF"  RGB(135, 206, 250)  ]
+["Light Slate Gray"         LightSlateGray          LIGHT_SLATE_GRAY            light_slate_gray            "778899"    "778899FF"  RGB(119, 136, 153)  ]
+["Light Steel Blue"         LightSteelBlue          LIGHT_STEEL_BLUE            light_steel_blue            "B0C4DE"    "B0C4DEFF"  RGB(176, 196, 222)  ]
+["Light Yellow"             LightYellow             LIGHT_YELLOW                light_yellow                "FFFFE0"    "FFFFE0FF"  RGB(255, 255, 224)  ]
+["Lime"                     Lime                    LIME                        lime                        "00FF00"    "00FF00FF"  RGB(0, 255, 0)      ]
+["Lime Green"               LimeGreen               LIME_GREEN                  lime_green                  "32CD32"    "32CD32FF"  RGB(50, 205, 50)    ]
+["Linen"                    Linen                   LINEN                       linen                       "FAF0E6"    "FAF0E6FF"  RGB(250, 240, 230)  ]
+["Magenta"                  Magenta                 MAGENTA                     magenta                     "FF00FF"    "FF00FFFF"  RGB(255, 0, 255)    ]
+["Maroon"                   Maroon                  MAROON                      maroon                      "800000"    "800000FF"  RGB(128, 0, 0)      ]
+["Medium Aquamarine"        MediumAquamarine        MEDIUM_AQUAMARINE           medium_aquamarine           "66CDAA"    "66CDAAFF"  RGB(102, 205, 170)  ]
+["Medium Blue"              MediumBlue              MEDIUM_BLUE                 medium_blue                 "0000CD"    "0000CDFF"  RGB(0, 0, 205)      ]
+["Medium Orchid"            MediumOrchid            MEDIUM_ORCHID               medium_orchid               "BA55D3"    "BA55D3FF"  RGB(186, 85, 211)   ]
+["Medium Purple"            MediumPurple            MEDIUM_PURPLE               medium_purple               "9370DB"    "9370DBFF"  RGB(147, 112, 219)  ]
+["Medium Sea Green"         MediumSeaGreen          MEDIUM_SEA_GREEN            medium_sea_green            "3CB371"    "3CB371FF"  RGB(60, 179, 113)   ]
+["Medium Slate Blue"        MediumSlateBlue         MEDIUM_SLATE_BLUE           medium_slate_blue           "7B68EE"    "7B68EEFF"  RGB(123, 104, 238)  ]
+["Medium Spring Green"      MediumSpringGreen       MEDIUM_SPRING_GREEN         medium_spring_green         "00FA9A"    "00FA9AFF"  RGB(0, 250, 154)    ]
+["Medium Turquoise"         MediumTurquoise         MEDIUM_TURQUOISE            medium_turquoise            "48D1CC"    "48D1CCFF"  RGB(72, 209, 204)   ]
+["Medium Violet Red"        MediumVioletRed         MEDIUM_VIOLET_RED           medium_violet_red           "C71585"    "C71585FF"  RGB(199, 21, 133)   ]
+["Midnight Blue"            MidnightBlue            MIDNIGHT_BLUE               midnight_blue               "191970"    "191970FF"  RGB(25, 25, 112)    ]
+["Mint Cream"               MintCream               MINT_CREAM                  mint_cream                  "F5FFFA"    "F5FFFAFF"  RGB(245, 255, 250)  ]
+["Misty Rose"               MistyRose               MISTY_ROSE                  misty_rose                  "FFE4E1"    "FFE4E1FF"  RGB(255, 228, 225)  ]
+["Moccasin"                 Moccasin                MOCCASIN                    moccasin                    "FFE4B5"    "FFE4B5FF"  RGB(255, 228, 181)  ]
+["Navajo White"             NavajoWhite             NAVAJO_WHITE                navajo_white                "FFDEAD"    "FFDEADFF"  RGB(255, 222, 173)  ]
+["Navy"                     Navy                    NAVY                        navy                        "000080"    "000080FF"  RGB(0, 0, 128)      ]
+["Old Lace"                 OldLace                 OLD_LACE                    old_lace                    "FDF5E6"    "FDF5E6FF"  RGB(253, 245, 230)  ]
+["Olive"                    Olive                   OLIVE                       olive                       "808000"    "808000FF"  RGB(128, 128, 0)    ]
+["Olive Drab"               OliveDrab               OLIVE_DRAB                  olive_drab                  "6B8E23"    "6B8E23FF"  RGB(107, 142, 35)   ]
+["Orange"                   Orange                  ORANGE                      orange                      "FFA500"    "FFA500FF"  RGB(255, 165, 0)    ]
+["Orange Red"               OrangeRed               ORANGE_RED                  orange_red                  "FF4500"    "FF4500FF"  RGB(255, 69, 0)     ]
+["Orchid"                   Orchid                  ORCHID                      orchid                      "DA70D6"    "DA70D6FF"  RGB(218, 112, 214)  ]
+["Pale Goldenrod"           PaleGoldenrod           PALE_GOLDENROD              pale_goldenrod              "EEE8AA"    "EEE8AAFF"  RGB(238, 232, 170)  ]
+["Pale Green"               PaleGreen               PALE_GREEN                  pale_green                  "98FB98"    "98FB98FF"  RGB(152, 251, 152)  ]
+["Pale Turquoise"           PaleTurquoise           PALE_TURQUOISE              pale_turquoise              "AFEEEE"    "AFEEEEFF"  RGB(175, 238, 238)  ]
+["Pale Violet Red"          PaleVioletRed           PALE_VIOLET_RED             pale_violet_red             "DB7093"    "DB7093FF"  RGB(219, 112, 147)  ]
+["Papaya Whip"              PapayaWhip              PAPAYA_WHIP                 papaya_whip                 "FFEFD5"    "FFEFD5FF"  RGB(255, 239, 213)  ]
+["Peach Puff"               PeachPuff               PEACH_PUFF                  peach_puff                  "FFDAB9"    "FFDAB9FF"  RGB(255, 218, 185)  ]
+["Peru"                     Peru                    PERU                        peru                        "CD853F"    "CD853FFF"  RGB(205, 133, 63)   ]
+["Pink"                     Pink                    PINK                        pink                        "FFC0CB"    "FFC0CBFF"  RGB(255, 192, 203)  ]
+["Plum"                     Plum                    PLUM                        plum                        "DDA0DD"    "DDA0DDFF"  RGB(221, 160, 221)  ]
+["Powder Blue"              PowderBlue              POWDER_BLUE                 powder_blue                 "B0E0E6"    "B0E0E6FF"  RGB(176, 224, 230)  ]
+["Purple"                   Purple                  PURPLE                      purple                      "800080"    "800080FF"  RGB(128, 0, 128)    ]
+["Red"                      Red                     RED                         red                         "FF0000"    "FF0000FF"  RGB(255, 0, 0)      ]
+["Rosy Brown"               RosyBrown               ROSY_BROWN                  rosy_brown                  "BC8F8F"    "BC8F8FFF"  RGB(188, 143, 143)  ]
+["Royal Blue"               RoyalBlue               ROYAL_BLUE                  royal_blue                  "4169E1"    "4169E1FF"  RGB(65, 105, 225)   ]
+["Saddle Brown"             SaddleBrown             SADDLE_BROWN                saddle_brown                "8B4513"    "8B4513FF"  RGB(139, 69, 19)    ]
+["Salmon"                   Salmon                  SALMON                      salmon                      "FA8072"    "FA8072FF"  RGB(250, 128, 114)  ]
+["Sandy Brown"              SandyBrown              SANDY_BROWN                 sandy_brown                 "F4A460"    "F4A460FF"  RGB(244, 164, 96)   ]
+["Sea Green"                SeaGreen                SEA_GREEN                   sea_green                   "2E8B57"    "2E8B57FF"  RGB(46, 139, 87)    ]
+["Seashell"                 Seashell                SEASHELL                    seashell                    "FFF5EE"    "FFF5EEFF"  RGB(255, 245, 238)  ]
+["Sienna"                   Sienna                  SIENNA                      sienna                      "A0522D"    "A0522DFF"  RGB(160, 82, 45)    ]
+["Silver"                   Silver                  SILVER                      silver                      "C0C0C0"    "C0C0C0FF"  RGB(192, 192, 192)  ]
+["Sky Blue"                 SkyBlue                 SKY_BLUE                    sky_blue                    "87CEEB"    "87CEEBFF"  RGB(135, 206, 235)  ]
+["Slate Blue"               SlateBlue               SLATE_BLUE                  slate_blue                  "6A5ACD"    "6A5ACDFF"  RGB(106, 90, 205)   ]
+["Slate Gray"               SlateGray               SLATE_GRAY                  slate_gray                  "708090"    "708090FF"  RGB(112, 128, 144)  ]
+["Snow"                     Snow                    SNOW                        snow                        "FFFAFA"    "FFFAFAFF"  RGB(255, 250, 250)  ]
+["Spring Green"             SpringGreen             SPRING_GREEN                spring_green                "00FF7F"    "00FF7FFF"  RGB(0, 255, 127)    ]
+["Steel Blue"               SteelBlue               STEEL_BLUE                  steel_blue                  "4682B4"    "4682B4FF"  RGB(70, 130, 180)   ]
+["Tan"                      Tan                     TAN                         tan                         "D2B48C"    "D2B48CFF"  RGB(210, 180, 140)  ]
+["Teal"                     Teal                    TEAL                        teal                        "008080"    "008080FF"  RGB(0, 128, 128)    ]
+["Thistle"                  Thistle                 THISTLE                     thistle                     "D8BFD8"    "D8BFD8FF"  RGB(216, 191, 216)  ]
+["Tomato"                   Tomato                  TOMATO                      tomato                      "FF6347"    "FF6347FF"  RGB(255, 99, 71)    ]
+["Turquoise"                Turquoise               TURQUOISE                   turquoise                   "40E0D0"    "40E0D0FF"  RGB(64, 224, 208)   ]
+["Violet"                   Violet                  VIOLET                      violet                      "EE82EE"    "EE82EEFF"  RGB(238, 130, 238)  ]
+["Wheat"                    Wheat                   WHEAT                       wheat                       "F5DEB3"    "F5DEB3FF"  RGB(245, 222, 179)  ]
+["White"                    White                   WHITE                       white                       "FFFFFF"    "FFFFFFFF"  RGB(255, 255, 255)  ]
+["White Smoke"              WhiteSmoke              WHITE_SMOKE                 white_smoke                 "F5F5F5"    "F5F5F5FF"  RGB(245, 245, 245)  ]
+["Yellow"                   Yellow                  YELLOW                      yellow                      "FFFF00"    "FFFF00FF"  RGB(255, 255, 0)    ]
+["Yellow Green"             YellowGreen             YELLOW_GREEN                yellow_green                "9ACD32"    "9ACD32FF"  RGB(154, 205, 50)   ]
+        }
+    };
+}
+
+macro_rules! color_enum {
+    ($([
+        $readable_name:literal
+        $camel_name:ident
+        $const_name:ident
+        $var_name:ident
+        $rgb_hex:literal
+        $rgba_hex:literal
+        RGB($r:literal, $g:literal, $b:literal)
+    ])+) => {
+        #[repr(u8)]
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, NoUninit)]
+        pub enum Color {
+            $(
+                $camel_name,
+            )*
+        }
+    };
+}
+
+impl Color {
+    #[inline]
+    pub const fn index(self) -> usize {
+        self as usize
+    }
+
+    #[inline]
+    pub const fn camel_name(self) -> &'static str {
+        HTML_COLORS[self.index()].camel_name
+    }
+
+    #[inline]
+    pub const fn const_name(self) -> &'static str {
+        HTML_COLORS[self.index()].const_name
+    }
+
+    #[inline]
+    pub const fn var_name(self) -> &'static str {
+        HTML_COLORS[self.index()].var_name
+    }
+
+    #[inline]
+    pub const fn rgb(self) -> Rgb {
+        HTML_COLORS[self.index()].rgb
+    }
+
+    #[inline]
+    pub const fn readable_name(self) -> &'static str {
+        HTML_COLORS[self.index()].readable_name
+    }
+
+    #[inline]
+    pub const fn from_byte(byte: u8) -> Option<Self> {
+        let index = byte as usize;
+        if index < HTML_COLORS.len() {
+            Some(HTML_COLORS[index].color)
+        } else {
+            None
+        }
+    }
+
+    #[inline]
+    pub const fn to_byte(self) -> u8 {
+        self as u8
+    }
+
+    pub fn iter() -> impl Iterator<Item = Self> {
+        HTML_COLORS.iter().map(|entry| entry.color)
+    }
+}
+
+html_colors!(color_enum);
+
+#[inline]
+pub const fn hex_byte(byte: u8) -> [u8; 2] {
+    const HEX_CHARS: [u8; 16] = [
+        b'0',
+        b'1',
+        b'2',
+        b'3',
+        b'4',
+        b'5',
+        b'6',
+        b'7',
+        b'8',
+        b'9',
+        b'A',
+        b'B',
+        b'C',
+        b'D',
+        b'E',
+        b'F',
+    ];
+    [
+        HEX_CHARS[(byte >> 4) as usize],
+        HEX_CHARS[(byte & 0xF) as usize],
+    ]
+}
+
+#[inline]
+fn byte_lerp(a: u8, b: u8, t: f32) -> u8 {
+    if a == b {
+        return a;
+    }
+    let a = a as f32;
+    let b = b as f32;
+    let result = a + (b - a) * t;
+    result as u8
+}
+
+#[inline]
+pub fn normalized_byte(byte: u8) -> f32 {
+    byte as f32 / 255.0
+}
+
 #[repr(C)]
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, NoUninit)]
 pub struct Rgb {
@@ -8,463 +270,50 @@ pub struct Rgb {
     pub b: u8,
 }
 
-#[inline]
-pub fn normalized_byte(byte: u8) -> f32 {
-    byte as f32 / 255.0
+macro_rules! rgb_color_consts {
+    ($([
+        $readable_name:literal
+        $camel_name:ident
+        $const_name:ident
+        $var_name:ident
+        $rgb_hex:literal
+        $rgba_hex:literal
+        RGB($r:literal, $g:literal, $b:literal)
+    ])+) => {
+        impl Rgb {
+            $(
+                pub const $const_name: Self = Rgb::new($r, $g, $b);
+            )+
+        }
+    };
 }
 
-const HEX_CHARS: [u8; 16] = [
-    b'0',
-    b'1',
-    b'2',
-    b'3',
-    b'4',
-    b'5',
-    b'6',
-    b'7',
-    b'8',
-    b'9',
-    b'A',
-    b'B',
-    b'C',
-    b'D',
-    b'E',
-    b'F',
-];
-
-#[inline]
-pub const fn hex_byte(byte: u8) -> [u8; 2] {
-    [
-        HEX_CHARS[(byte >> 4) as usize],
-        HEX_CHARS[(byte & 0xF) as usize],
-    ]
-}
+html_colors!(rgb_color_consts);
 
 impl Rgb {
-    /// `RGB(240, 248, 255)`  
-    /// `#F0F8FF`
-    pub const            ALICEBLUE: Self = Rgb::new(240, 248, 255);
-    /// `RGB(250, 235, 215)`  
-    /// `#FAEBD7`
-    pub const         ANTIQUEWHITE: Self = Rgb::new(250, 235, 215);
-    /// `RGB(0, 255, 255)`  
-    /// `#00FFFF`
-    pub const                 AQUA: Self = Rgb::new(  0, 255, 255);
-    /// `RGB(127, 255, 212)`  
-    /// `#7FFFD4`
-    pub const           AQUAMARINE: Self = Rgb::new(127, 255, 212);
-    /// `RGB(240, 255, 255)`  
-    /// `#F0FFFF`
-    pub const                AZURE: Self = Rgb::new(240, 255, 255);
-    /// `RGB(245, 245, 220)`  
-    /// `#F5F5DC`
-    pub const                BEIGE: Self = Rgb::new(245, 245, 220);
-    /// `RGB(255, 228, 196)`  
-    /// `#FFE4C4`
-    pub const               BISQUE: Self = Rgb::new(255, 228, 196);
-    /// `RGB(0, 0, 0)`  
-    /// `#000000`
-    pub const                BLACK: Self = Rgb::new(  0,   0,   0);
-    /// `RGB(255, 235, 205)`  
-    /// `#FFEBCD`
-    pub const       BLANCHEDALMOND: Self = Rgb::new(255, 235, 205);
-    /// `RGB(0, 0, 255)`  
-    /// `#0000FF`
-    pub const                 BLUE: Self = Rgb::new(  0,   0, 255);
-    /// `RGB(138, 43, 226)`  
-    /// `#8A2BE2`
-    pub const           BLUEVIOLET: Self = Rgb::new(138,  43, 226);
-    /// `RGB(165, 42, 42)`  
-    /// `#A52A2A`
-    pub const                BROWN: Self = Rgb::new(165,  42,  42);
-    /// `RGB(222, 184, 135)`  
-    /// `#DEB887`
-    pub const            BURLYWOOD: Self = Rgb::new(222, 184, 135);
-    /// `RGB(95, 158, 160)`  
-    /// `#5F9EA0`
-    pub const            CADETBLUE: Self = Rgb::new( 95, 158, 160);
-    /// `RGB(127, 255, 0)`  
-    /// `#7FFF00`
-    pub const           CHARTREUSE: Self = Rgb::new(127, 255,   0);
-    /// `RGB(210, 105, 30)`  
-    /// `#D2691E`
-    pub const            CHOCOLATE: Self = Rgb::new(210, 105,  30);
-    /// `RGB(255, 127, 80)`  
-    /// `#FF7F50`
-    pub const                CORAL: Self = Rgb::new(255, 127,  80);
-    /// `RGB(100, 149, 237)`  
-    /// `#6495ED`
-    pub const       CORNFLOWERBLUE: Self = Rgb::new(100, 149, 237);
-    /// `RGB(255, 248, 220)`  
-    /// `#FFF8DC`
-    pub const             CORNSILK: Self = Rgb::new(255, 248, 220);
-    /// `RGB(220, 20, 60)`  
-    /// `#DC143C`
-    pub const              CRIMSON: Self = Rgb::new(220,  20,  60);
-    /// `RGB(0, 255, 255)`  
-    /// `#00FFFF`
-    pub const                 CYAN: Self = Rgb::new(  0, 255, 255);
-    /// `RGB(0, 0, 139)`  
-    /// `#00008B`
-    pub const             DARKBLUE: Self = Rgb::new(  0,   0, 139);
-    /// `RGB(0, 139, 139)`  
-    /// `#008B8B`
-    pub const             DARKCYAN: Self = Rgb::new(  0, 139, 139);
-    /// `RGB(184, 134, 11)`  
-    /// `#B8860B`
-    pub const        DARKGOLDENROD: Self = Rgb::new(184, 134,  11);
-    /// `RGB(169, 169, 169)`  
-    /// `#A9A9A9`
-    pub const             DARKGRAY: Self = Rgb::new(169, 169, 169);
-    /// `RGB(0, 100, 0)`  
-    /// `#006400`
-    pub const            DARKGREEN: Self = Rgb::new(  0, 100,   0);
-    /// `RGB(189, 183, 107)`  
-    /// `#BDB76B`
-    pub const            DARKKHAKI: Self = Rgb::new(189, 183, 107);
-    /// `RGB(139, 0, 139)`  
-    /// `#8B008B`
-    pub const          DARKMAGENTA: Self = Rgb::new(139,   0, 139);
-    /// `RGB(85, 107, 47)`  
-    /// `#556B2F`
-    pub const       DARKOLIVEGREEN: Self = Rgb::new( 85, 107,  47);
-    /// `RGB(255, 140, 0)`  
-    /// `#FF8C00`
-    pub const           DARKORANGE: Self = Rgb::new(255, 140,   0);
-    /// `RGB(153, 50, 204)`  
-    /// `#9932CC`
-    pub const           DARKORCHID: Self = Rgb::new(153,  50, 204);
-    /// `RGB(139, 0, 0)`  
-    /// `#8B0000`
-    pub const              DARKRED: Self = Rgb::new(139,   0,   0);
-    /// `RGB(233, 150, 122)`  
-    /// `#E9967A`
-    pub const           DARKSALMON: Self = Rgb::new(233, 150, 122);
-    /// `RGB(143, 188, 143)`  
-    /// `#8FBC8F`
-    pub const         DARKSEAGREEN: Self = Rgb::new(143, 188, 143);
-    /// `RGB(72, 61, 139)`  
-    /// `#483D8B`
-    pub const        DARKSLATEBLUE: Self = Rgb::new( 72,  61, 139);
-    /// `RGB(47, 79, 79)`  
-    /// `#2F4F4F`
-    pub const        DARKSLATEGRAY: Self = Rgb::new( 47,  79,  79);
-    /// `RGB(0, 206, 209)`  
-    /// `#00CED1`
-    pub const        DARKTURQUOISE: Self = Rgb::new(  0, 206, 209);
-    /// `RGB(148, 0, 211)`  
-    /// `#9400D3`
-    pub const           DARKVIOLET: Self = Rgb::new(148,   0, 211);
-    /// `RGB(255, 20, 147)`  
-    /// `#FF1493`
-    pub const             DEEPPINK: Self = Rgb::new(255,  20, 147);
-    /// `RGB(0, 191, 255)`  
-    /// `#00BFFF`
-    pub const          DEEPSKYBLUE: Self = Rgb::new(  0, 191, 255);
-    /// `RGB(105, 105, 105)`  
-    /// `#696969`
-    pub const              DIMGRAY: Self = Rgb::new(105, 105, 105);
-    /// `RGB(30, 144, 255)`  
-    /// `#1E90FF`
-    pub const           DODGERBLUE: Self = Rgb::new( 30, 144, 255);
-    /// `RGB(178, 34, 34)`  
-    /// `#B22222`
-    pub const            FIREBRICK: Self = Rgb::new(178,  34,  34);
-    /// `RGB(255, 250, 240)`  
-    /// `#FFFAF0`
-    pub const          FLORALWHITE: Self = Rgb::new(255, 250, 240);
-    /// `RGB(34, 139, 34)`  
-    /// `#228B22`
-    pub const          FORESTGREEN: Self = Rgb::new( 34, 139,  34);
-    /// `RGB(255, 0, 255)`  
-    /// `#FF00FF`
-    pub const              FUCHSIA: Self = Rgb::new(255,   0, 255);
-    /// `RGB(220, 220, 220)`  
-    /// `#DCDCDC`
-    pub const            GAINSBORO: Self = Rgb::new(220, 220, 220);
-    /// `RGB(248, 248, 255)`  
-    /// `#F8F8FF`
-    pub const           GHOSTWHITE: Self = Rgb::new(248, 248, 255);
-    /// `RGB(255, 215, 0)`  
-    /// `#FFD700`
-    pub const                 GOLD: Self = Rgb::new(255, 215,   0);
-    /// `RGB(218, 165, 32)`  
-    /// `#DAA520`
-    pub const            GOLDENROD: Self = Rgb::new(218, 165,  32);
-    /// `RGB(128, 128, 128)`  
-    /// `#808080`
-    pub const                 GRAY: Self = Rgb::new(128, 128, 128);
-    /// `RGB(0, 128, 0)`  
-    /// `#008000`
-    pub const                GREEN: Self = Rgb::new(  0, 128,   0);
-    /// `RGB(173, 255, 47)`  
-    /// `#ADFF2F`
-    pub const          GREENYELLOW: Self = Rgb::new(173, 255,  47);
-    /// `RGB(240, 255, 240)`  
-    /// `#F0FFF0`
-    pub const             HONEYDEW: Self = Rgb::new(240, 255, 240);
-    /// `RGB(255, 105, 180)`  
-    /// `#FF69B4`
-    pub const              HOTPINK: Self = Rgb::new(255, 105, 180);
-    /// `RGB(205, 92, 92)`  
-    /// `#CD5C5C`
-    pub const            INDIANRED: Self = Rgb::new(205,  92,  92);
-    /// `RGB(75, 0, 130)`  
-    /// `#4B0082`
-    pub const               INDIGO: Self = Rgb::new( 75,   0, 130);
-    /// `RGB(255, 255, 240)`  
-    /// `#FFFFF0`
-    pub const                IVORY: Self = Rgb::new(255, 255, 240);
-    /// `RGB(240, 230, 140)`  
-    /// `#F0E68C`
-    pub const                KHAKI: Self = Rgb::new(240, 230, 140);
-    /// `RGB(230, 230, 250)`  
-    /// `#E6E6FA`
-    pub const             LAVENDER: Self = Rgb::new(230, 230, 250);
-    /// `RGB(255, 240, 245)`  
-    /// `#FFF0F5`
-    pub const        LAVENDERBLUSH: Self = Rgb::new(255, 240, 245);
-    /// `RGB(124, 252, 0)`  
-    /// `#7CFC00`
-    pub const            LAWNGREEN: Self = Rgb::new(124, 252,   0);
-    /// `RGB(255, 250, 205)`  
-    /// `#FFFACD`
-    pub const         LEMONCHIFFON: Self = Rgb::new(255, 250, 205);
-    /// `RGB(173, 216, 230)`  
-    /// `#ADD8E6`
-    pub const            LIGHTBLUE: Self = Rgb::new(173, 216, 230);
-    /// `RGB(240, 128, 128)`  
-    /// `#F08080`
-    pub const           LIGHTCORAL: Self = Rgb::new(240, 128, 128);
-    /// `RGB(224, 255, 255)`  
-    /// `#E0FFFF`
-    pub const            LIGHTCYAN: Self = Rgb::new(224, 255, 255);
-    /// `RGB(250, 250, 210)`  
-    /// `#FAFAD2`
-    pub const LIGHTGOLDENRODYELLOW: Self = Rgb::new(250, 250, 210);
-    /// `RGB(211, 211, 211)`  
-    /// `#D3D3D3`
-    pub const            LIGHTGRAY: Self = Rgb::new(211, 211, 211);
-    /// `RGB(144, 238, 144)`  
-    /// `#90EE90`
-    pub const           LIGHTGREEN: Self = Rgb::new(144, 238, 144);
-    /// `RGB(255, 182, 193)`  
-    /// `#FFB6C1`
-    pub const            LIGHTPINK: Self = Rgb::new(255, 182, 193);
-    /// `RGB(255, 160, 122)`  
-    /// `#FFA07A`
-    pub const          LIGHTSALMON: Self = Rgb::new(255, 160, 122);
-    /// `RGB(32, 178, 170)`  
-    /// `#20B2AA`
-    pub const        LIGHTSEAGREEN: Self = Rgb::new( 32, 178, 170);
-    /// `RGB(135, 206, 250)`  
-    /// `#87CEFA`
-    pub const         LIGHTSKYBLUE: Self = Rgb::new(135, 206, 250);
-    /// `RGB(119, 136, 153)`  
-    /// `#778899`
-    pub const       LIGHTSLATEGRAY: Self = Rgb::new(119, 136, 153);
-    /// `RGB(176, 196, 222)`  
-    /// `#B0C4DE`
-    pub const       LIGHTSTEELBLUE: Self = Rgb::new(176, 196, 222);
-    /// `RGB(255, 255, 224)`  
-    /// `#FFFFE0`
-    pub const          LIGHTYELLOW: Self = Rgb::new(255, 255, 224);
-    /// `RGB(0, 255, 0)`  
-    /// `#00FF00`
-    pub const                 LIME: Self = Rgb::new(  0, 255,   0);
-    /// `RGB(50, 205, 50)`  
-    /// `#32CD32`
-    pub const            LIMEGREEN: Self = Rgb::new( 50, 205,  50);
-    /// `RGB(250, 240, 230)`  
-    /// `#FAF0E6`
-    pub const                LINEN: Self = Rgb::new(250, 240, 230);
-    /// `RGB(255, 0, 255)`  
-    /// `#FF00FF`
-    pub const              MAGENTA: Self = Rgb::new(255,   0, 255);
-    /// `RGB(128, 0, 0)`  
-    /// `#800000`
-    pub const               MAROON: Self = Rgb::new(128,   0,   0);
-    /// `RGB(102, 205, 170)`  
-    /// `#66CDAA`
-    pub const     MEDIUMAQUAMARINE: Self = Rgb::new(102, 205, 170);
-    /// `RGB(0, 0, 205)`  
-    /// `#0000CD`
-    pub const           MEDIUMBLUE: Self = Rgb::new(  0,   0, 205);
-    /// `RGB(186, 85, 211)`  
-    /// `#BA55D3`
-    pub const         MEDIUMORCHID: Self = Rgb::new(186,  85, 211);
-    /// `RGB(147, 112, 219)`  
-    /// `#9370DB`
-    pub const         MEDIUMPURPLE: Self = Rgb::new(147, 112, 219);
-    /// `RGB(60, 179, 113)`  
-    /// `#3CB371`
-    pub const       MEDIUMSEAGREEN: Self = Rgb::new( 60, 179, 113);
-    /// `RGB(123, 104, 238)`  
-    /// `#7B68EE`
-    pub const      MEDIUMSLATEBLUE: Self = Rgb::new(123, 104, 238);
-    /// `RGB(0, 250, 154)`  
-    /// `#00FA9A`
-    pub const    MEDIUMSPRINGGREEN: Self = Rgb::new(  0, 250, 154);
-    /// `RGB(72, 209, 204)`  
-    /// `#48D1CC`
-    pub const      MEDIUMTURQUOISE: Self = Rgb::new( 72, 209, 204);
-    /// `RGB(199, 21, 133)`  
-    /// `#C71585`
-    pub const      MEDIUMVIOLETRED: Self = Rgb::new(199,  21, 133);
-    /// `RGB(25, 25, 112)`  
-    /// `#191970`
-    pub const         MIDNIGHTBLUE: Self = Rgb::new( 25,  25, 112);
-    /// `RGB(245, 255, 250)`  
-    /// `#F5FFFA`
-    pub const            MINTCREAM: Self = Rgb::new(245, 255, 250);
-    /// `RGB(255, 228, 225)`  
-    /// `#FFE4E1`
-    pub const            MISTYROSE: Self = Rgb::new(255, 228, 225);
-    /// `RGB(255, 228, 181)`  
-    /// `#FFE4B5`
-    pub const             MOCCASIN: Self = Rgb::new(255, 228, 181);
-    /// `RGB(255, 222, 173)`  
-    /// `#FFDEAD`
-    pub const          NAVAJOWHITE: Self = Rgb::new(255, 222, 173);
-    /// `RGB(0, 0, 128)`  
-    /// `#000080`
-    pub const                 NAVY: Self = Rgb::new(  0,   0, 128);
-    /// `RGB(253, 245, 230)`  
-    /// `#FDF5E6`
-    pub const              OLDLACE: Self = Rgb::new(253, 245, 230);
-    /// `RGB(128, 128, 0)`  
-    /// `#808000`
-    pub const                OLIVE: Self = Rgb::new(128, 128,   0);
-    /// `RGB(107, 142, 35)`  
-    /// `#6B8E23`
-    pub const            OLIVEDRAB: Self = Rgb::new(107, 142,  35);
-    /// `RGB(255, 165, 0)`  
-    /// `#FFA500`
-    pub const               ORANGE: Self = Rgb::new(255, 165,   0);
-    /// `RGB(255, 69, 0)`  
-    /// `#FF4500`
-    pub const            ORANGERED: Self = Rgb::new(255,  69,   0);
-    /// `RGB(218, 112, 214)`  
-    /// `#DA70D6`
-    pub const               ORCHID: Self = Rgb::new(218, 112, 214);
-    /// `RGB(238, 232, 170)`  
-    /// `#EEE8AA`
-    pub const        PALEGOLDENROD: Self = Rgb::new(238, 232, 170);
-    /// `RGB(152, 251, 152)`  
-    /// `#98FB98`
-    pub const            PALEGREEN: Self = Rgb::new(152, 251, 152);
-    /// `RGB(175, 238, 238)`  
-    /// `#AFEEEE`
-    pub const        PALETURQUOISE: Self = Rgb::new(175, 238, 238);
-    /// `RGB(219, 112, 147)`  
-    /// `#DB7093`
-    pub const        PALEVIOLETRED: Self = Rgb::new(219, 112, 147);
-    /// `RGB(255, 239, 213)`  
-    /// `#FFEFD5`
-    pub const           PAPAYAWHIP: Self = Rgb::new(255, 239, 213);
-    /// `RGB(255, 218, 185)`  
-    /// `#FFDAB9`
-    pub const            PEACHPUFF: Self = Rgb::new(255, 218, 185);
-    /// `RGB(205, 133, 63)`  
-    /// `#CD853F`
-    pub const                 PERU: Self = Rgb::new(205, 133,  63);
-    /// `RGB(255, 192, 203)`  
-    /// `#FFC0CB`
-    pub const                 PINK: Self = Rgb::new(255, 192, 203);
-    /// `RGB(221, 160, 221)`  
-    /// `#DDA0DD`
-    pub const                 PLUM: Self = Rgb::new(221, 160, 221);
-    /// `RGB(176, 224, 230)`  
-    /// `#B0E0E6`
-    pub const           POWDERBLUE: Self = Rgb::new(176, 224, 230);
-    /// `RGB(128, 0, 128)`  
-    /// `#800080`
-    pub const               PURPLE: Self = Rgb::new(128,   0, 128);
-    /// `RGB(255, 0, 0)`  
-    /// `#FF0000`
-    pub const                  RED: Self = Rgb::new(255,   0,   0);
-    /// `RGB(188, 143, 143)`  
-    /// `#BC8F8F`
-    pub const            ROSYBROWN: Self = Rgb::new(188, 143, 143);
-    /// `RGB(65, 105, 225)`  
-    /// `#4169E1`
-    pub const            ROYALBLUE: Self = Rgb::new( 65, 105, 225);
-    /// `RGB(139, 69, 19)`  
-    /// `#8B4513`
-    pub const          SADDLEBROWN: Self = Rgb::new(139,  69,  19);
-    /// `RGB(250, 128, 114)`  
-    /// `#FA8072`
-    pub const               SALMON: Self = Rgb::new(250, 128, 114);
-    /// `RGB(244, 164, 96)`  
-    /// `#F4A460`
-    pub const           SANDYBROWN: Self = Rgb::new(244, 164,  96);
-    /// `RGB(46, 139, 87)`  
-    /// `#2E8B57`
-    pub const             SEAGREEN: Self = Rgb::new( 46, 139,  87);
-    /// `RGB(255, 245, 238)`  
-    /// `#FFF5EE`
-    pub const             SEASHELL: Self = Rgb::new(255, 245, 238);
-    /// `RGB(160, 82, 45)`  
-    /// `#A0522D`
-    pub const               SIENNA: Self = Rgb::new(160,  82,  45);
-    /// `RGB(192, 192, 192)`  
-    /// `#C0C0C0`
-    pub const               SILVER: Self = Rgb::new(192, 192, 192);
-    /// `RGB(135, 206, 235)`  
-    /// `#87CEEB`
-    pub const              SKYBLUE: Self = Rgb::new(135, 206, 235);
-    /// `RGB(106, 90, 205)`  
-    /// `#6A5ACD`
-    pub const            SLATEBLUE: Self = Rgb::new(106,  90, 205);
-    /// `RGB(112, 128, 144)`  
-    /// `#708090`
-    pub const            SLATEGRAY: Self = Rgb::new(112, 128, 144);
-    /// `RGB(255, 250, 250)`  
-    /// `#FFFAFA`
-    pub const                 SNOW: Self = Rgb::new(255, 250, 250);
-    /// `RGB(0, 255, 127)`  
-    /// `#00FF7F`
-    pub const          SPRINGGREEN: Self = Rgb::new(  0, 255, 127);
-    /// `RGB(70, 130, 180)`  
-    /// `#4682B4`
-    pub const            STEELBLUE: Self = Rgb::new( 70, 130, 180);
-    /// `RGB(210, 180, 140)`  
-    /// `#D2B48C`
-    pub const                  TAN: Self = Rgb::new(210, 180, 140);
-    /// `RGB(0, 128, 128)`  
-    /// `#008080`
-    pub const                 TEAL: Self = Rgb::new(  0, 128, 128);
-    /// `RGB(216, 191, 216)`  
-    /// `#D8BFD8`
-    pub const              THISTLE: Self = Rgb::new(216, 191, 216);
-    /// `RGB(255, 99, 71)`  
-    /// `#FF6347`
-    pub const               TOMATO: Self = Rgb::new(255,  99,  71);
-    /// `RGB(64, 224, 208)`  
-    /// `#40E0D0`
-    pub const            TURQUOISE: Self = Rgb::new( 64, 224, 208);
-    /// `RGB(238, 130, 238)`  
-    /// `#EE82EE`
-    pub const               VIOLET: Self = Rgb::new(238, 130, 238);
-    /// `RGB(245, 222, 179)`  
-    /// `#F5DEB3`
-    pub const                WHEAT: Self = Rgb::new(245, 222, 179);
-    /// `RGB(255, 255, 255)`  
-    /// `#FFFFFF`
-    pub const                WHITE: Self = Rgb::new(255, 255, 255);
-    /// `RGB(245, 245, 245)`  
-    /// `#F5F5F5`
-    pub const           WHITESMOKE: Self = Rgb::new(245, 245, 245);
-    /// `RGB(255, 255, 0)`  
-    /// `#FFFF00`
-    pub const               YELLOW: Self = Rgb::new(255, 255,   0);
-    /// `RGB(154, 205, 50)`  
-    /// `#9ACD32`
-    pub const          YELLOWGREEN: Self = Rgb::new(154, 205,  50);
-    
     #[inline]
     pub const fn new(r: u8, g: u8, b: u8) -> Self {
         Self{r,g,b}
+    }
+
+    #[inline]
+    pub const fn gray(level: u8) -> Self {
+        Self::new(level, level, level)
+    }
+
+    #[inline]
+    pub const fn red(red: u8) -> Self {
+        Self::new(red, 0, 0)
+    }
+
+    #[inline]
+    pub const fn green(green: u8) -> Self {
+        Self::new(0, green, 0)
+    }
+
+    #[inline]
+    pub const fn blue(blue: u8) -> Self {
+        Self::new(0, 0, blue)
     }
 
     #[inline]
@@ -473,8 +322,18 @@ impl Rgb {
     }
 
     #[inline]
+    pub const fn transparent(self) -> Rgba {
+        Rgba::new(self.r, self.g, self.b, 0)
+    }
+
+    #[inline]
     pub const fn with_alpha(self, alpha: u8) -> Rgba {
         Rgba::new(self.r, self.g, self.b, alpha)
+    }
+
+    #[inline]
+    pub const fn is_gray(self) -> bool {
+        self.r == self.g && self.g == self.b
     }
 
     #[inline]
@@ -530,17 +389,6 @@ impl Rgb {
     }
 }
 
-#[inline]
-fn byte_lerp(a: u8, b: u8, t: f32) -> u8 {
-    if a == b {
-        return a;
-    }
-    let a = a as f32;
-    let b = b as f32;
-    let result = a + (b - a) * t;
-    result as u8
-}
-
 impl From<[u8; 3]> for Rgb {
     #[inline]
     fn from(value: [u8; 3]) -> Self {
@@ -578,427 +426,29 @@ pub struct Rgba {
     pub a: u8
 }
 
+macro_rules! rgba_color_consts {
+    ($([
+        $readable_name:literal
+        $camel_name:ident
+        $const_name:ident
+        $var_name:ident
+        $rgb_hex:literal
+        $rgba_hex:literal
+        RGB($r:literal, $g:literal, $b:literal)
+    ])+) => {
+        impl Rgba {
+            $(
+                pub const $const_name: Self = Rgba::new($r, $g, $b, 255);
+            )+
+        }
+    };
+}
+
+html_colors!(rgba_color_consts);
+
 impl Rgba {
-    /// `RGBA(240, 248, 255, 255)`  
-    /// `#F0F8FFFF`
-    pub const            ALICEBLUE: Self = Rgba::new(240, 248, 255, 255);
-    /// `RGBA(250, 235, 215, 255)`  
-    /// `#FAEBD7FF`
-    pub const         ANTIQUEWHITE: Self = Rgba::new(250, 235, 215, 255);
-    /// `RGBA(0, 255, 255, 255)`  
-    /// `#00FFFFFF`
-    pub const                 AQUA: Self = Rgba::new(  0, 255, 255, 255);
-    /// `RGBA(127, 255, 212, 255)`  
-    /// `#7FFFD4FF`
-    pub const           AQUAMARINE: Self = Rgba::new(127, 255, 212, 255);
-    /// `RGBA(240, 255, 255, 255)`  
-    /// `#F0FFFFFF`
-    pub const                AZURE: Self = Rgba::new(240, 255, 255, 255);
-    /// `RGBA(245, 245, 220, 255)`  
-    /// `#F5F5DCFF`
-    pub const                BEIGE: Self = Rgba::new(245, 245, 220, 255);
-    /// `RGBA(255, 228, 196, 255)`  
-    /// `#FFE4C4FF`
-    pub const               BISQUE: Self = Rgba::new(255, 228, 196, 255);
-    /// `RGBA(0, 0, 0, 255)`  
-    /// `#000000FF`
-    pub const                BLACK: Self = Rgba::new(  0,   0,   0, 255);
-    /// `RGBA(255, 235, 205, 255)`  
-    /// `#FFEBCDFF`
-    pub const       BLANCHEDALMOND: Self = Rgba::new(255, 235, 205, 255);
-    /// `RGBA(0, 0, 255, 255)`  
-    /// `#0000FFFF`
-    pub const                 BLUE: Self = Rgba::new(  0,   0, 255, 255);
-    /// `RGBA(138, 43, 226, 255)`  
-    /// `#8A2BE2FF`
-    pub const           BLUEVIOLET: Self = Rgba::new(138,  43, 226, 255);
-    /// `RGBA(165, 42, 42, 255)`  
-    /// `#A52A2AFF`
-    pub const                BROWN: Self = Rgba::new(165,  42,  42, 255);
-    /// `RGBA(222, 184, 135, 255)`  
-    /// `#DEB887FF`
-    pub const            BURLYWOOD: Self = Rgba::new(222, 184, 135, 255);
-    /// `RGBA(95, 158, 160, 255)`  
-    /// `#5F9EA0FF`
-    pub const            CADETBLUE: Self = Rgba::new( 95, 158, 160, 255);
-    /// `RGBA(127, 255, 0, 255)`  
-    /// `#7FFF00FF`
-    pub const           CHARTREUSE: Self = Rgba::new(127, 255,   0, 255);
-    /// `RGBA(210, 105, 30, 255)`  
-    /// `#D2691EFF`
-    pub const            CHOCOLATE: Self = Rgba::new(210, 105,  30, 255);
-    /// `RGBA(255, 127, 80, 255)`  
-    /// `#FF7F50FF`
-    pub const                CORAL: Self = Rgba::new(255, 127,  80, 255);
-    /// `RGBA(100, 149, 237, 255)`  
-    /// `#6495EDFF`
-    pub const       CORNFLOWERBLUE: Self = Rgba::new(100, 149, 237, 255);
-    /// `RGBA(255, 248, 220, 255)`  
-    /// `#FFF8DCFF`
-    pub const             CORNSILK: Self = Rgba::new(255, 248, 220, 255);
-    /// `RGBA(220, 20, 60, 255)`  
-    /// `#DC143CFF`
-    pub const              CRIMSON: Self = Rgba::new(220,  20,  60, 255);
-    /// `RGBA(0, 255, 255, 255)`  
-    /// `#00FFFFFF`
-    pub const                 CYAN: Self = Rgba::new(  0, 255, 255, 255);
-    /// `RGBA(0, 0, 139, 255)`  
-    /// `#00008BFF`
-    pub const             DARKBLUE: Self = Rgba::new(  0,   0, 139, 255);
-    /// `RGBA(0, 139, 139, 255)`  
-    /// `#008B8BFF`
-    pub const             DARKCYAN: Self = Rgba::new(  0, 139, 139, 255);
-    /// `RGBA(184, 134, 11, 255)`  
-    /// `#B8860BFF`
-    pub const        DARKGOLDENROD: Self = Rgba::new(184, 134,  11, 255);
-    /// `RGBA(169, 169, 169, 255)`  
-    /// `#A9A9A9FF`
-    pub const             DARKGRAY: Self = Rgba::new(169, 169, 169, 255);
-    /// `RGBA(0, 100, 0, 255)`  
-    /// `#006400FF`
-    pub const            DARKGREEN: Self = Rgba::new(  0, 100,   0, 255);
-    /// `RGBA(189, 183, 107, 255)`  
-    /// `#BDB76BFF`
-    pub const            DARKKHAKI: Self = Rgba::new(189, 183, 107, 255);
-    /// `RGBA(139, 0, 139, 255)`  
-    /// `#8B008BFF`
-    pub const          DARKMAGENTA: Self = Rgba::new(139,   0, 139, 255);
-    /// `RGBA(85, 107, 47, 255)`  
-    /// `#556B2FFF`
-    pub const       DARKOLIVEGREEN: Self = Rgba::new( 85, 107,  47, 255);
-    /// `RGBA(255, 140, 0, 255)`  
-    /// `#FF8C00FF`
-    pub const           DARKORANGE: Self = Rgba::new(255, 140,   0, 255);
-    /// `RGBA(153, 50, 204, 255)`  
-    /// `#9932CCFF`
-    pub const           DARKORCHID: Self = Rgba::new(153,  50, 204, 255);
-    /// `RGBA(139, 0, 0, 255)`  
-    /// `#8B0000FF`
-    pub const              DARKRED: Self = Rgba::new(139,   0,   0, 255);
-    /// `RGBA(233, 150, 122, 255)`  
-    /// `#E9967AFF`
-    pub const           DARKSALMON: Self = Rgba::new(233, 150, 122, 255);
-    /// `RGBA(143, 188, 143, 255)`  
-    /// `#8FBC8FFF`
-    pub const         DARKSEAGREEN: Self = Rgba::new(143, 188, 143, 255);
-    /// `RGBA(72, 61, 139, 255)`  
-    /// `#483D8BFF`
-    pub const        DARKSLATEBLUE: Self = Rgba::new( 72,  61, 139, 255);
-    /// `RGBA(47, 79, 79, 255)`  
-    /// `#2F4F4FFF`
-    pub const        DARKSLATEGRAY: Self = Rgba::new( 47,  79,  79, 255);
-    /// `RGBA(0, 206, 209, 255)`  
-    /// `#00CED1FF`
-    pub const        DARKTURQUOISE: Self = Rgba::new(  0, 206, 209, 255);
-    /// `RGBA(148, 0, 211, 255)`  
-    /// `#9400D3FF`
-    pub const           DARKVIOLET: Self = Rgba::new(148,   0, 211, 255);
-    /// `RGBA(255, 20, 147, 255)`  
-    /// `#FF1493FF`
-    pub const             DEEPPINK: Self = Rgba::new(255,  20, 147, 255);
-    /// `RGBA(0, 191, 255, 255)`  
-    /// `#00BFFFFF`
-    pub const          DEEPSKYBLUE: Self = Rgba::new(  0, 191, 255, 255);
-    /// `RGBA(105, 105, 105, 255)`  
-    /// `#696969FF`
-    pub const              DIMGRAY: Self = Rgba::new(105, 105, 105, 255);
-    /// `RGBA(30, 144, 255, 255)`  
-    /// `#1E90FFFF`
-    pub const           DODGERBLUE: Self = Rgba::new( 30, 144, 255, 255);
-    /// `RGBA(178, 34, 34, 255)`  
-    /// `#B22222FF`
-    pub const            FIREBRICK: Self = Rgba::new(178,  34,  34, 255);
-    /// `RGBA(255, 250, 240, 255)`  
-    /// `#FFFAF0FF`
-    pub const          FLORALWHITE: Self = Rgba::new(255, 250, 240, 255);
-    /// `RGBA(34, 139, 34, 255)`  
-    /// `#228B22FF`
-    pub const          FORESTGREEN: Self = Rgba::new( 34, 139,  34, 255);
-    /// `RGBA(255, 0, 255, 255)`  
-    /// `#FF00FFFF`
-    pub const              FUCHSIA: Self = Rgba::new(255,   0, 255, 255);
-    /// `RGBA(220, 220, 220, 255)`  
-    /// `#DCDCDCFF`
-    pub const            GAINSBORO: Self = Rgba::new(220, 220, 220, 255);
-    /// `RGBA(248, 248, 255, 255)`  
-    /// `#F8F8FFFF`
-    pub const           GHOSTWHITE: Self = Rgba::new(248, 248, 255, 255);
-    /// `RGBA(255, 215, 0, 255)`  
-    /// `#FFD700FF`
-    pub const                 GOLD: Self = Rgba::new(255, 215,   0, 255);
-    /// `RGBA(218, 165, 32, 255)`  
-    /// `#DAA520FF`
-    pub const            GOLDENROD: Self = Rgba::new(218, 165,  32, 255);
-    /// `RGBA(128, 128, 128, 255)`  
-    /// `#808080FF`
-    pub const                 GRAY: Self = Rgba::new(128, 128, 128, 255);
-    /// `RGBA(0, 128, 0, 255)`  
-    /// `#008000FF`
-    pub const                GREEN: Self = Rgba::new(  0, 128,   0, 255);
-    /// `RGBA(173, 255, 47, 255)`  
-    /// `#ADFF2FFF`
-    pub const          GREENYELLOW: Self = Rgba::new(173, 255,  47, 255);
-    /// `RGBA(240, 255, 240, 255)`  
-    /// `#F0FFF0FF`
-    pub const             HONEYDEW: Self = Rgba::new(240, 255, 240, 255);
-    /// `RGBA(255, 105, 180, 255)`  
-    /// `#FF69B4FF`
-    pub const              HOTPINK: Self = Rgba::new(255, 105, 180, 255);
-    /// `RGBA(205, 92, 92, 255)`  
-    /// `#CD5C5CFF`
-    pub const            INDIANRED: Self = Rgba::new(205,  92,  92, 255);
-    /// `RGBA(75, 0, 130, 255)`  
-    /// `#4B0082FF`
-    pub const               INDIGO: Self = Rgba::new( 75,   0, 130, 255);
-    /// `RGBA(255, 255, 240, 255)`  
-    /// `#FFFFF0FF`
-    pub const                IVORY: Self = Rgba::new(255, 255, 240, 255);
-    /// `RGBA(240, 230, 140, 255)`  
-    /// `#F0E68CFF`
-    pub const                KHAKI: Self = Rgba::new(240, 230, 140, 255);
-    /// `RGBA(230, 230, 250, 255)`  
-    /// `#E6E6FAFF`
-    pub const             LAVENDER: Self = Rgba::new(230, 230, 250, 255);
-    /// `RGBA(255, 240, 245, 255)`  
-    /// `#FFF0F5FF`
-    pub const        LAVENDERBLUSH: Self = Rgba::new(255, 240, 245, 255);
-    /// `RGBA(124, 252, 0, 255)`  
-    /// `#7CFC00FF`
-    pub const            LAWNGREEN: Self = Rgba::new(124, 252,   0, 255);
-    /// `RGBA(255, 250, 205, 255)`  
-    /// `#FFFACDFF`
-    pub const         LEMONCHIFFON: Self = Rgba::new(255, 250, 205, 255);
-    /// `RGBA(173, 216, 230, 255)`  
-    /// `#ADD8E6FF`
-    pub const            LIGHTBLUE: Self = Rgba::new(173, 216, 230, 255);
-    /// `RGBA(240, 128, 128, 255)`  
-    /// `#F08080FF`
-    pub const           LIGHTCORAL: Self = Rgba::new(240, 128, 128, 255);
-    /// `RGBA(224, 255, 255, 255)`  
-    /// `#E0FFFFFF`
-    pub const            LIGHTCYAN: Self = Rgba::new(224, 255, 255, 255);
-    /// `RGBA(250, 250, 210, 255)`  
-    /// `#FAFAD2FF`
-    pub const LIGHTGOLDENRODYELLOW: Self = Rgba::new(250, 250, 210, 255);
-    /// `RGBA(211, 211, 211, 255)`  
-    /// `#D3D3D3FF`
-    pub const            LIGHTGRAY: Self = Rgba::new(211, 211, 211, 255);
-    /// `RGBA(144, 238, 144, 255)`  
-    /// `#90EE90FF`
-    pub const           LIGHTGREEN: Self = Rgba::new(144, 238, 144, 255);
-    /// `RGBA(255, 182, 193, 255)`  
-    /// `#FFB6C1FF`
-    pub const            LIGHTPINK: Self = Rgba::new(255, 182, 193, 255);
-    /// `RGBA(255, 160, 122, 255)`  
-    /// `#FFA07AFF`
-    pub const          LIGHTSALMON: Self = Rgba::new(255, 160, 122, 255);
-    /// `RGBA(32, 178, 170, 255)`  
-    /// `#20B2AAFF`
-    pub const        LIGHTSEAGREEN: Self = Rgba::new( 32, 178, 170, 255);
-    /// `RGBA(135, 206, 250, 255)`  
-    /// `#87CEFAFF`
-    pub const         LIGHTSKYBLUE: Self = Rgba::new(135, 206, 250, 255);
-    /// `RGBA(119, 136, 153, 255)`  
-    /// `#778899FF`
-    pub const       LIGHTSLATEGRAY: Self = Rgba::new(119, 136, 153, 255);
-    /// `RGBA(176, 196, 222, 255)`  
-    /// `#B0C4DEFF`
-    pub const       LIGHTSTEELBLUE: Self = Rgba::new(176, 196, 222, 255);
-    /// `RGBA(255, 255, 224, 255)`  
-    /// `#FFFFE0FF`
-    pub const          LIGHTYELLOW: Self = Rgba::new(255, 255, 224, 255);
-    /// `RGBA(0, 255, 0, 255)`  
-    /// `#00FF00FF`
-    pub const                 LIME: Self = Rgba::new(  0, 255,   0, 255);
-    /// `RGBA(50, 205, 50, 255)`  
-    /// `#32CD32FF`
-    pub const            LIMEGREEN: Self = Rgba::new( 50, 205,  50, 255);
-    /// `RGBA(250, 240, 230, 255)`  
-    /// `#FAF0E6FF`
-    pub const                LINEN: Self = Rgba::new(250, 240, 230, 255);
-    /// `RGBA(255, 0, 255, 255)`  
-    /// `#FF00FFFF`
-    pub const              MAGENTA: Self = Rgba::new(255,   0, 255, 255);
-    /// `RGBA(128, 0, 0, 255)`  
-    /// `#800000FF`
-    pub const               MAROON: Self = Rgba::new(128,   0,   0, 255);
-    /// `RGBA(102, 205, 170, 255)`  
-    /// `#66CDAAFF`
-    pub const     MEDIUMAQUAMARINE: Self = Rgba::new(102, 205, 170, 255);
-    /// `RGBA(0, 0, 205, 255)`  
-    /// `#0000CDFF`
-    pub const           MEDIUMBLUE: Self = Rgba::new(  0,   0, 205, 255);
-    /// `RGBA(186, 85, 211, 255)`  
-    /// `#BA55D3FF`
-    pub const         MEDIUMORCHID: Self = Rgba::new(186,  85, 211, 255);
-    /// `RGBA(147, 112, 219, 255)`  
-    /// `#9370DBFF`
-    pub const         MEDIUMPURPLE: Self = Rgba::new(147, 112, 219, 255);
-    /// `RGBA(60, 179, 113, 255)`  
-    /// `#3CB371FF`
-    pub const       MEDIUMSEAGREEN: Self = Rgba::new( 60, 179, 113, 255);
-    /// `RGBA(123, 104, 238, 255)`  
-    /// `#7B68EEFF`
-    pub const      MEDIUMSLATEBLUE: Self = Rgba::new(123, 104, 238, 255);
-    /// `RGBA(0, 250, 154, 255)`  
-    /// `#00FA9AFF`
-    pub const    MEDIUMSPRINGGREEN: Self = Rgba::new(  0, 250, 154, 255);
-    /// `RGBA(72, 209, 204, 255)`  
-    /// `#48D1CCFF`
-    pub const      MEDIUMTURQUOISE: Self = Rgba::new( 72, 209, 204, 255);
-    /// `RGBA(199, 21, 133, 255)`  
-    /// `#C71585FF`
-    pub const      MEDIUMVIOLETRED: Self = Rgba::new(199,  21, 133, 255);
-    /// `RGBA(25, 25, 112, 255)`  
-    /// `#191970FF`
-    pub const         MIDNIGHTBLUE: Self = Rgba::new( 25,  25, 112, 255);
-    /// `RGBA(245, 255, 250, 255)`  
-    /// `#F5FFFAFF`
-    pub const            MINTCREAM: Self = Rgba::new(245, 255, 250, 255);
-    /// `RGBA(255, 228, 225, 255)`  
-    /// `#FFE4E1FF`
-    pub const            MISTYROSE: Self = Rgba::new(255, 228, 225, 255);
-    /// `RGBA(255, 228, 181, 255)`  
-    /// `#FFE4B5FF`
-    pub const             MOCCASIN: Self = Rgba::new(255, 228, 181, 255);
-    /// `RGBA(255, 222, 173, 255)`  
-    /// `#FFDEADFF`
-    pub const          NAVAJOWHITE: Self = Rgba::new(255, 222, 173, 255);
-    /// `RGBA(0, 0, 128, 255)`  
-    /// `#000080FF`
-    pub const                 NAVY: Self = Rgba::new(  0,   0, 128, 255);
-    /// `RGBA(253, 245, 230, 255)`  
-    /// `#FDF5E6FF`
-    pub const              OLDLACE: Self = Rgba::new(253, 245, 230, 255);
-    /// `RGBA(128, 128, 0, 255)`  
-    /// `#808000FF`
-    pub const                OLIVE: Self = Rgba::new(128, 128,   0, 255);
-    /// `RGBA(107, 142, 35, 255)`  
-    /// `#6B8E23FF`
-    pub const            OLIVEDRAB: Self = Rgba::new(107, 142,  35, 255);
-    /// `RGBA(255, 165, 0, 255)`  
-    /// `#FFA500FF`
-    pub const               ORANGE: Self = Rgba::new(255, 165,   0, 255);
-    /// `RGBA(255, 69, 0, 255)`  
-    /// `#FF4500FF`
-    pub const            ORANGERED: Self = Rgba::new(255,  69,   0, 255);
-    /// `RGBA(218, 112, 214, 255)`  
-    /// `#DA70D6FF`
-    pub const               ORCHID: Self = Rgba::new(218, 112, 214, 255);
-    /// `RGBA(238, 232, 170, 255)`  
-    /// `#EEE8AAFF`
-    pub const        PALEGOLDENROD: Self = Rgba::new(238, 232, 170, 255);
-    /// `RGBA(152, 251, 152, 255)`  
-    /// `#98FB98FF`
-    pub const            PALEGREEN: Self = Rgba::new(152, 251, 152, 255);
-    /// `RGBA(175, 238, 238, 255)`  
-    /// `#AFEEEEFF`
-    pub const        PALETURQUOISE: Self = Rgba::new(175, 238, 238, 255);
-    /// `RGBA(219, 112, 147, 255)`  
-    /// `#DB7093FF`
-    pub const        PALEVIOLETRED: Self = Rgba::new(219, 112, 147, 255);
-    /// `RGBA(255, 239, 213, 255)`  
-    /// `#FFEFD5FF`
-    pub const           PAPAYAWHIP: Self = Rgba::new(255, 239, 213, 255);
-    /// `RGBA(255, 218, 185, 255)`  
-    /// `#FFDAB9FF`
-    pub const            PEACHPUFF: Self = Rgba::new(255, 218, 185, 255);
-    /// `RGBA(205, 133, 63, 255)`  
-    /// `#CD853FFF`
-    pub const                 PERU: Self = Rgba::new(205, 133,  63, 255);
-    /// `RGBA(255, 192, 203, 255)`  
-    /// `#FFC0CBFF`
-    pub const                 PINK: Self = Rgba::new(255, 192, 203, 255);
-    /// `RGBA(221, 160, 221, 255)`  
-    /// `#DDA0DDFF`
-    pub const                 PLUM: Self = Rgba::new(221, 160, 221, 255);
-    /// `RGBA(176, 224, 230, 255)`  
-    /// `#B0E0E6FF`
-    pub const           POWDERBLUE: Self = Rgba::new(176, 224, 230, 255);
-    /// `RGBA(128, 0, 128, 255)`  
-    /// `#800080FF`
-    pub const               PURPLE: Self = Rgba::new(128,   0, 128, 255);
-    /// `RGBA(255, 0, 0, 255)`  
-    /// `#FF0000FF`
-    pub const                  RED: Self = Rgba::new(255,   0,   0, 255);
-    /// `RGBA(188, 143, 143, 255)`  
-    /// `#BC8F8FFF`
-    pub const            ROSYBROWN: Self = Rgba::new(188, 143, 143, 255);
-    /// `RGBA(65, 105, 225, 255)`  
-    /// `#4169E1FF`
-    pub const            ROYALBLUE: Self = Rgba::new( 65, 105, 225, 255);
-    /// `RGBA(139, 69, 19, 255)`  
-    /// `#8B4513FF`
-    pub const          SADDLEBROWN: Self = Rgba::new(139,  69,  19, 255);
-    /// `RGBA(250, 128, 114, 255)`  
-    /// `#FA8072FF`
-    pub const               SALMON: Self = Rgba::new(250, 128, 114, 255);
-    /// `RGBA(244, 164, 96, 255)`  
-    /// `#F4A460FF`
-    pub const           SANDYBROWN: Self = Rgba::new(244, 164,  96, 255);
-    /// `RGBA(46, 139, 87, 255)`  
-    /// `#2E8B57FF`
-    pub const             SEAGREEN: Self = Rgba::new( 46, 139,  87, 255);
-    /// `RGBA(255, 245, 238, 255)`  
-    /// `#FFF5EEFF`
-    pub const             SEASHELL: Self = Rgba::new(255, 245, 238, 255);
-    /// `RGBA(160, 82, 45, 255)`  
-    /// `#A0522DFF`
-    pub const               SIENNA: Self = Rgba::new(160,  82,  45, 255);
-    /// `RGBA(192, 192, 192, 255)`  
-    /// `#C0C0C0FF`
-    pub const               SILVER: Self = Rgba::new(192, 192, 192, 255);
-    /// `RGBA(135, 206, 235, 255)`  
-    /// `#87CEEBFF`
-    pub const              SKYBLUE: Self = Rgba::new(135, 206, 235, 255);
-    /// `RGBA(106, 90, 205, 255)`  
-    /// `#6A5ACDFF`
-    pub const            SLATEBLUE: Self = Rgba::new(106,  90, 205, 255);
-    /// `RGBA(112, 128, 144, 255)`  
-    /// `#708090FF`
-    pub const            SLATEGRAY: Self = Rgba::new(112, 128, 144, 255);
-    /// `RGBA(255, 250, 250, 255)`  
-    /// `#FFFAFAFF`
-    pub const                 SNOW: Self = Rgba::new(255, 250, 250, 255);
-    /// `RGBA(0, 255, 127, 255)`  
-    /// `#00FF7FFF`
-    pub const          SPRINGGREEN: Self = Rgba::new(  0, 255, 127, 255);
-    /// `RGBA(70, 130, 180, 255)`  
-    /// `#4682B4FF`
-    pub const            STEELBLUE: Self = Rgba::new( 70, 130, 180, 255);
-    /// `RGBA(210, 180, 140, 255)`  
-    /// `#D2B48CFF`
-    pub const                  TAN: Self = Rgba::new(210, 180, 140, 255);
-    /// `RGBA(0, 128, 128, 255)`  
-    /// `#008080FF`
-    pub const                 TEAL: Self = Rgba::new(  0, 128, 128, 255);
-    /// `RGBA(216, 191, 216, 255)`  
-    /// `#D8BFD8FF`
-    pub const              THISTLE: Self = Rgba::new(216, 191, 216, 255);
-    /// `RGBA(255, 99, 71, 255)`  
-    /// `#FF6347FF`
-    pub const               TOMATO: Self = Rgba::new(255,  99,  71, 255);
-    /// `RGBA(64, 224, 208, 255)`  
-    /// `#40E0D0FF`
-    pub const            TURQUOISE: Self = Rgba::new( 64, 224, 208, 255);
-    /// `RGBA(238, 130, 238, 255)`  
-    /// `#EE82EEFF`
-    pub const               VIOLET: Self = Rgba::new(238, 130, 238, 255);
-    /// `RGBA(245, 222, 179, 255)`  
-    /// `#F5DEB3FF`
-    pub const                WHEAT: Self = Rgba::new(245, 222, 179, 255);
-    /// `RGBA(255, 255, 255, 255)`  
-    /// `#FFFFFFFF`
-    pub const                WHITE: Self = Rgba::new(255, 255, 255, 255);
-    /// `RGBA(245, 245, 245, 255)`  
-    /// `#F5F5F5FF`
-    pub const           WHITESMOKE: Self = Rgba::new(245, 245, 245, 255);
-    /// `RGBA(255, 255, 0, 255)`  
-    /// `#FFFF00FF`
-    pub const               YELLOW: Self = Rgba::new(255, 255,   0, 255);
-    /// `RGBA(154, 205, 50, 255)`  
-    /// `#9ACD32FF`
-    pub const          YELLOWGREEN: Self = Rgba::new(154, 205,  50, 255);
+    pub const     TRANSPARENTWHITE: Self = Rgba::WHITE.transparent();
+    pub const     TRANSPARENTBLACK: Self = Rgba::BLACK.transparent();
     
     #[inline]
     pub const fn new(r: u8, g: u8, b: u8, a: u8) -> Self {
@@ -1006,8 +456,67 @@ impl Rgba {
     }
 
     #[inline]
+    pub const fn gray(gray: u8) -> Self {
+        Self::new(gray, gray, gray, gray)
+    }
+
+    #[inline]
+    pub const fn red(red: u8) -> Self {
+        Self::new(red, 0, 0, 255)
+    }
+
+    #[inline]
+    pub const fn green(green: u8) -> Self {
+        Self::new(0, green, 0, 255)
+    }
+
+    #[inline]
+    pub const fn blue(blue: u8) -> Self {
+        Self::new(0, 0, blue, 255)
+    }
+
+    #[inline]
+    pub const fn transparent(mut self) -> Self {
+        self.a = 0;
+        self
+    }
+
+    #[inline]
+    pub const fn opaque(mut self) -> Self {
+        self.a = 255;
+        self
+    }
+
+    #[inline]
+    pub const fn transparent_gray(gray: u8) -> Self {
+        Self::alpha_gray(gray, 0)
+    }
+
+    #[inline]
+    pub const fn alpha_gray(gray: u8, alpha: u8) -> Self {
+        Self::new(gray, gray, gray, alpha)
+    }
+
+    #[inline]
     pub const fn rgb(self) -> Rgb {
         Rgb::new(self.r, self.g, self.b)
+    }
+
+    #[inline]
+    pub const fn is_gray(self) -> bool {
+        self.r == self.g && self.g == self.b
+    }
+
+    /// Determines if this [Rgba] is fully opaque (alpha channel is 255).
+    #[inline]
+    pub const fn is_opaque(self) -> bool {
+        self.a == 255
+    }
+
+    /// Determines if this [Rgba] is fully transparent (alpha channel is 0).
+    #[inline]
+    pub const fn is_transparent(self) -> bool {
+        self.a == 0
     }
 
     #[inline]
@@ -1103,6 +612,62 @@ impl From<Rgb> for Rgba {
     }
 }
 
+#[repr(C)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, NoUninit)]
+pub struct Gray {
+    level: u8
+}
+
+impl Gray {
+    pub const WHITE: Self = Self::new(255);
+    pub const BLACK: Self = Self::new(0);
+
+    #[inline]
+    pub const fn new(level: u8) -> Self {
+        Self {
+            level
+        }
+    }
+
+    #[inline]
+    pub const fn rgb(self) -> Rgb {
+        Rgb::gray(self.level)
+    }
+
+    #[inline]
+    pub const fn rgba(self) -> Rgba {
+        Rgba::gray(self.level)
+    }
+}
+
+impl From<Gray> for Rgb {
+    #[inline]
+    fn from(value: Gray) -> Self {
+        value.rgb()
+    }
+}
+
+impl From<Gray> for Rgba {
+    #[inline]
+    fn from(value: Gray) -> Self {
+        value.rgba()
+    }
+}
+
+impl From<u8> for Gray {
+    #[inline]
+    fn from(value: u8) -> Self {
+        Gray::new(value)
+    }
+}
+
+impl Into<u8> for Gray {
+    #[inline]
+    fn into(self) -> u8 {
+        self.level
+    }
+}
+
 impl std::fmt::Display for Rgb {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Rgb({}, {}, {})", self.r, self.g, self.b)
@@ -1115,13 +680,81 @@ impl std::fmt::Display for Rgba {
     }
 }
 
+impl std::fmt::Display for Gray {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Gray({})", self.level)
+    }
+}
+
+impl std::fmt::Display for Color {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Color::{}", self.camel_name())
+    }
+}
+
+#[inline]
 pub const fn rgb(r: u8, g: u8, b: u8) -> Rgb {
     Rgb::new(r, g, b)
 }
 
+#[inline]
 pub const fn rgba(r: u8, g: u8, b: u8, a: u8) -> Rgba {
     Rgba::new(r,g,b,a)
 }
+
+#[inline]
+pub const fn gray(level: u8) -> Gray {
+    Gray::new(level)
+}
+
+pub struct ColorEntry {
+    pub readable_name: &'static str,
+    pub camel_name: &'static str,
+    pub const_name: &'static str,
+    pub var_name: &'static str,
+    pub color: Color,
+    pub rgb: Rgb,
+}
+
+impl ColorEntry {
+    pub const fn new(
+        readable_name: &'static str,
+        camel_name: &'static str,
+        const_name: &'static str,
+        var_name: &'static str,
+        color: Color,
+        rgb: Rgb
+    ) -> Self {
+        Self {
+            readable_name,
+            camel_name,
+            const_name,
+            var_name,
+            color,
+            rgb,
+        }
+    }
+}
+
+macro_rules! color_table {
+    ($([
+        $readable_name:literal
+        $camel_name:ident
+        $const_name:ident
+        $var_name:ident
+        $rgb_hex:literal
+        $rgba_hex:literal
+        RGB($r:literal, $g:literal, $b:literal)
+    ])+) => {
+        pub const HTML_COLORS: [ColorEntry; 140] = [
+            $(
+                ColorEntry::new($readable_name, stringify!($camel_name), stringify!($const_name), stringify!($var_name), Color::$camel_name, Rgb::new($r, $g, $b)),
+            )+
+        ];
+    };
+}
+
+html_colors!(color_table);
 
 #[cfg(test)]
 mod testing_sandbox {
@@ -1129,9 +762,7 @@ mod testing_sandbox {
     use super::*;
     #[test]
     fn sandbox() {
-        let color = Rgb::lerp(Rgb::ALICEBLUE, Rgb::AQUAMARINE, 0.5);
-        println!("{}", Rgb::ALICEBLUE);
-        println!("{}", Rgb::AQUAMARINE);
-        println!("{color}");
+        const CB: &'static str = Color::CornflowerBlue.readable_name();
+        println!("{}", CB);
     }
 }
