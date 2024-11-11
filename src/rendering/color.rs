@@ -55,7 +55,6 @@ macro_rules! color_enum {
         $const_name:ident
         $var_name:ident
         $rgb_hex:literal
-        $rgba_hex:literal
         RGB($r:literal, $g:literal, $b:literal)
     ])+) => {
         #[repr(u8)]
@@ -75,6 +74,8 @@ macro_rules! color_enum {
         }
     };
 }
+
+html_colors!(color_enum);
 
 impl Color {
     #[inline]
@@ -160,8 +161,6 @@ impl Color {
     }
 }
 
-html_colors!(color_enum);
-
 #[repr(C)]
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, NoUninit)]
 pub struct Rgb {
@@ -177,7 +176,6 @@ macro_rules! rgb_color_consts {
         $const_name:ident
         $var_name:ident
         $rgb_hex:literal
-        $rgba_hex:literal
         RGB($r:literal, $g:literal, $b:literal)
     ])+) => {
         impl Rgb {
@@ -338,7 +336,6 @@ macro_rules! rgba_color_consts {
         $const_name:ident
         $var_name:ident
         $rgb_hex:literal
-        $rgba_hex:literal
         RGB($r:literal, $g:literal, $b:literal)
     ])+) => {
         impl Rgba {
@@ -652,7 +649,6 @@ macro_rules! color_table {
         $const_name:ident
         $var_name:ident
         $rgb_hex:literal
-        $rgba_hex:literal
         RGB($r:literal, $g:literal, $b:literal)
     ])+) => {
         pub const HTML_COLORS: [ColorEntry; 140] = [
