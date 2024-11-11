@@ -118,10 +118,20 @@ impl Color {
         HTML_COLORS[self.index()].rgb
     }
 
+    #[inline]
+    pub const fn transparent(self) -> Rgba {
+        self.rgb().transparent()
+    }
+
+    #[inline]
+    pub const fn opaque(self) -> Rgba {
+        self.rgb().rgba()
+    }
+
     /// Gets [Rgba] value.
     #[inline]
     pub const fn rgba(self) -> Rgba {
-        self.rgb().rgba()
+        self.opaque()
     }
 
     #[inline]
@@ -208,7 +218,7 @@ impl Rgb {
 
     #[inline]
     pub const fn rgba(self) -> Rgba {
-        Rgba::new(self.r, self.g, self.b, 255)
+        self.opaque()
     }
 
     #[inline]
@@ -661,8 +671,6 @@ macro_rules! color_table {
 }
 
 html_colors!(color_table);
-
-
 
 enum NameCase {
     Unknown,
