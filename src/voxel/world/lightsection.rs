@@ -1,6 +1,57 @@
+use bytemuck::NoUninit;
 use glam::IVec3;
 
 use crate::math::index3;
+
+#[repr(C)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, NoUninit)]
+pub struct Nibble2(pub u8);
+
+impl Nibble2 {
+    #[inline]
+    pub const fn get_0(self) -> u8 {
+        self.0 & 0xf
+    }
+
+    #[inline]
+    pub const fn get_1(self) -> u8 {
+        self.0 >> 4
+    }
+
+    #[inline]
+    pub fn set_0(&mut self, value: u8) -> u8 {
+        let value = value & 0xf;
+        let old = self.get_0();
+        self.0 = (self.0 & 0xf0) | value;
+        old
+    }
+
+    #[inline]
+    pub fn set_1(&mut self, value: u8) -> u8 {
+        let value = value & 0xf;
+        let old = self.get_1();
+        self.0 = (self.0 & 0x0f) | (value << 4);
+        old
+    }
+
+    #[inline]
+    pub const fn get(self, index: usize) -> u8 {
+        match index {
+            0 => self.get_0(),
+            1 => self.get_1(),
+            _ => panic!("index out of range. (expected value in range of 0 <= index <= 1)"),
+        }
+    }
+
+    #[inline]
+    pub fn set(&mut self, index: usize, value: u8) -> u8 {
+        match index {
+            0 => self.set_0(value),
+            1 => self.set_1(value),
+            _ => panic!("index out of range. (expected value in range of 0 <= index <= 1)"),
+        }
+    }
+}
 
 #[derive(Debug, Default, Clone)]
 pub struct LightSection<const DEFAULT: u8 = 0> {
