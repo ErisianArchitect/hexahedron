@@ -1,6 +1,6 @@
 pub mod region;
 use crate::error::{Error, Result};
-use crate::math::axisflags::AxisFlags;
+use crate::math::axis_flags::AxisFlags;
 use std::io::{Read, Write};
 use crate::for_each_int_type;
 use crate::math::bit::*;

@@ -1,6 +1,6 @@
 use std::any::Any;
 
-use super::blockregistry::BlockRegistry;
+use super::block_registry::BlockRegistry;
 
 pub trait BlockBehavior: Any {
     // Details

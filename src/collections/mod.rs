@@ -1,3 +1,3 @@
-pub mod objectpool;
-pub mod tagcontainer;
-pub mod updatequeue;
+pub mod object_pool;
+pub mod tag_container;
+pub mod update_queue;

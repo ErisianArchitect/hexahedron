@@ -21,6 +21,7 @@ impl<T> private::Sealed<Option<T>> for Option<T> {}
 
 pub trait OptionExtension<T>: private::Sealed<Option<T>> {
     fn then<F: FnOnce(T)>(self, then: F);
+    fn drop(&mut self);
 }
 
 impl<T> OptionExtension<T> for Option<T> {
@@ -29,6 +30,11 @@ impl<T> OptionExtension<T> for Option<T> {
         if let Some(value) = self {
             then(value);
         }
+    }
+
+    #[inline]
+    fn drop(&mut self) {
+        drop(self.take())
     }
 }
 

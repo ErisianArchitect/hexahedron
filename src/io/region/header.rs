@@ -1,6 +1,6 @@
 use crate::prelude::{Readable, Writeable};
 
-use super::{regiontable::{OffsetTable, TimestampTable}, sectoroffset::SectorOffset, timestamp::Timestamp};
+use super::{region_table::{OffsetTable, TimestampTable}, sector_offset::SectorOffset, time_stamp::Timestamp};
 
 pub struct RegionHeader {
     pub(super) timestamps: TimestampTable,

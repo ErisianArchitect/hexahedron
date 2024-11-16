@@ -1,6 +1,6 @@
 
-use super::blockproperty::Property;
-use super::blockproperty::BlockProperty;
+use super::block_property::Property;
+use super::block_property::BlockProperty;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct BlockState {
@@ -73,11 +73,11 @@ macro_rules! blockstate {
         ($token).to_string()
     };
     ($id:tt $([ $($name:tt = $value:expr),* $(,)? ])?) => {
-        $crate::voxel::block::blockstate::BlockState::new(
+        $crate::voxel::block::block_state::BlockState::new(
             $crate::blockstate!(@token_to_string: $id),
             [
                 $($(
-                    $crate::voxel::block::blockproperty::BlockProperty::new(
+                    $crate::voxel::block::block_property::BlockProperty::new(
                         $crate::blockstate!(@token_to_string: $name),
                         $value
                     ),

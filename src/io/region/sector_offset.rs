@@ -1,5 +1,5 @@
 use crate::prelude::{Replace, Readable, Writeable};
-use crate::io::region::blocksize::BlockSize;
+use crate::io::region::block_size::BlockSize;
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct SectorOffset(u32);

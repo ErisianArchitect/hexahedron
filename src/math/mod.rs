@@ -1,6 +1,6 @@
 pub mod bit;
 pub mod axis;
-pub mod axisflags;
+pub mod axis_flags;
 
 use bit::GetBit;
 use glam::{IVec2, IVec3, IVec4, Vec3};

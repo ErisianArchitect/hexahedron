@@ -1,4 +1,4 @@
-use super::direction::Direction;
+use crate::prelude::Direction;
 
 macro_rules! make_face_constants {
     ($($name:ident = $dir:ident;)*) => {
@@ -25,8 +25,13 @@ impl Occlusion {
     // const FLAGS_MASK: u8 = 0b111111;
 
     #[inline]
-    pub fn is_fully_occluded(self) -> bool {
-        self == Self::OCCLUDED
+    pub const fn is_fully_occluded(self) -> bool {
+        self.0 == Self::OCCLUDED.0
+    }
+
+    #[inline]
+    pub const fn is_fully_unoccluded(self) -> bool {
+        self.0 == Self::UNOCCLUDED.0
     }
 
     #[inline]

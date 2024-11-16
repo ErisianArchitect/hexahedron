@@ -3,7 +3,7 @@ pub use crate::{
     voxel::{
         direction::Direction,
         cardinal::Cardinal,
-        faceflags::FaceFlags,
+        face_flags::FaceFlags,
         orientation::{
             rotation::Rotation,
             flip::Flip,

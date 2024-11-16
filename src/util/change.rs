@@ -56,6 +56,7 @@ impl<T: PartialEq> PartialEq for Change<T> {
 impl<T: Eq> Eq for Change<T> {}
 
 impl<T: PartialEq> Change<T> {
+    #[inline]
     pub fn cmp_new(new_value: &T, old_value: T) -> Self {
         if *new_value != old_value {
             Self::Changed(old_value)

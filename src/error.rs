@@ -1,7 +1,7 @@
 use thiserror::Error as ThisError;
 use crate::io::region::{
-    sectoroffset::SectorOffset,
-    blocksize::BlockSize,
+    sector_offset::SectorOffset,
+    block_size::BlockSize,
 };
 
 #[derive(Debug, ThisError)]

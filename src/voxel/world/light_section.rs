@@ -1,7 +1,7 @@
 use bytemuck::NoUninit;
 use glam::IVec3;
 
-use crate::math::index3;
+use crate::{math::index3, prelude::OptionExtension, util::change::Change};
 
 #[repr(C)]
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, NoUninit)]
@@ -60,17 +60,17 @@ pub struct LightSection<const DEFAULT: u8 = 0> {
 }
 
 impl<const DEFAULT: u8> LightSection<DEFAULT> {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             light_data: None,
             instance_count: 0,
         }
     }
 
-    pub fn get<C: Into<IVec3>>(&self, coord: C) -> u8 {
-        let coord: IVec3 = coord.into();
+    pub fn get<C: Into<(i32, i32, i32)>>(&self, coord: C) -> u8 {
+        let (x, y, z): (i32, i32, i32) = coord.into();
         self.light_data.as_ref().and_then(|data| {
-            let index = index3::<32>(coord.x, coord.y, coord.z);
+            let index = index3::<32>(x, y, z);
             let subindex = index / 2;
             let lights = data[subindex];
             if (index & 1) == 1 {
@@ -81,13 +81,13 @@ impl<const DEFAULT: u8> LightSection<DEFAULT> {
         }).unwrap_or(DEFAULT)
     }
 
-    pub fn set<C: Into<IVec3>>(&mut self, coord: C, level: u8) -> u8 {
-        let coord: IVec3 = coord.into();
+    pub fn set<C: Into<(i32, i32, i32)>>(&mut self, coord: C, level: u8) -> Change<u8> {
+        let (x, y, z): (i32, i32, i32) = coord.into();
         if self.light_data.is_none() && level == DEFAULT {
-            return DEFAULT;
+            return Change::Unchanged;
         }
         let data = self.light_data.get_or_insert_with(|| (0..32768).map(|_| DEFAULT).collect());
-        let index = index3::<32>(coord.x, coord.y, coord.z);
+        let index = index3::<32>(x, y, z);
         let subindex = index / 2;
         let lights = data[subindex];
         let (injected, old) = if (index & 1) == 1 {
@@ -106,17 +106,22 @@ impl<const DEFAULT: u8> LightSection<DEFAULT> {
             if level == DEFAULT {
                 self.instance_count -= 1;
                 if self.instance_count == 0 {
-                    self.light_data.take();
+                    self.light_data.drop();
                 }
             } else {
                 self.instance_count += 1;
             }
         }
-        old
+        Change::cmp_new(&level, old)
     }
 
     pub fn clear(&mut self) {
-        self.light_data.take();
+        self.light_data.drop();
         self.instance_count = 0;
+    }
+
+    #[inline]
+    pub fn is_allocated(&self) -> bool {
+        self.light_data.is_some()
     }
 }

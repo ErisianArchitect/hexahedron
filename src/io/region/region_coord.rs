@@ -1,4 +1,4 @@
-use super::{regiontable::RegionTableItem, sectoroffset::SectorOffset, timestamp::Timestamp};
+use super::{region_table::RegionTableItem, sector_offset::SectorOffset, time_stamp::Timestamp};
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct RegionCoord(u16);

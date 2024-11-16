@@ -7,7 +7,7 @@ use crate::prelude::{
     Replace,
     VoxelResult,
 };
-use super::{regioncoord::RegionCoord, sectoroffset::SectorOffset, timestamp::Timestamp};
+use super::{region_coord::RegionCoord, sector_offset::SectorOffset, time_stamp::Timestamp};
 
 pub trait RegionTableItem: Default + Copy + Writeable + Readable {
     const OFFSET: u64;

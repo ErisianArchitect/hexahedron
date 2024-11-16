@@ -1,6 +1,6 @@
 #![allow(unused)]
 use hexahedron::util::extensions::*;
-use hexahedron::io::region::blocksize::*;
+use hexahedron::io::region::block_size::*;
 
 
 struct Seven0(([u8; 7]));

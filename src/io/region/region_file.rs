@@ -1,8 +1,8 @@
 use std::{fs::File, io::{BufReader, BufWriter, Cursor, Read, Seek, SeekFrom, Take, Write}, path::Path};
 
 use flate2::{read::GzDecoder, write::GzEncoder, Compression};
-use crate::{error::*, io::region::sectoroffset::SectorOffset, prelude::{write_zeros, Readable, Writeable}};
-use super::{header::RegionHeader, regioncoord::RegionCoord, sectormanager::SectorManager, blocksize::BlockSize, timestamp::Timestamp};
+use crate::{error::*, io::region::sector_offset::SectorOffset, prelude::{write_zeros, Readable, Writeable}};
+use super::{header::RegionHeader, region_coord::RegionCoord, sector_manager::SectorManager, block_size::BlockSize, time_stamp::Timestamp};
 
 pub struct RegionFile {
     sector_manager: SectorManager,

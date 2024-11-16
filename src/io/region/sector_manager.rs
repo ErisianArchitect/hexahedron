@@ -4,9 +4,9 @@ use itertools::Itertools;
 use crate::error::*;
 
 use super::{
-    regiontable::OffsetTable,
-    blocksize::BlockSize,
-    sectoroffset::SectorOffset
+    region_table::OffsetTable,
+    block_size::BlockSize,
+    sector_offset::SectorOffset
 };
 
 /// Manages allocated and unallocated sectors in a region file.
