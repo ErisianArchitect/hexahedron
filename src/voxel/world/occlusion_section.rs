@@ -1,6 +1,6 @@
 use crate::{math::index3, prelude::{Direction, OptionExtension, Replace}, util::change::Change};
 
-use super::{occlusion::Occlusion, section::Section};
+use super::occlusion::Occlusion;
 
 pub struct OcclusionSection<const W: i32> {
     occlusion_data: Option<Box<[Occlusion]>>,

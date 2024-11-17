@@ -1,7 +1,4 @@
-use crate::{collections::tag_container::{TagContainer, TagId}, math::{self, index3}, prelude::{OptionExtension, Replace}, tag::Tag};
-
-use super::section::Section;
-
+use crate::{collections::tag_container::{TagContainer, TagId}, math::index3, prelude::{OptionExtension, Replace}, tag::Tag};
 
 
 #[derive(Debug, Default)]
