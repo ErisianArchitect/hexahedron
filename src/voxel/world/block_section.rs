@@ -53,4 +53,8 @@ impl<const W: i32> BlockSection<W> {
         let index = index3::<W>(x, y, z);
         blocks[index]
     }
+
+    pub fn is_allocated(&self) -> bool {
+        self.blocks.is_some()
+    }
 }

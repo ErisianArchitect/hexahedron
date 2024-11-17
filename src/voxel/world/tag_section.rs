@@ -23,6 +23,10 @@ impl<const W: i32> IdContainer<W> {
     fn clear(&mut self) {
         self.0.drop();
     }
+
+    fn is_allocated(&self) -> bool {
+        self.0.is_some()
+    }
 }
 
 #[derive(Debug, Default)]
@@ -122,5 +126,9 @@ impl<const W: i32> TagSection<W> {
     #[inline]
     pub fn get_or_insert<C: Into<(i32, i32, i32)>, T: Into<Tag>>(&mut self, coord: C, insert: T) -> &mut Tag {
         self.get_or_insert_with(coord, move || insert)
+    }
+
+    pub fn is_allocated(&self) -> bool {
+        self.ids.is_allocated()
     }
 }
