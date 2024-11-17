@@ -1,65 +1,16 @@
-use bytemuck::NoUninit;
-use glam::IVec3;
+// use bytemuck::NoUninit;
 
 use crate::{math::index3, prelude::OptionExtension, util::change::Change};
 
-#[repr(C)]
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, NoUninit)]
-pub struct Nibble2(pub u8);
-
-impl Nibble2 {
-    #[inline]
-    pub const fn get_0(self) -> u8 {
-        self.0 & 0xf
-    }
-
-    #[inline]
-    pub const fn get_1(self) -> u8 {
-        self.0 >> 4
-    }
-
-    #[inline]
-    pub fn set_0(&mut self, value: u8) -> u8 {
-        let value = value & 0xf;
-        let old = self.get_0();
-        self.0 = (self.0 & 0xf0) | value;
-        old
-    }
-
-    #[inline]
-    pub fn set_1(&mut self, value: u8) -> u8 {
-        let value = value & 0xf;
-        let old = self.get_1();
-        self.0 = (self.0 & 0x0f) | (value << 4);
-        old
-    }
-
-    #[inline]
-    pub const fn get(self, index: usize) -> u8 {
-        match index {
-            0 => self.get_0(),
-            1 => self.get_1(),
-            _ => panic!("index out of range. (expected value in range of 0 <= index <= 1)"),
-        }
-    }
-
-    #[inline]
-    pub fn set(&mut self, index: usize, value: u8) -> u8 {
-        match index {
-            0 => self.set_0(value),
-            1 => self.set_1(value),
-            _ => panic!("index out of range. (expected value in range of 0 <= index <= 1)"),
-        }
-    }
-}
-
 #[derive(Debug, Default, Clone)]
-pub struct LightSection<const DEFAULT: u8 = 0> {
+pub struct LightSection<const W: i32, const DEFAULT: u8> {
     light_data: Option<Box<[u8]>>,
     instance_count: u16,
 }
 
-impl<const DEFAULT: u8> LightSection<DEFAULT> {
+impl<const W: i32, const DEFAULT: u8> LightSection<W, DEFAULT> {
+    /// This is the number of bytes that are used to get two 4-bit nibbles per byte..
+    const NIBBLE_COUNT: usize = (W as usize).pow(3) / 2;
     pub const fn new() -> Self {
         Self {
             light_data: None,
@@ -70,7 +21,7 @@ impl<const DEFAULT: u8> LightSection<DEFAULT> {
     pub fn get<C: Into<(i32, i32, i32)>>(&self, coord: C) -> u8 {
         let (x, y, z): (i32, i32, i32) = coord.into();
         self.light_data.as_ref().and_then(|data| {
-            let index = index3::<32>(x, y, z);
+            let index = index3::<W>(x, y, z);
             let subindex = index / 2;
             let lights = data[subindex];
             if (index & 1) == 1 {
@@ -86,8 +37,8 @@ impl<const DEFAULT: u8> LightSection<DEFAULT> {
         if self.light_data.is_none() && level == DEFAULT {
             return Change::Unchanged;
         }
-        let data = self.light_data.get_or_insert_with(|| (0..32768).map(|_| DEFAULT).collect());
-        let index = index3::<32>(x, y, z);
+        let data = self.light_data.get_or_insert_with(|| (0..Self::NIBBLE_COUNT).map(|_| DEFAULT).collect());
+        let index = index3::<W>(x, y, z);
         let subindex = index / 2;
         let lights = data[subindex];
         let (injected, old) = if (index & 1) == 1 {
@@ -125,3 +76,53 @@ impl<const DEFAULT: u8> LightSection<DEFAULT> {
         self.light_data.is_some()
     }
 }
+
+// #[repr(C)]
+// #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, NoUninit)]
+// pub struct Nibble2(pub u8);
+
+// impl Nibble2 {
+//     #[inline]
+//     pub const fn get_0(self) -> u8 {
+//         self.0 & 0xf
+//     }
+
+//     #[inline]
+//     pub const fn get_1(self) -> u8 {
+//         self.0 >> 4
+//     }
+
+//     #[inline]
+//     pub fn set_0(&mut self, value: u8) -> u8 {
+//         let value = value & 0xf;
+//         let old = self.get_0();
+//         self.0 = (self.0 & 0xf0) | value;
+//         old
+//     }
+
+//     #[inline]
+//     pub fn set_1(&mut self, value: u8) -> u8 {
+//         let value = value & 0xf;
+//         let old = self.get_1();
+//         self.0 = (self.0 & 0x0f) | (value << 4);
+//         old
+//     }
+
+//     #[inline]
+//     pub const fn get(self, index: usize) -> u8 {
+//         match index {
+//             0 => self.get_0(),
+//             1 => self.get_1(),
+//             _ => panic!("index out of range. (expected value in range of 0 <= index <= 1)"),
+//         }
+//     }
+
+//     #[inline]
+//     pub fn set(&mut self, index: usize, value: u8) -> u8 {
+//         match index {
+//             0 => self.set_0(value),
+//             1 => self.set_1(value),
+//             _ => panic!("index out of range. (expected value in range of 0 <= index <= 1)"),
+//         }
+//     }
+// }

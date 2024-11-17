@@ -25,6 +25,16 @@ impl UpdateId {
     fn index(self) -> usize {
         self.id() as usize
     }
+
+    #[inline]
+    pub const fn is_null(self) -> bool {
+        self.0 == 0
+    }
+
+    #[inline]
+    pub const fn is_non_null(self) -> bool {
+        self.0 != 0
+    }
 }
 
 pub struct UpdateEntry {

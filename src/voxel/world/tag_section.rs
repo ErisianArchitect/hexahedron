@@ -1,16 +1,19 @@
-use crate::{collections::tag_container::{TagContainer, TagId}, math, prelude::{OptionExtension, Replace}, tag::Tag};
+use crate::{collections::tag_container::{TagContainer, TagId}, math::{self, index3}, prelude::{OptionExtension, Replace}, tag::Tag};
+
+use super::section::Section;
 
 
 
 #[derive(Debug, Default)]
-struct IdContainer(Option<Box<[TagId]>>);
+struct IdContainer<const W: i32>(Option<Box<[TagId]>>);
 
-impl IdContainer {
+impl<const W: i32> IdContainer<W> {
+    const BLOCK_COUNT: usize = (W as usize).pow(3);
     /// return mut ref to inner value if it exists, otherwise allocate inner value and return mut ref.
     #[inline]
     fn get_or_init(&mut self) -> &mut Box<[TagId]> {
         self.0.get_or_insert_with(|| {
-            (0..32768).map(|_| TagId::NULL).collect()
+            (0..Self::BLOCK_COUNT).map(|_| TagId::NULL).collect()
         })
     }
 
@@ -26,13 +29,13 @@ impl IdContainer {
 }
 
 #[derive(Debug, Default)]
-pub struct TagSection {
-    ids: IdContainer,
+pub struct TagSection<const W: i32> {
+    ids: IdContainer<W>,
     container: TagContainer,
     non_null_count: u16,
 }
 
-impl TagSection {
+impl<const W: i32> TagSection<W> {
     pub const fn new() -> Self {
         Self {
             ids: IdContainer(None),
@@ -42,9 +45,9 @@ impl TagSection {
     }
 
     pub fn insert<C: Into<(i32, i32, i32)>, T: Into<Tag>>(&mut self, coord: C, value: T) -> Option<Tag> {
-        let coord: (i32, i32, i32) = coord.into();
+        let (x, y, z) = coord.into();
         let ids = self.ids.get_or_init();
-        let index = math::index3::<32>(coord.0, coord.1, coord.2);
+        let index = index3::<W>(x, y, z);
         let id = ids[index];
         if id.is_null() {
             let id = self.container.insert(value);
@@ -57,13 +60,13 @@ impl TagSection {
     }
 
     pub fn remove<C: Into<(i32, i32, i32)>>(&mut self, coord: C) -> Option<Tag> {
-        let coord: (i32, i32, i32) = coord.into();
+        let (x, y, z) = coord.into();
         if self.ids.0.is_none() {
             return None;
         }
         // This will always succeed because we've early returned if None.
         let ids = self.ids.unwrap_mut();
-        let index = math::index3::<32>(coord.0, coord.1, coord.2);
+        let index = index3::<W>(x, y, z);
         let id = ids[index].replace(TagId::NULL);
         if id.is_null() {
             None
@@ -79,9 +82,9 @@ impl TagSection {
     }
 
     pub fn get<C: Into<(i32, i32, i32)>>(&self, coord: C) -> Option<&Tag> {
-        let coord: (i32, i32, i32) = coord.into();
+        let (x, y, z) = coord.into();
         self.ids.0.as_ref().and_then(|ids| {
-            let index = math::index3::<32>(coord.0, coord.1, coord.2);
+            let index = index3::<W>(x, y, z);
             let id = ids[index];
             if id.is_null() {
                 None
@@ -92,9 +95,9 @@ impl TagSection {
     }
 
     pub fn get_mut<C: Into<(i32, i32, i32)>>(&mut self, coord: C) -> Option<&mut Tag> {
-        let coord: (i32, i32, i32) = coord.into();
+        let (x, y, z) = coord.into();
         self.ids.0.as_mut().and_then(|ids| {
-            let index = math::index3::<32>(coord.0, coord.1, coord.2);
+            let index = index3::<W>(x, y, z);
             let id = ids[index];
             if id.is_null() {
                 None
@@ -105,9 +108,9 @@ impl TagSection {
     }
 
     pub fn get_or_insert_with<C: Into<(i32, i32, i32)>, T: Into<Tag>, F: FnOnce() -> T>(&mut self, coord: C, insert: F) -> &mut Tag {
-        let coord: (i32, i32, i32) = coord.into();
+        let (x, y, z) = coord.into();
         let ids = self.ids.get_or_init();
-        let index = math::index3::<32>(coord.0, coord.1, coord.2);
+        let index = index3::<W>(x, y, z);
         let id = ids[index];
         if id.is_null() {
             let id = self.container.insert(insert());
@@ -119,6 +122,7 @@ impl TagSection {
         }
     }
 
+    #[inline]
     pub fn get_or_insert<C: Into<(i32, i32, i32)>, T: Into<Tag>>(&mut self, coord: C, insert: T) -> &mut Tag {
         self.get_or_insert_with(coord, move || insert)
     }
