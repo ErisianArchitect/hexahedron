@@ -13,24 +13,24 @@
 #[macro_export]
 macro_rules! for_each_int_type {
     ($macro:path) => {
-        $crate::for_each_int_type!($macro;unsigned);
-        $crate::for_each_int_type!($macro;signed);
+        $crate::for_each_int_type!(unsigned;$macro);
+        $crate::for_each_int_type!(signed;$macro);
     };
-    ($macro:path;unsigned) => {
-        $macro!{usize}
-        $macro!{u128}
-        $macro!{u64}
-        $macro!{u32}
-        $macro!{u16}
+    (unsigned;$macro:path) => {
         $macro!{u8}
+        $macro!{u16}
+        $macro!{u32}
+        $macro!{u64}
+        $macro!{u128}
+        $macro!{usize}
     };
-    ($macro:path;signed) => {
-        $macro!{isize}
-        $macro!{i128}
-        $macro!{i64}
-        $macro!{i32}
-        $macro!{i16}
+    (signed;$macro:path) => {
         $macro!{i8}
+        $macro!{i16}
+        $macro!{i32}
+        $macro!{i64}
+        $macro!{i128}
+        $macro!{isize}
     }
 }
 
