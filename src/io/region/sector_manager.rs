@@ -15,6 +15,8 @@ pub struct SectorManager {
     end_sector: ManagedSector,
 }
 
+// refactor
+
 // TODO: Recreate SectorManager struct and implementation.
 // pub struct SectorManager {
 //     left_sectors: HashMap<u32, u32>,
