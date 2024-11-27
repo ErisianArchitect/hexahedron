@@ -6,7 +6,7 @@ pub struct SectorOffset(u32);
 
 impl SectorOffset {
     pub const MAX_OFFSET: u32 = 0xffffff;
-    pub(crate) const NULL: Self = SectorOffset(0);
+    pub const EMPTY: Self = SectorOffset(0);
 
     pub const fn new(block_size: BlockSize, offset: u32) -> Self  {
         if offset > Self::MAX_OFFSET {
@@ -15,10 +15,14 @@ impl SectorOffset {
         Self(block_size.0 as u32 | offset << 8)
     }
 
-    /// The size in 4KiB blocks. (multiply by 4096 to get size)
     pub const fn block_size(self) -> BlockSize {
         let mask = self.0 & 0xff;
         BlockSize(mask as u8)
+    }
+
+    /// The sector size in bytes.
+    pub const fn file_size(self) -> u64 {
+        self.block_size().file_size()
     }
 
     /// The offset in 4KiB blocks. (multiply by 4096 to get file offset)
@@ -31,14 +35,14 @@ impl SectorOffset {
         self.block_offset() as u64 * 4096
     }
 
-    /// The sector size in bytes.
-    pub const fn file_size(self) -> u64 {
-        self.block_size().file_size()
-    }
-
     /// Determines if the sector is empty.
     pub const fn is_empty(self) -> bool {
         self.0 == 0
+    }
+
+    /// Determines if the sector is not empty.
+    pub const fn is_not_empty(self) -> bool {
+        self.0 != 0
     }
 }
 
