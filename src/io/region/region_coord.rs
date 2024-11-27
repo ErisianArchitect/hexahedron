@@ -4,38 +4,46 @@ use super::{region_table::RegionTableItem, sector_offset::SectorOffset, time_sta
 pub struct RegionCoord(u16);
 
 impl RegionCoord {
-    pub fn new(x: i32, z: i32) -> Self {
+    #[inline]
+    pub const fn new(x: i32, z: i32) -> Self {
         RegionCoord((x & 31) as u16 | ((z & 31) as u16) << 5)
     }
 
-    pub fn x(self) -> i32 {
+    #[inline]
+    pub const fn x(self) -> i32 {
         (self.0 & 31) as i32
     }
 
-    pub fn z(self) -> i32 {
+    #[inline]
+    pub const fn z(self) -> i32 {
         (self.0 & 31) as i32
     }
 
-    pub fn index(self) -> usize {
+    #[inline]
+    pub const fn index(self) -> usize {
         self.0 as usize
     }
 
-    pub fn sector_offset(self) -> u64 {
+    #[inline]
+    pub const fn sector_offset(self) -> u64 {
         SectorOffset::OFFSET + 4 * self.0 as u64
     }
 
-    pub fn timestamp_offset(self) -> u64 {
+    #[inline]
+    pub const fn timestamp_offset(self) -> u64 {
         Timestamp::OFFSET + 8 * self.0 as u64
     }
 }
 
 impl Into<(i32, i32)> for RegionCoord {
+    #[inline]
     fn into(self) -> (i32, i32) {
         (self.x(), self.z())
     }
 }
 
 impl From<(i32, i32)> for RegionCoord {
+    #[inline]
     fn from(value: (i32, i32)) -> Self {
         Self::new(value.0, value.1)
     }
