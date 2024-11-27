@@ -15,6 +15,14 @@ pub struct SectorManager {
     end_sector: ManagedSector,
 }
 
+// TODO: Recreate SectorManager struct and implementation.
+// pub struct SectorManager {
+//     left_sectors: HashMap<u32, u32>,
+//     right_sectors: HashMap<u32, u32>,
+//     size_sectors: BTreeMap<u32, BTreeMap<u32, u32>>,
+//     used_sectors: HashMap<u32, u32>,
+// }
+
 impl SectorManager {
     /// The max size representable by the [BlockSize] type.
     pub const MAX_SECTOR_SIZE: u32 = BlockSize::MAX_BLOCK_COUNT as u32 * 4096;
@@ -153,11 +161,10 @@ impl SectorManager {
             return None;
         }
 
-        let old_sector = ManagedSector::from(free);
-
         if free.is_empty() {
             Some(self.allocate(new_size))
         } else if free.block_size().block_count() > new_size.block_count() {
+            let old_sector = ManagedSector::from(free);
             let (new, old) = old_sector.split_left(new_size.block_count() as u32);
             self.deallocate(old);
             Some(SectorOffset::new(new_size, new.start))
