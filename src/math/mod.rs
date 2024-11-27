@@ -5,12 +5,14 @@ pub mod axis_flags;
 use bit::GetBit;
 use glam::{IVec2, IVec3, IVec4, Vec3};
 
+#[inline]
 pub fn index2<const W: i32>(x: i32, y: i32) -> usize {
     let x = x.rem_euclid(W);
     let y = y.rem_euclid(W);
     (y * W + x) as usize
 }
 
+#[inline]
 pub fn index3<const W: i32>(x: i32, y: i32, z: i32) -> usize {
     let x = x.rem_euclid(W);
     let y = y.rem_euclid(W);
@@ -19,22 +21,27 @@ pub fn index3<const W: i32>(x: i32, y: i32, z: i32) -> usize {
 }
 
 /// Returns (min, max).
+#[inline]
 pub fn minmax<T: PartialOrd>(a: T, b: T) -> (T, T) {
     if a <= b { (a, b) } else { (b, a) }
 }
 
+#[inline]
 pub fn f32_not_zero(value: f32) -> bool {
     value != 0.0 && value != -0.0
 }
 
+#[inline]
 pub fn f32_is_zero(value: f32) -> bool {
     value == 0.0 || value == -0.0
 }
 
+#[inline]
 pub fn f64_not_zero(value: f64) -> bool {
     value != 0.0 && value != -0.0
 }
 
+#[inline]
 pub fn f64_is_zero(value: f64) -> bool {
     value == 0.0 || value == -0.0
 }
