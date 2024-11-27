@@ -12,12 +12,6 @@ use super::{
     sector_offset::SectorOffset
 };
 
-// /// Manages allocated and unallocated sectors in a region file.
-// pub struct SectorManager {
-//     unused: Vec<ManagedSector>,
-//     end_sector: ManagedSector,
-// }
-
 // refactor
 
 // TODO: Recreate SectorManager struct and implementation.
