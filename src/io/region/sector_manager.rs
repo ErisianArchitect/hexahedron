@@ -32,8 +32,6 @@ impl Default for SectorManager {
 }
 
 impl SectorManager {
-    // /// The max size representable by the [BlockSize] type.
-    // const MAX_SECTOR_SIZE: u32 = BlockSize::MAX_BLOCK_COUNT as u32 * 4096;
     /// The offset that's calculated to be the maximum end-offset possible.
     const MAX_SECTOR_END: u32 = (2u32.pow(24) - 1) + 8034; // 24-bit unsigned max + BlockSize max
     const AFTER_HEAD: ManagedSector = ManagedSector::new(3, Self::MAX_SECTOR_END);
@@ -52,8 +50,8 @@ impl SectorManager {
 
     pub fn from_sector_table(table: &OffsetTable) -> Self {
         let mut filtered_sectors = table.iter().cloned()
-            .map(ManagedSector::from)
             .filter(|sector| sector.is_not_empty())
+            .map(ManagedSector::from)
             .collect_vec();
         filtered_sectors.sort();
         let initial_state = (
@@ -99,11 +97,11 @@ impl SectorManager {
             (Some(left), Some(right)) => {
                 self.remove_sized_sector(left);     // O(30)
                 self.remove_sized_sector(right);    // O(30)
-                ManagedSector::new(left.start, right.end)
+                left.join_right(right)
             }
             (Some(left), None) => {
                 self.remove_sized_sector(left);     // O(30)
-                sector.join_left(left)
+                left.join_right(sector)
             }
             (None, Some(right)) => {
                 self.remove_sized_sector(right);   // O(30)
@@ -160,7 +158,7 @@ impl SectorManager {
     }
 
     /// Attempts to allocate a sector.
-    pub fn allocate(&mut self, block_size: BlockSize) -> Option<SectorOffset> {
+    pub fn alloc(&mut self, block_size: BlockSize) -> Option<SectorOffset> {
         let block_count = block_size.block_count();
         let Some(sector) = self.pop_sized_sector(block_count as u32) else {
             return None;
@@ -168,42 +166,38 @@ impl SectorManager {
         Some(SectorOffset::new(block_size, sector.start))
     }
 
-    #[inline]
-    fn dealloc_managed(&mut self, sector: ManagedSector) {
-        if sector.size() == 0 {
+    pub fn dealloc(&mut self, sector: SectorOffset) {
+        if sector.is_empty() {
             return;
         }
-        self.insert_free_sector(sector);
+        self.insert_free_sector(sector.into());
     }
 
-    pub fn deallocate(&mut self, sector: SectorOffset) {
-        let sector: ManagedSector = sector.into();
-        self.dealloc_managed(sector);
-    }
-
-    pub fn reallocate(&mut self, free: SectorOffset, new_size: BlockSize) -> Option<SectorOffset> {
+    pub fn realloc(&mut self, free: SectorOffset, new_size: BlockSize) -> Option<SectorOffset> {
         if free.is_empty() {
-            self.allocate(new_size)
+            self.alloc(new_size)
         } else if free.block_size() > new_size {
             let old_sector = ManagedSector::from(free);
             let (new, old) = old_sector.split_left(new_size.block_count() as u32);
-            self.dealloc_managed(old);
+            if old.is_not_empty() {
+                self.insert_free_sector(old);
+            }
             Some(SectorOffset::new(new_size, new.start))
         } else if free.block_size() == new_size {
             Some(free)
         } else {
-            self.reallocate_unchecked(free, new_size)
+            self.realloc_unchecked(free, new_size)
         }
     }
 
-    pub fn reallocate_err(&mut self, free: SectorOffset, size: BlockSize) -> Result<SectorOffset> {
-        self.reallocate(free, size).ok_or_else(|| Error::AllocationFailure(free, size))
+    pub fn realloc_err(&mut self, free: SectorOffset, size: BlockSize) -> Result<SectorOffset> {
+        self.realloc(free, size).ok_or_else(|| Error::AllocationFailure(free, size))
     }
     
-    fn reallocate_unchecked(&mut self, free: SectorOffset, new_size: BlockSize) -> Option<SectorOffset> {
+    fn realloc_unchecked(&mut self, free: SectorOffset, new_size: BlockSize) -> Option<SectorOffset> {
         let free = ManagedSector::from(free);
         self.insert_free_sector(free);
-        self.allocate(new_size)
+        self.alloc(new_size)
     }
 }
 
@@ -235,15 +229,15 @@ impl ManagedSector {
     //     self.start == self.end
     // }
 
-    pub fn is_not_empty(self) -> bool {
+    fn is_not_empty(self) -> bool {
         self.start != self.end
     }
 
-    pub fn size(self) -> u32 {
+    fn size(self) -> u32 {
         self.end - self.start
     }
 
-    pub fn split_left(self, sector_count: u32) -> (Self, Self) {
+    fn split_left(self, sector_count: u32) -> (Self, Self) {
         if sector_count > self.size() {
             panic!("Sector not large enough to accomodate sector count.");
         }
@@ -254,19 +248,13 @@ impl ManagedSector {
         )
     }
 
-    /// Joins other to left side of self.
-    #[inline]
-    pub const fn join_left(self, other: Self) -> Self {
-        Self::new(other.start, self.end)
-    }
-
     /// Joins other to right side of self.
     #[inline]
-    pub const fn join_right(self, other: Self) -> Self {
+    const fn join_right(self, other: Self) -> Self {
         Self::new(self.start, other.end)
     }
 
-    pub const fn has_gap(self, other: Self) -> bool {
+    const fn has_gap(self, other: Self) -> bool {
         self.end < other.start || other.end < self.start
     }
 
@@ -316,21 +304,22 @@ mod tests {
     fn sector_manager_test() -> Result<()> {
         let mut man = SectorManager::default();
         println!("{man:#?}");
-        let sect1 = man.allocate(BlockSize::reverse(1).unwrap()).ok_or(Error::Custom("Failed to allocate block"))?;
-        let sect2 = man.allocate(BlockSize::reverse(4).unwrap()).ok_or(Error::Custom("Failed to allocate block"))?;
+        let sect1 = man.alloc(BlockSize::reverse(1).unwrap()).ok_or(Error::Custom("Failed to allocate block"))?;
+        let sect2 = man.alloc(BlockSize::reverse(4).unwrap()).ok_or(Error::Custom("Failed to allocate block"))?;
         let ms1 = ManagedSector::from(sect1);
         let ms2 = ManagedSector::from(sect2);
         assert_eq!(ms1, ManagedSector::new(3, 4));
         assert_eq!(ms2, ManagedSector::new(4, 8));
-        let sect2 = man.reallocate_err(sect2, BlockSize::required(8))?;
+        let sect2 = man.realloc_err(sect2, BlockSize::required(8))?;
         let ms2 = ManagedSector::from(sect2);
         assert_eq!(ms2, ManagedSector::new(4, 12));
-        man.deallocate(sect1);
-        let sect1 = man.allocate(BlockSize::reverse(1).unwrap()).ok_or(Error::Custom("Failed to allocate block"))?;
+        man.dealloc(sect1);
+        println!("{man:#?}");
+        let sect1 = man.alloc(BlockSize::reverse(1).unwrap()).ok_or(Error::Custom("Failed to allocate block"))?;
         let ms1 = ManagedSector::from(sect1);
         assert_eq!(ms1, ManagedSector::new(3, 4));
-        man.deallocate(sect1);
-        man.deallocate(sect2);
+        man.dealloc(sect1);
+        man.dealloc(sect2);
         println!("{man:#?}");
         Ok(())
     }
