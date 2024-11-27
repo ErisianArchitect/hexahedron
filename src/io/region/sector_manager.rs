@@ -12,11 +12,6 @@ use super::{
     sector_offset::SectorOffset
 };
 
-// refactor
-
-// main
-
-// TODO: Recreate SectorManager struct and implementation.
 #[derive(Debug, Clone)]
 pub struct SectorManager {
     start_sectors: HashMap<u32, u32>,
