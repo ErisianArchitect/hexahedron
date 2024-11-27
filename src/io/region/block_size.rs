@@ -21,7 +21,10 @@
 pub struct BlockSize(pub(super) u8);
 
 impl BlockSize {
-    pub const MAX_BLOCK_COUNT: u16 = 8034;
+    pub const MIN: Self = BlockSize(u8::MIN);
+    pub const MAX: Self = BlockSize(u8::MAX);
+    pub const MIN_BLOCK_COUNT: u16 = Self::MIN.block_count();
+    pub const MAX_BLOCK_COUNT: u16 = Self::MAX.block_count();
     // It's impossible to represent a size of 0 with BlockSize.
     pub const BLOCK_SIZE_TABLE: [u16; 256] = [
         // Column: Multiplier
@@ -89,6 +92,10 @@ impl BlockSize {
     /// Gets the [BlockSize] required to contain `size` in 4KiB sectors.
     pub fn required(size: u16) -> Self {
         assert!(size <= Self::MAX_BLOCK_COUNT, "Size greater than {}", Self::MAX_BLOCK_COUNT);
+        Self::required_unchecked(size)
+    }
+
+    pub(crate) fn required_unchecked(size: u16) -> Self {
         let mut low = 0;
         let mut hi = 256;
         while low < hi {
