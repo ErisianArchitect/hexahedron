@@ -1,4 +1,6 @@
 #![allow(unused)]
+use std::num::{NonZeroU32, NonZeroUsize};
+
 use hexahedron::util::extensions::*;
 use hexahedron::io::region::block_size::*;
 
@@ -38,4 +40,43 @@ fn gen_bsn_table() -> std::fmt::Result {
     }
     println!("{table}");
     Ok(())
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+enum NullableIndex {
+    Null,
+    NonNull(NonZeroU32),
+}
+
+impl NullableIndex {
+    pub const fn new(value: u32) -> Self {
+        match value {
+            0 => Self::Null,
+            value => Self::NonNull(unsafe { NonZeroU32::new_unchecked(value) })
+        }
+    }
+
+    pub const fn value(self) -> u32 {
+        match self {
+            Self::Null => 0,
+            Self::NonNull(value) => value.get(),
+        }
+    }
+}
+
+struct AlignedToU128 {
+    big: u128,
+    small: u8,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn null_index_test() {
+        let index = NullableIndex::new(0);
+        assert!(index.value() == 0);
+        let index = NullableIndex::new(u32::MAX);
+        assert!(index.value() == u32::MAX);
+    }
 }
