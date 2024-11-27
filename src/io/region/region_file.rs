@@ -1,8 +1,19 @@
-use std::{fs::File, io::{BufReader, BufWriter, Cursor, Read, Seek, SeekFrom, Take, Write}, path::Path};
+use std::{fs::File, io::{BufReader, BufWriter, Cursor, Read, Seek, SeekFrom, Take, Write}, path::Path, sync::{Arc, Mutex}};
 
 use flate2::{read::GzDecoder, write::GzEncoder, Compression};
 use crate::{error::*, io::region::sector_offset::SectorOffset, prelude::{write_zeros, Readable, Writeable}};
 use super::{header::RegionHeader, region_coord::RegionCoord, sector_manager::SectorManager, block_size::BlockSize, time_stamp::Timestamp};
+
+#[inline]
+const fn pad_size(length: u64) -> u64 {
+    4096 - (length & 4095) & 4095
+}
+
+#[inline]
+const fn padded_size(length: u64) -> u64 {
+    const NEG4096_U64: u64 = -4096i64 as u64;
+    (length + 4095) & NEG4096_U64
+}
 
 pub struct RegionFile {
     sector_manager: SectorManager,
@@ -90,7 +101,7 @@ impl RegionFile {
         }
     }
 
-    pub fn read<'a, C: Into<RegionCoord>, R, F: FnMut(&mut GzDecoder<Take<BufReader<&'a mut File>>>) -> Result<R>>(&'a mut self, coord: C, mut read: F) -> Result<R> {
+    pub fn read<'a, C: Into<RegionCoord>, R, F: FnOnce(&mut GzDecoder<Take<BufReader<&'a mut File>>>) -> Result<R>>(&'a mut self, coord: C, read: F) -> Result<R> {
         let coord: RegionCoord = coord.into();
         let sector = self.header.offsets[coord];
         if sector.is_empty() {
@@ -112,13 +123,15 @@ impl RegionFile {
 
     /// If nothing is written to the writer, then it will delete the entry in the
     /// region file.
-    pub fn write<C: Into<RegionCoord>, F: FnMut(&mut GzEncoder<&mut Cursor<Vec<u8>>>) -> Result<()>>(&mut self, coord: C, mut write: F) -> Result<()> {
+    pub fn write<C: Into<RegionCoord>, F: FnOnce(&mut GzEncoder<&mut Cursor<Vec<u8>>>) -> Result<()>>(&mut self, coord: C, write: F) -> Result<()> {
         let coord: RegionCoord = coord.into();
         self.write_buffer.seek(SeekFrom::Start(0))?;
         self.write_buffer.get_mut().clear();
         let mut encoder = GzEncoder::new(&mut self.write_buffer, Compression::fast());
         // write to encoder in the write buffer
-        write(&mut encoder)?;
+        {
+            write(&mut encoder)?;
+        }
         // Check if length is zero, which means nothing was written.
         // This will be treated as deleting the chunk.
         if encoder.get_ref().get_ref().len() == 0 {
@@ -128,13 +141,13 @@ impl RegionFile {
         encoder.finish()?;
         let length = self.write_buffer.get_ref().len() as u64;
         let padded_size = padded_size(length + 4);
-        if padded_size > BlockSize::MAX_BLOCK_COUNT as u64 * 4096 {
+        let block_size = padded_size / 4096;
+        if block_size > BlockSize::MAX_BLOCK_COUNT as u64 {
             return Err(Error::ChunkTooLarge);
         }
-        let block_size = (padded_size / 4096) as u16;
-        let required_size = BlockSize::required(block_size);
+        let required_size = BlockSize::required_unchecked(block_size as u16);
         let old_sector = self.header.offsets[coord];
-        let new_sector = self.sector_manager.reallocate_err(old_sector, required_size)?;
+        let new_sector = self.sector_manager.realloc_err(old_sector, required_size)?;
         self.header.offsets[coord] = new_sector;
         let mut writer = BufWriter::new(&mut self.io);
         writer.seek(SeekFrom::Start(new_sector.file_offset()))?;
@@ -180,7 +193,7 @@ impl RegionFile {
         if sector.is_empty() {
             return Ok(());
         }
-        self.sector_manager.deallocate(sector);
+        self.sector_manager.dealloc(sector);
         self.header.offsets[coord] = SectorOffset::default();
         self.header.timestamps[coord] = Timestamp::default();
         let mut writer = BufWriter::new(&mut self.io);
@@ -191,15 +204,4 @@ impl RegionFile {
         writer.flush()?;
         Ok(())
     }
-} 
-
-#[inline]
-fn pad_size(length: u64) -> u64 {
-    4096 - (length & 4095) & 4095
-}
-
-#[inline]
-fn padded_size(length: u64) -> u64 {
-    const NEG4096_U64: u64 = -4096i64 as u64;
-    (length + 4095) & NEG4096_U64
 }
