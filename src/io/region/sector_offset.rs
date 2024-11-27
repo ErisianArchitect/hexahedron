@@ -6,6 +6,7 @@ pub struct SectorOffset(u32);
 
 impl SectorOffset {
     pub const MAX_OFFSET: u32 = 0xffffff;
+    pub(crate) const NULL: Self = SectorOffset(0);
 
     pub const fn new(block_size: BlockSize, offset: u32) -> Self  {
         if offset > Self::MAX_OFFSET {

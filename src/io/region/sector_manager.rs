@@ -1,5 +1,8 @@
+use std::collections::BTreeMap;
+
 use hashbrown::HashMap;
 use itertools::Itertools;
+use tap::Tap;
 
 use crate::error::*;
 
@@ -9,168 +12,193 @@ use super::{
     sector_offset::SectorOffset
 };
 
-/// Manages allocated and unallocated sectors in a region file.
-pub struct SectorManager {
-    unused: Vec<ManagedSector>,
-    end_sector: ManagedSector,
-}
+// /// Manages allocated and unallocated sectors in a region file.
+// pub struct SectorManager {
+//     unused: Vec<ManagedSector>,
+//     end_sector: ManagedSector,
+// }
 
 // refactor
 
 // TODO: Recreate SectorManager struct and implementation.
-// pub struct SectorManager {
-//     left_sectors: HashMap<u32, u32>,
-//     right_sectors: HashMap<u32, u32>,
-//     size_sectors: BTreeMap<u32, BTreeMap<u32, u32>>,
-//     used_sectors: HashMap<u32, u32>,
-// }
+#[derive(Debug, Clone)]
+pub struct SectorManager {
+    start_sectors: HashMap<u32, u32>,
+    end_sectors: HashMap<u32, u32>,
+    sized_sectors: BTreeMap<u32, BTreeMap<u32, u32>>,
+}
+
+impl Default for SectorManager {
+    fn default() -> Self {
+        Self {
+            start_sectors: HashMap::new(),
+            end_sectors: HashMap::new(),
+            sized_sectors: BTreeMap::new(),
+        }.tap_mut(move |init| {
+            init.new_insert_free_sector(Self::AFTER_HEAD);
+        })
+    }
+}
 
 impl SectorManager {
-    /// The max size representable by the [BlockSize] type.
-    pub const MAX_SECTOR_SIZE: u32 = BlockSize::MAX_BLOCK_COUNT as u32 * 4096;
+    // /// The max size representable by the [BlockSize] type.
+    // const MAX_SECTOR_SIZE: u32 = BlockSize::MAX_BLOCK_COUNT as u32 * 4096;
+    /// The offset that's calculated to be the maximum end-offset possible.
+    const MAX_SECTOR_END: u32 = (2u32.pow(24) - 1) + 8034; // 24-bit unsigned max + BlockSize max
+    const AFTER_HEAD: ManagedSector = ManagedSector::new(3, Self::MAX_SECTOR_END);
 
-    pub fn new() -> Self {
+    pub fn new(end_sector: Option<std::ops::Range<u32>>) -> Self {
         Self {
-            unused: Vec::new(),
-            end_sector: ManagedSector::new(3, u32::MAX),
-        }
+            start_sectors: HashMap::new(),
+            end_sectors: HashMap::new(),
+            sized_sectors: BTreeMap::new(),
+        }.tap_mut(move |init| {
+            if let Some(end) = end_sector {
+                init.new_insert_free_sector(ManagedSector::new(end.start, end.end));
+            }
+        })
     }
 
-    pub fn from_sector_table(table: &OffsetTable, end_sector_start: u32) -> Self {
+    pub fn from_sector_table(table: &OffsetTable) -> Self {
         let mut filtered_sectors = table.iter().cloned()
             .map(ManagedSector::from)
-            .filter(|sector| sector.not_empty())
+            .filter(|sector| sector.is_not_empty())
             .collect_vec();
         filtered_sectors.sort();
         let initial_state = (
-            Vec::<ManagedSector>::new(),
+            Self::new(None),
             ManagedSector::HEADER,
         );
         let (
-            unused,
+            init,
             last_sector
         ) = filtered_sectors.into_iter()
-            .fold(initial_state, |(mut unused_sectors, previous), sector| {
-                if let Some(_) = previous.gap(sector) {
-                    unused_sectors.push(ManagedSector::new(
-                        previous.end,
-                        sector.start
-                    ));
+            .fold(initial_state, |(mut builder, previous), sector| {
+                if previous.has_gap(sector) {
+                    builder.new_insert_free_sector(ManagedSector::new(previous.end, sector.start));
                 }
                 (
-                    unused_sectors,
+                    builder,
                     sector
                 )
             });
-        
-        Self {
-            unused,
-            end_sector: ManagedSector { start: end_sector_start.min(last_sector.end), end: u32::MAX }
+        init.tap_mut(move |init| {
+            let end_sector = ManagedSector::new(last_sector.end, Self::MAX_SECTOR_END);
+            if end_sector.is_not_empty() {
+                init.new_insert_free_sector(end_sector);
+            }
+        })
+    }
+
+    /// For insertions when there doesn't need to be any removal, such as when
+    /// inserting the gaps between used sectors.
+    fn new_insert_free_sector(&mut self, sector: ManagedSector) {
+        self.start_sectors.insert(sector.start, sector.end);    // O(10)
+        self.end_sectors.insert(sector.end, sector.start);      // O(10)
+        let sized = self.sized_sectors.entry(sector.size()).or_insert_with(|| BTreeMap::new());     // O(10)
+        sized.insert(sector.start, sector.end);     // O(10)
+    }
+
+    fn insert_free_sector(&mut self, sector: ManagedSector) {
+        // Complexity is roughly O(100)
+        // Merge adjacent sectors.
+        let left = self.remove_end_sector(sector.start);    // O(20)
+        let right = self.remove_start_sector(sector.end);   // O(20)
+        let sector = match (left, right) {
+            (Some(left), Some(right)) => {
+                self.remove_sized_sector(left);     // O(30)
+                self.remove_sized_sector(right);    // O(30)
+                ManagedSector::new(left.start, right.end)
+            }
+            (Some(left), None) => {
+                self.remove_sized_sector(left);     // O(30)
+                sector.join_left(left)
+            }
+            (None, Some(right)) => {
+                self.remove_sized_sector(right);   // O(30)
+                sector.join_right(right)
+            }
+            _ => sector
+        };
+        self.start_sectors.insert(sector.start, sector.end);    // O(10)
+        self.end_sectors.insert(sector.end, sector.start);      // O(10)
+        let sized = self.sized_sectors.entry(sector.size()).or_insert_with(|| BTreeMap::new());     // O(10)
+        sized.insert(sector.start, sector.end);     // O(10)
+    }
+
+    fn remove_start_sector(&mut self, start: u32) -> Option<ManagedSector> {
+        let end = self.start_sectors.remove(&start)?;
+        self.end_sectors.remove(&end);
+        Some(ManagedSector::new(start, end))
+    }
+
+    fn remove_end_sector(&mut self, end: u32) -> Option<ManagedSector> {
+        let start = self.end_sectors.remove(&end)?;
+        self.start_sectors.remove(&start);
+        Some(ManagedSector::new(start, end))
+    }
+
+    fn remove_sized_sector(&mut self, sector: ManagedSector) {
+        if let Some(sized) = self.sized_sectors.get_mut(&sector.size()) {
+            sized.remove(&sector.start);
+            if sized.is_empty() {
+                self.sized_sectors.remove(&sector.size());
+            }
         }
     }
 
-    /// Attempts to allocate a sector. Panics if `blocks_required` exceed 8034.
-    pub fn allocate(&mut self, block_size: BlockSize) -> SectorOffset {
-        let block_count = block_size.block_count();
-        // Find sector with needed size
-        self.unused.iter().cloned().enumerate()
-            .find(|(_, sector)| sector.size() >= (block_count as u32))
-            .and_then(|(index, sector)| {
-                let (result, new_sector) = sector.split_left(block_size.block_count() as u32);
-                if new_sector.is_empty() {
-                    self.unused.swap_remove(index);
-                } else {
-                    self.unused[index] = new_sector;
-                }
-                Some(SectorOffset::new(block_size, result.start))
-            })
-            .or_else(|| {
-                self.end_sector.allocate(block_size)
-            }).expect("Allocation failed.")
+    fn pop_sized_sector(&mut self, size: u32) -> Option<ManagedSector> {
+        let (&found_size, sized_map) = self.sized_sectors.range_mut(size..).next()?;
+        // pop from the left side to ensure that the allocation is coming from the left-most sector.
+        let Some((start, end)) = sized_map.pop_first() else {
+            // If this panic happens, that means that the SectorManager is bugged.
+            panic!("Corrupted SectorManager: Found an empty sized_map entry.");
+        };
+        if sized_map.is_empty() {
+            self.sized_sectors.remove(&found_size);
+        }
+        self.start_sectors.remove(&start);
+        self.end_sectors.remove(&end);
+        let sector = ManagedSector::new(start, end);
+        // split from the left side so that the sector manager is always allocating the left-most sector.
+        let (alloc, old) = sector.split_left(size);
+        if old.is_not_empty() {
+            self.insert_free_sector(old);
+        }
+        Some(alloc)
     }
 
-    pub fn deallocate<S: Into<ManagedSector>>(&mut self, sector: S) {
-        let sector: ManagedSector = sector.into();
+    /// Attempts to allocate a sector.
+    pub fn allocate(&mut self, block_size: BlockSize) -> Option<SectorOffset> {
+        let block_count = block_size.block_count();
+        let Some(sector) = self.pop_sized_sector(block_count as u32) else {
+            return None;
+        };
+        Some(SectorOffset::new(block_size, sector.start))
+    }
+
+    #[inline]
+    fn dealloc_managed(&mut self, sector: ManagedSector) {
         if sector.size() == 0 {
             return;
         }
-        let mut freed_sector = ManagedSector::from(sector);
-        let mut left: Option<usize> = None;
-        let mut right: Option<usize> = None;
-        self.unused.iter()
-            .cloned()
-            .enumerate()
-            // .find_map for early return
-            // look for the sectors on the left and the right of the freed_sector (if they exist).
-            .find_map(|(index, sector)| {
-                match (left, right) {
-                    (None, Some(_)) => {
-                        if sector.end != freed_sector.start {
-                            return None;
-                        }
-                        left = Some(index);
-                        Some(())
-                    }
-                    (Some(_), None) => {
-                        if freed_sector.end != sector.start {
-                            return None;
-                        }
-                        right = Some(index);
-                        Some(())
-                    }
-                    (None, None) => {
-                        if sector.end == freed_sector.start {
-                            left = Some(index);
-                        } else if freed_sector.end == sector.start {
-                            right = Some(index);
-                        }
-                        None
-                    }
-                    _ => Some(())
-                }
-            });
-        match (left, right) {
-            (Some(left), Some(right)) => {
-                freed_sector.absorb(
-                    self.unused.swap_remove(right.max(left))
-                );
-                freed_sector.absorb(
-                    self.unused.swap_remove(left.min(right))
-                );
-            }
-            (Some(index), None) => {
-                freed_sector.absorb(
-                    self.unused.swap_remove(index)
-                );
-            }
-            (None, Some(index)) => {
-                freed_sector.absorb(
-                    self.unused.swap_remove(index)
-                );
-            }
-            _ => ()
-        }
-        if freed_sector.end == self.end_sector.start {
-            self.end_sector.absorb(freed_sector);
-        } else {
-            self.unused.push(freed_sector);
-        }
+        self.insert_free_sector(sector);
+    }
+
+    pub fn deallocate(&mut self, sector: SectorOffset) {
+        let sector: ManagedSector = sector.into();
+        self.dealloc_managed(sector);
     }
 
     pub fn reallocate(&mut self, free: SectorOffset, new_size: BlockSize) -> Option<SectorOffset> {
-        if new_size.0 == 0 {
-            println!("Size is 0");
-            return None;
-        }
-
         if free.is_empty() {
-            Some(self.allocate(new_size))
-        } else if free.block_size().block_count() > new_size.block_count() {
+            self.allocate(new_size)
+        } else if free.block_size() > new_size {
             let old_sector = ManagedSector::from(free);
             let (new, old) = old_sector.split_left(new_size.block_count() as u32);
-            self.deallocate(old);
+            self.dealloc_managed(old);
             Some(SectorOffset::new(new_size, new.start))
-        } else if free.block_size().block_count() == new_size.block_count() {
+        } else if free.block_size() == new_size {
             Some(free)
         } else {
             self.reallocate_unchecked(free, new_size)
@@ -182,178 +210,46 @@ impl SectorManager {
     }
     
     fn reallocate_unchecked(&mut self, free: SectorOffset, new_size: BlockSize) -> Option<SectorOffset> {
-        // left represents the index of the sector to the left of free
-        let mut left = Option::<usize>::None;
-        // right represents the index of the sector to the right of free
-        let mut right = Option::<usize>::None;
-        // alloc represents the index of the sector to allocate into
-        let mut alloc = Option::<usize>::None;
-        let mut freed_sector = ManagedSector::from(free);
-        
-        fn apply_some_cond(opt: &mut Option<usize>, condition: bool, index: usize) -> bool {
-            if condition && opt.is_none() {
-                *opt = Some(index);
-                true
-            } else {
-                false
-            }
-        }
-        self.unused.iter().cloned()
-            .enumerate()
-            .find_map(|(index, sector)| {
-                if (
-                    apply_some_cond(&mut alloc, sector.size() >= new_size.block_count() as u32, index)
-                    || apply_some_cond(&mut left, sector.end == freed_sector.start, index)
-                    || apply_some_cond(&mut right, sector.start == freed_sector.end, index)
-                )
-                && alloc.is_some()
-                && left.is_some() 
-                && right.is_some() {
-                    return Some(());
-                }
-                None
-            });
-        enum SuccessAction {
-            Replace(usize, ManagedSector),
-            Remove(usize),
-            None,
-        }
-        alloc.map(|index| {
-            let result = self.unused[index];
-            if result.size() > new_size.block_count() as u32 {
-                let (new, old) = result.split_left(new_size.block_count() as u32);
-                (
-                    SectorOffset::new(new_size, new.start),
-                    SuccessAction::Replace(index, old)
-                )
-            } else {
-                (
-                    SectorOffset::new(new_size, result.start),
-                    SuccessAction::Remove(index)
-                )
-            }
-        })
-        .or_else(|| {
-            self.end_sector
-                .allocate(new_size)
-                .map(|sector| (sector, SuccessAction::None))
-        })
-        .map(|(sector, action)| {
-            // When an element is removed from unused, I need to keep track of where
-            // the end element moves to. That's what this is for.
-            // It remaps indices that are swapped.
-            let mut index_remap = HashMap::new();
-            match (left, right) {
-                (Some(left), Some(right)) => {
-                    let min = left.min(right);
-                    let max = right.max(left);
-                    index_remap.insert(self.unused.len() - 1, max);
-                    index_remap.insert(self.unused.len() - 2, min);
-                    freed_sector.absorb(
-                        self.unused.swap_remove(right.max(left))
-                    );
-                    freed_sector.absorb(
-                        self.unused.swap_remove(left.min(right))
-                    );
-                }
-                (Some(index), None) => {
-                    index_remap.insert(self.unused.len() - 1, index);
-                    freed_sector.absorb(
-                        self.unused.swap_remove(index)
-                    );
-                }
-                (None, Some(index)) => {
-                    index_remap.insert(self.unused.len() - 1, index);
-                    freed_sector.absorb(
-                        self.unused.swap_remove(index)
-                    );
-                }
-                _ => ()
-            }
-            if freed_sector.end == self.end_sector.start {
-                self.end_sector.absorb(freed_sector);
-            } else {
-                self.unused.push(freed_sector);
-            }
-            use SuccessAction::{Replace, Remove};
-            match action {
-                Replace(index, old) => {
-                    let index = *index_remap.get(&index).unwrap_or(&index);
-                    self.unused[index] = old;
-                }
-                Remove(index) => {
-                    let index = *index_remap.get(&index).unwrap_or(&index);
-                    self.unused.swap_remove(index);
-                }
-                _ => ()
-            }
-            sector
-        })
+        let free = ManagedSector::from(free);
+        self.insert_free_sector(free);
+        self.allocate(new_size)
     }
 }
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct ManagedSector {
+struct ManagedSector {
     start: u32,
     end: u32
 }
 
 impl ManagedSector {
-    pub const HEADER: ManagedSector = ManagedSector {
+    const TIMESTAMP_TABLE: ManagedSector = ManagedSector {
         start: 0,
-        end: 12288
+        end: 2
     };
-    pub const TIMESTAMP_TABLE: ManagedSector = ManagedSector {
-        start: 0,
-        end: 8192
+    const SECTOR_TABLE: ManagedSector = ManagedSector {
+        start: 2,
+        end: 3
     };
-    pub const SECTOR_TABLE: ManagedSector = ManagedSector {
-        start: 8192,
-        end: 12288
-    };
+    const HEADER: ManagedSector = Self::TIMESTAMP_TABLE.join_right(Self::SECTOR_TABLE);
 
-    pub const fn new(start: u32, end: u32) -> Self {
+    const fn new(start: u32, end: u32) -> Self {
         Self {
             start,
             end
         }
     }
 
-    pub fn is_empty(self) -> bool {
-        self.start == self.end
-    }
+    // fn is_empty(self) -> bool {
+    //     self.start == self.end
+    // }
 
-    pub fn not_empty(self) -> bool {
+    pub fn is_not_empty(self) -> bool {
         self.start != self.end
     }
 
     pub fn size(self) -> u32 {
         self.end - self.start
-    }
-
-    /// Allocates a [SectorOffset] from this [ManagedSector], reducing
-    /// the size in the process. Returns `None` if there isn't enough
-    /// space. This will reduce the size to 0 if that's all the space left.
-    /// Does not allow allocation beyond 0x1000000 (2.pow(24))
-    pub fn allocate(&mut self, size: BlockSize) -> Option<SectorOffset> {
-        let block_count = size.block_count();
-        let new_start = self.start + block_count as u32;
-                                //  2.pow(24) + 8034 (max block size)
-        if new_start > self.end.min(0x1001f62) {
-            return None;
-        }
-        let start = self.start;
-        self.start = new_start;
-        Some(SectorOffset::new(size, start))
-    }
-
-    pub fn absorb(&mut self, other: Self) {
-        if self.end != other.start &&
-        self.start != other.end {
-            panic!("Nonadjacent sectors");
-        }
-        self.start = self.start.min(other.start);
-        self.end = self.end.max(other.end);
     }
 
     pub fn split_left(self, sector_count: u32) -> (Self, Self) {
@@ -367,23 +263,31 @@ impl ManagedSector {
         )
     }
 
-    pub fn file_offset(self) -> u64 {
-        self.start as u64 * 4096
+    /// Joins other to left side of self.
+    #[inline]
+    pub const fn join_left(self, other: Self) -> Self {
+        Self::new(other.start, self.end)
     }
 
-    pub fn file_size(self) -> u64 {
-        self.size() as u64 * 4096
+    /// Joins other to right side of self.
+    #[inline]
+    pub const fn join_right(self, other: Self) -> Self {
+        Self::new(self.start, other.end)
     }
 
-    pub fn gap(self, other: Self) -> Option<u32> {
-        if self.end < other.start {
-            Some(other.start - self.end)
-        } else if other.end < self.start {
-            Some(self.start - other.end)
-        } else {
-            None
-        }
+    pub const fn has_gap(self, other: Self) -> bool {
+        self.end < other.start || other.end < self.start
     }
+
+    // pub const fn gap(self, other: Self) -> Option<u32> {
+    //     if self.end < other.start {
+    //         Some(other.start - self.end)
+    //     } else if other.end < self.start {
+    //         Some(self.start - other.end)
+    //     } else {
+    //         None
+    //     }
+    // }
 }
 
 impl PartialOrd for ManagedSector {
@@ -410,5 +314,33 @@ impl From<SectorOffset> for ManagedSector {
         let size = value.block_size().block_count() as u32;
         let end = start + size;
         Self::new(start, end)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn sector_manager_test() -> Result<()> {
+        let mut man = SectorManager::default();
+        println!("{man:#?}");
+        let sect1 = man.allocate(BlockSize::reverse(1).unwrap()).ok_or(Error::Custom("Failed to allocate block"))?;
+        let sect2 = man.allocate(BlockSize::reverse(4).unwrap()).ok_or(Error::Custom("Failed to allocate block"))?;
+        let ms1 = ManagedSector::from(sect1);
+        let ms2 = ManagedSector::from(sect2);
+        assert_eq!(ms1, ManagedSector::new(3, 4));
+        assert_eq!(ms2, ManagedSector::new(4, 8));
+        let sect2 = man.reallocate_err(sect2, BlockSize::required(8))?;
+        let ms2 = ManagedSector::from(sect2);
+        assert_eq!(ms2, ManagedSector::new(4, 12));
+        man.deallocate(sect1);
+        let sect1 = man.allocate(BlockSize::reverse(1).unwrap()).ok_or(Error::Custom("Failed to allocate block"))?;
+        let ms1 = ManagedSector::from(sect1);
+        assert_eq!(ms1, ManagedSector::new(3, 4));
+        man.deallocate(sect1);
+        man.deallocate(sect2);
+        println!("{man:#?}");
+        Ok(())
     }
 }

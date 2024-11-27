@@ -32,8 +32,7 @@ impl RegionFile {
             let mut temp_reader = BufReader::new((&mut file_handle).take(4096*3));
             RegionHeader::read_from(&mut temp_reader)?
         };
-        let end_sector_start = (file_size / 4096) as u32;
-        let sector_manager = SectorManager::from_sector_table(&header.offsets, end_sector_start);
+        let sector_manager = SectorManager::from_sector_table(&header.offsets);
         Ok(Self {
             io: file_handle,
             header,
@@ -56,7 +55,7 @@ impl RegionFile {
             io,
             write_buffer: Cursor::new(Vec::with_capacity(4096*2)),
             header: RegionHeader::new(),
-            sector_manager: SectorManager::new(),
+            sector_manager: SectorManager::default(),
         })
     }
 
@@ -73,7 +72,7 @@ impl RegionFile {
             io,
             write_buffer: Cursor::new(Vec::with_capacity(4096*2)),
             header: RegionHeader::new(),
-            sector_manager: SectorManager::new(),
+            sector_manager: SectorManager::default(),
         })
     }
 
