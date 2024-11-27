@@ -68,7 +68,7 @@ impl BlockSize {
         self.block_count() as u64 * 4096
     }
 
-    /// If the `size` represents an exact block size, then it will return that block size. Otherwise returns `None`.
+    /// If the `size` represents an exact 4KiB block size, then it will return that block size. Otherwise returns `None`.
     pub fn reverse(size: u16) -> Option<Self> {
         assert!(size != 0, "Size is 0.");
         assert!(size <= Self::MAX_BLOCK_COUNT, "Size greater than {}", Self::MAX_BLOCK_COUNT);
@@ -86,7 +86,7 @@ impl BlockSize {
         None
     }
 
-    /// Gets the [BlockSize] required to contain `size` in bytes.
+    /// Gets the [BlockSize] required to contain `size` in 4KiB sectors.
     pub fn required(size: u16) -> Self {
         assert!(size <= Self::MAX_BLOCK_COUNT, "Size greater than {}", Self::MAX_BLOCK_COUNT);
         let mut low = 0;
