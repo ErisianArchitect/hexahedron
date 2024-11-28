@@ -5,265 +5,8 @@ use std::iter::Cloned;
 // The html_colors macro is in colors.rs
 // It was just really big and I didn't want it to clutter up this code.
 include!("colors.rs");
-
-const BYTE_TO_F32: [f32; 256] = [
-    0e0,
-    3.921569e-3,
-    7.843138e-3,
-    1.1764706e-2,
-    1.5686275e-2,
-    1.9607844e-2,
-    2.3529412e-2,
-    2.745098e-2,
-    3.137255e-2,
-    3.529412e-2,
-    3.9215688e-2,
-    4.3137256e-2,
-    4.7058824e-2,
-    5.0980393e-2,
-    5.490196e-2,
-    5.882353e-2,
-    6.27451e-2,
-    6.666667e-2,
-    7.058824e-2,
-    7.450981e-2,
-    7.8431375e-2,
-    8.235294e-2,
-    8.627451e-2,
-    9.019608e-2,
-    9.411765e-2,
-    9.803922e-2,
-    1.01960786e-1,
-    1.05882354e-1,
-    1.0980392e-1,
-    1.1372549e-1,
-    1.1764706e-1,
-    1.2156863e-1,
-    1.254902e-1,
-    1.2941177e-1,
-    1.3333334e-1,
-    1.3725491e-1,
-    1.4117648e-1,
-    1.4509805e-1,
-    1.4901961e-1,
-    1.5294118e-1,
-    1.5686275e-1,
-    1.6078432e-1,
-    1.6470589e-1,
-    1.6862746e-1,
-    1.7254902e-1,
-    1.764706e-1,
-    1.8039216e-1,
-    1.8431373e-1,
-    1.882353e-1,
-    1.9215687e-1,
-    1.9607843e-1,
-    2e-1,
-    2.0392157e-1,
-    2.0784314e-1,
-    2.1176471e-1,
-    2.1568628e-1,
-    2.1960784e-1,
-    2.2352941e-1,
-    2.2745098e-1,
-    2.3137255e-1,
-    2.3529412e-1,
-    2.3921569e-1,
-    2.4313726e-1,
-    2.4705882e-1,
-    2.509804e-1,
-    2.5490198e-1,
-    2.5882354e-1,
-    2.627451e-1,
-    2.6666668e-1,
-    2.7058825e-1,
-    2.7450982e-1,
-    2.784314e-1,
-    2.8235295e-1,
-    2.8627452e-1,
-    2.901961e-1,
-    2.9411766e-1,
-    2.9803923e-1,
-    3.019608e-1,
-    3.0588236e-1,
-    3.0980393e-1,
-    3.137255e-1,
-    3.1764707e-1,
-    3.2156864e-1,
-    3.254902e-1,
-    3.2941177e-1,
-    3.3333334e-1,
-    3.372549e-1,
-    3.4117648e-1,
-    3.4509805e-1,
-    3.4901962e-1,
-    3.529412e-1,
-    3.5686275e-1,
-    3.6078432e-1,
-    3.647059e-1,
-    3.6862746e-1,
-    3.7254903e-1,
-    3.764706e-1,
-    3.8039216e-1,
-    3.8431373e-1,
-    3.882353e-1,
-    3.9215687e-1,
-    3.9607844e-1,
-    4e-1,
-    4.0392157e-1,
-    4.0784314e-1,
-    4.117647e-1,
-    4.1568628e-1,
-    4.1960785e-1,
-    4.2352942e-1,
-    4.2745098e-1,
-    4.3137255e-1,
-    4.3529412e-1,
-    4.392157e-1,
-    4.4313726e-1,
-    4.4705883e-1,
-    4.509804e-1,
-    4.5490196e-1,
-    4.5882353e-1,
-    4.627451e-1,
-    4.6666667e-1,
-    4.7058824e-1,
-    4.745098e-1,
-    4.7843137e-1,
-    4.8235294e-1,
-    4.862745e-1,
-    4.9019608e-1,
-    4.9411765e-1,
-    4.9803922e-1,
-    5.019608e-1,
-    5.058824e-1,
-    5.0980395e-1,
-    5.137255e-1,
-    5.176471e-1,
-    5.2156866e-1,
-    5.254902e-1,
-    5.294118e-1,
-    5.3333336e-1,
-    5.372549e-1,
-    5.411765e-1,
-    5.4509807e-1,
-    5.4901963e-1,
-    5.529412e-1,
-    5.568628e-1,
-    5.6078434e-1,
-    5.647059e-1,
-    5.686275e-1,
-    5.7254905e-1,
-    5.764706e-1,
-    5.803922e-1,
-    5.8431375e-1,
-    5.882353e-1,
-    5.921569e-1,
-    5.9607846e-1,
-    6e-1,
-    6.039216e-1,
-    6.0784316e-1,
-    6.117647e-1,
-    6.156863e-1,
-    6.1960787e-1,
-    6.2352943e-1,
-    6.27451e-1,
-    6.313726e-1,
-    6.3529414e-1,
-    6.392157e-1,
-    6.431373e-1,
-    6.4705884e-1,
-    6.509804e-1,
-    6.54902e-1,
-    6.5882355e-1,
-    6.627451e-1,
-    6.666667e-1,
-    6.7058825e-1,
-    6.745098e-1,
-    6.784314e-1,
-    6.8235296e-1,
-    6.862745e-1,
-    6.901961e-1,
-    6.9411767e-1,
-    6.9803923e-1,
-    7.019608e-1,
-    7.058824e-1,
-    7.0980394e-1,
-    7.137255e-1,
-    7.176471e-1,
-    7.2156864e-1,
-    7.254902e-1,
-    7.294118e-1,
-    7.3333335e-1,
-    7.372549e-1,
-    7.411765e-1,
-    7.4509805e-1,
-    7.490196e-1,
-    7.529412e-1,
-    7.5686276e-1,
-    7.607843e-1,
-    7.647059e-1,
-    7.6862746e-1,
-    7.7254903e-1,
-    7.764706e-1,
-    7.8039217e-1,
-    7.8431374e-1,
-    7.882353e-1,
-    7.921569e-1,
-    7.9607844e-1,
-    8e-1,
-    8.039216e-1,
-    8.0784315e-1,
-    8.117647e-1,
-    8.156863e-1,
-    8.1960785e-1,
-    8.235294e-1,
-    8.27451e-1,
-    8.3137256e-1,
-    8.352941e-1,
-    8.392157e-1,
-    8.4313726e-1,
-    8.4705883e-1,
-    8.509804e-1,
-    8.5490197e-1,
-    8.5882354e-1,
-    8.627451e-1,
-    8.666667e-1,
-    8.7058824e-1,
-    8.745098e-1,
-    8.784314e-1,
-    8.8235295e-1,
-    8.862745e-1,
-    8.901961e-1,
-    8.9411765e-1,
-    8.980392e-1,
-    9.019608e-1,
-    9.0588236e-1,
-    9.098039e-1,
-    9.137255e-1,
-    9.1764706e-1,
-    9.2156863e-1,
-    9.254902e-1,
-    9.2941177e-1,
-    9.3333334e-1,
-    9.372549e-1,
-    9.411765e-1,
-    9.4509804e-1,
-    9.490196e-1,
-    9.529412e-1,
-    9.5686275e-1,
-    9.607843e-1,
-    9.647059e-1,
-    9.6862745e-1,
-    9.72549e-1,
-    9.764706e-1,
-    9.8039216e-1,
-    9.843137e-1,
-    9.882353e-1,
-    9.9215686e-1,
-    9.9607843e-1,
-    1e0,
-];
+// This is the table that converts u8 to f32 as a normalized value between 0 and 1 where 0u8 is 0 and 255u8 is 1.
+include!("byte_to_f32.rs");
 
 #[inline]
 const fn hex_byte(byte: u8) -> [u8; 2] {
@@ -311,38 +54,6 @@ const fn byte_from_hex(hex: &[u8]) -> Option<u8> {
     }
 }
 
-// macro_rules! unwrap_or_return {
-//     ($option:expr $(, $default:expr)?) => {
-//         if let Some(value) = $option {
-//             value
-//         } else {
-//             return $($default)?;
-//         }
-//     }
-// }
-
-// macro_rules! unwrap_or {
-//     ($option:expr, $default:expr) => {
-//         if let Some(value) = $option {
-//             value
-//         } else {
-//             $default
-//         }
-//     }
-// }
-
-// macro_rules! expect {
-//     ($option:expr $(, $msg:literal )?) => {
-//         if let Some(value) = $option {
-//             value
-//         } else {
-//             panic!($( $msg )?);
-//         }
-//     };
-// }
-
-// const HEX_BYTE: u8 = expect!(byte_from_hex("AF"));
-
 #[inline]
 fn byte_lerp(a: u8, b: u8, t: f32) -> u8 {
     if a == b {
@@ -362,7 +73,7 @@ const fn normalized_byte(byte: u8) -> f32 {
 macro_rules! color_enum {
     ($([
         $readable_name:literal
-        $camel_name:ident
+        $pascal_name:ident
         $const_name:ident
         $var_name:ident
         $lower_name:ident
@@ -374,14 +85,14 @@ macro_rules! color_enum {
         #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, NoUninit)]
         pub enum Color {
             $(
-                $camel_name,
+                $pascal_name,
             )*
         }
 
         impl Color {
-            const SORTED_COLORS: [Color; 140] = [
+            pub const SORTED_COLORS: [Color; 140] = [
                 $(
-                    Color::$camel_name,
+                    Color::$pascal_name,
                 )*
             ];
         }
@@ -402,22 +113,34 @@ impl Color {
         HTML_COLORS[self.index()].readable_name
     }
 
-    /// Gets the `CamelCase` name.
+    /// Gets the `PascalCase` name.
     #[inline]
-    pub const fn camel_name(self) -> &'static str {
-        HTML_COLORS[self.index()].camel_name
+    pub const fn pascal_name(self) -> &'static str {
+        HTML_COLORS[self.index()].pascal_name
+    }
+
+    /// Gets the `lower_snake_case` name.
+    #[inline]
+    pub const fn lower_snake_name(self) -> &'static str {
+        HTML_COLORS[self.index()].lower_snake
     }
 
     /// Gets the `UPPER_SNAKE_CASE` name.
     #[inline]
-    pub const fn const_name(self) -> &'static str {
+    pub const fn upper_snake_name(self) -> &'static str {
         HTML_COLORS[self.index()].upper_snake
     }
 
-    /// Gets the `snake_case` name.
+    /// Gets the `lowercasename`.
     #[inline]
-    pub const fn var_name(self) -> &'static str {
-        HTML_COLORS[self.index()].lower_snake
+    pub const fn lowercase_name(self) -> &'static str {
+        HTML_COLORS[self.index()].lower_name
+    }
+
+    /// Gets the `UPPERCASENAME`
+    #[inline]
+    pub const fn uppercase_name(self) -> &'static str {
+        HTML_COLORS[self.index()].upper_name
     }
 
     /// Gets the hex value.
@@ -479,16 +202,15 @@ impl Color {
                 recursive_color_binary_search(name, 0, HTML_COLORS.len(), std::mem::offset_of!(ColorEntry, $field))
             };
         }
-        let index = match get_name_case(name) {
+        let Some(index) = (match get_name_case(name) {
             NameCase::Unknown => None,
             NameCase::Readable => search!(readable_name),
-            NameCase::Camel => search!(camel_name),
+            NameCase::Pascal => search!(pascal_name),
             NameCase::LowerSnake => search!(lower_snake),
             NameCase::UpperSnake => search!(upper_snake),
             NameCase::Lowercase => search!(lower_name),
             NameCase::Uppercase => search!(upper_name),
-        };
-        let Some(index) = index else {
+        }) else {
             return None;
         };
         Some(Color::SORTED_COLORS[index])
@@ -520,7 +242,7 @@ pub struct Rgb {
 macro_rules! rgb_color_consts {
     ($([
         $readable_name:literal
-        $camel_name:ident
+        $pascal_name:ident
         $const_name:ident
         $var_name:ident
         $lower_name:ident
@@ -632,6 +354,16 @@ impl Rgb {
         )
     }
 
+    #[inline]
+    pub const fn to_vec4(self) -> glam::Vec4 {
+        glam::Vec4::new(
+            normalized_byte(self.r),
+            normalized_byte(self.g),
+            normalized_byte(self.b),
+            1.0,
+        )
+    }
+
     pub fn hex(self) -> String {
         let mut hex = String::with_capacity(6);
         let r = hex_byte(self.r);
@@ -709,6 +441,20 @@ impl Into<(u8, u8, u8)> for Rgb {
     }
 }
 
+impl Into<glam::Vec3> for Rgb {
+    #[inline]
+    fn into(self) -> glam::Vec3 {
+        self.to_vec3()
+    }
+}
+
+impl Into<glam::Vec4> for Rgb {
+    #[inline]
+    fn into(self) -> glam::Vec4 {
+        self.to_vec4()
+    }
+}
+
 #[repr(C)]
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, NoUninit)]
 pub struct Rgba {
@@ -721,7 +467,7 @@ pub struct Rgba {
 macro_rules! rgba_color_consts {
     ($([
         $readable_name:literal
-        $camel_name:ident
+        $pascal_name:ident
         $const_name:ident
         $var_name:ident
         $lower_name:ident
@@ -947,6 +693,13 @@ impl Into<(u8, u8, u8, u8)> for Rgba {
     }
 }
 
+impl Into<glam::Vec4> for Rgba {
+    #[inline]
+    fn into(self) -> glam::Vec4 {
+        self.to_vec4()
+    }
+}
+
 #[repr(C)]
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, NoUninit)]
 pub struct Gray {
@@ -973,6 +726,27 @@ impl Gray {
     #[inline]
     pub const fn rgba(self) -> Rgba {
         Rgba::gray(self.level)
+    }
+
+    #[inline]
+    pub const fn to_vec3(self) -> glam::Vec3 {
+        let g = normalized_byte(self.level);
+        glam::Vec3::new(
+            g,
+            g,
+            g,
+        )
+    }
+
+    #[inline]
+    pub const fn to_vec4(self) -> glam::Vec4 {
+        let g = normalized_byte(self.level);
+        glam::Vec4::new(
+            g,
+            g,
+            g,
+            1.0,
+        )
     }
 }
 
@@ -1001,6 +775,20 @@ impl Into<u8> for Gray {
     #[inline]
     fn into(self) -> u8 {
         self.level
+    }
+}
+
+impl Into<glam::Vec3> for Gray {
+    #[inline]
+    fn into(self) -> glam::Vec3 {
+        self.to_vec3()
+    }
+}
+
+impl Into<glam::Vec4> for Gray {
+    #[inline]
+    fn into(self) -> glam::Vec4 {
+        self.to_vec4()
     }
 }
 
@@ -1064,7 +852,7 @@ impl std::fmt::Display for Gray {
 
 impl std::fmt::Display for Color {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Color::{}", self.camel_name())
+        write!(f, "Color::{}", self.pascal_name())
     }
 }
 
@@ -1085,7 +873,7 @@ pub const fn gray(level: u8) -> Gray {
 
 pub struct ColorEntry {
     pub readable_name: &'static str,
-    pub camel_name: &'static str,
+    pub pascal_name: &'static str,
     pub lower_snake: &'static str,
     pub upper_snake: &'static str,
     pub lower_name: &'static str,
@@ -1098,7 +886,7 @@ pub struct ColorEntry {
 impl ColorEntry {
     pub const fn new(
         readable_name: &'static str,
-        camel_name: &'static str,
+        pascal_name: &'static str,
         upper_snake: &'static str,
         lower_snake: &'static str,
         lower_name: &'static str,
@@ -1109,7 +897,7 @@ impl ColorEntry {
     ) -> Self {
         Self {
             readable_name,
-            camel_name,
+            pascal_name,
             upper_snake,
             lower_snake,
             lower_name,
@@ -1122,9 +910,10 @@ impl ColorEntry {
 }
 
 impl ColorEntry {
+    #[cfg(debug_assertions)]
     pub const fn string_memory(&self) -> usize {
         self.readable_name.len() +
-        self.camel_name.len() +
+        self.pascal_name.len() +
         self.upper_snake.len() +
         self.lower_snake.len() +
         self.lower_name.len() +
@@ -1132,6 +921,7 @@ impl ColorEntry {
         self.hex.len()
     }
 
+    #[cfg(debug_assertions)]
     pub const fn memory_usage(&self) -> usize {
         self.string_memory() + std::mem::size_of::<Self>()
     }
@@ -1140,11 +930,11 @@ impl ColorEntry {
 macro_rules! color_table {
     ($([
         $readable_name:literal
-        $camel_name:ident
-        $const_name:ident
-        $var_name:ident
-        $lower_name:ident
-        $upper_name:ident
+        $pascal_name:ident
+        $upper_snake_name:ident
+        $lower_snake_name:ident
+        $lowercase_name:ident
+        $uppercase_name:ident
         $rgb_hex:literal
         RGB($r:literal, $g:literal, $b:literal)
     ])+) => {
@@ -1152,13 +942,13 @@ macro_rules! color_table {
             $(
                 ColorEntry::new(
                     $readable_name,
-                    stringify!($camel_name),
-                    stringify!($const_name),
-                    stringify!($var_name),
-                    stringify!($lower_name),
-                    stringify!($upper_name),
+                    stringify!($pascal_name),
+                    stringify!($upper_snake_name),
+                    stringify!($lower_snake_name),
+                    stringify!($lowercase_name),
+                    stringify!($uppercase_name),
                     $rgb_hex,
-                    Color::$camel_name,
+                    Color::$pascal_name,
                     Rgb::new($r, $g, $b)
                 ),
             )+
@@ -1218,14 +1008,14 @@ enum NameCase {
     #[default]
     Unknown,
     Readable,
-    Camel,
+    Pascal,
     LowerSnake,
     UpperSnake,
     Lowercase,
     Uppercase,
 }
 
-const fn get_case_recursive(name: &[u8], case_flags: CaseFlags, index: usize) -> Option<CaseFlags> {
+const fn recursive_get_case(name: &[u8], case_flags: CaseFlags, index: usize) -> Option<CaseFlags> {
     if index >= name.len() {
         return Some(case_flags);
     }
@@ -1236,11 +1026,11 @@ const fn get_case_recursive(name: &[u8], case_flags: CaseFlags, index: usize) ->
         b'A'..=b'Z' => case_flags.mark_upper(),
         _ => return None,
     };
-    get_case_recursive(name, case_flags, index + 1)
+    recursive_get_case(name, case_flags, index + 1)
 }
 
 const fn get_name_case(name: &str) -> NameCase {
-    let case_flags = get_case_recursive(name.as_bytes(), CaseFlags {
+    let case_flags = recursive_get_case(name.as_bytes(), CaseFlags {
         has_space: false,
         has_under: false,
         has_lower: false,
@@ -1260,31 +1050,32 @@ const fn get_name_case(name: &str) -> NameCase {
         (false, true, true, false) => NameCase::LowerSnake,
         (false, false, false, true) => NameCase::Uppercase,
         (false, true, false, true) => NameCase::UpperSnake,
-        (false, false, true, true) => NameCase::Camel,
+        (false, false, true, true) => NameCase::Pascal,
         _ => NameCase::Unknown,
     }
 }
 
 const fn cmp_byte(a: u8, b: u8) -> std::cmp::Ordering {
+    use std::cmp::Ordering;
     if a < b {
-        std::cmp::Ordering::Less
+        Ordering::Less
     } else if a > b {
-        std::cmp::Ordering::Greater
+        Ordering::Greater
     } else {
-        std::cmp::Ordering::Equal
+        Ordering::Equal
     }
 }
 
 const fn recursive_cmp_next(a: &[u8], b: &[u8], index: usize) -> std::cmp::Ordering {
     use std::cmp::Ordering;
     match (a.len() == index, b.len() == index) {
-        (true, true) => Ordering::Equal,
-        (false, true) => Ordering::Greater,
-        (true, false) => Ordering::Less,
         (false, false) => match cmp_byte(a[index], b[index]) {
             Ordering::Equal => recursive_cmp_next(a, b, index + 1),
             cmp => cmp,
         }
+        (false, true) => Ordering::Greater,
+        (true, false) => Ordering::Less,
+        (true, true) => Ordering::Equal,
     }
 }
 
@@ -1314,12 +1105,14 @@ const fn recursive_color_binary_search(name: &str, low: usize, high: usize, fiel
 mod testing_sandbox {
     // TODO: Remove this sandbox when it is no longer in use.
     use super::*;
+    
     #[test]
     fn sandbox() {
+        
         // const CB: Rgba = Color::CornflowerBlue.rgb().transparent();
         let memory = HTML_COLORS.iter().map(|entry| {
             entry.readable_name.len() +
-            entry.camel_name.len() +
+            entry.pascal_name.len() +
             entry.upper_snake.len() +
             entry.lower_snake.len() +
             entry.lower_name.len() +
@@ -1329,16 +1122,6 @@ mod testing_sandbox {
         println!("Memory: {memory}");
         // let color = find_color("cornflower_blue").expect("Failed to find color.");
         // println!("{color}");
-        macro_rules! unwrap {
-            ($option:expr) => {
-                if let Some(value) = $option {
-                    value
-                } else {
-                    panic!("Failed to unwrap.");
-                }
-            };
-        }
-        // const COLOR: Rgb = unwrap!(Rgb::from_name("Light Blue"));
         // println!("Color: {COLOR}");
         // let bytes = COLOR.as_bytes();
         // println!("{bytes:#?}");
