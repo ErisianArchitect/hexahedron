@@ -6,14 +6,14 @@ use bit::GetBit;
 use glam::{IVec2, IVec3, IVec4, Vec3};
 
 #[inline]
-pub fn index2<const W: i32>(x: i32, y: i32) -> usize {
+pub const fn index2<const W: i32>(x: i32, y: i32) -> usize {
     let x = x.rem_euclid(W);
     let y = y.rem_euclid(W);
     (y * W + x) as usize
 }
 
 #[inline]
-pub fn index3<const W: i32>(x: i32, y: i32, z: i32) -> usize {
+pub const fn index3<const W: i32>(x: i32, y: i32, z: i32) -> usize {
     let x = x.rem_euclid(W);
     let y = y.rem_euclid(W);
     let z = z.rem_euclid(W);
@@ -94,12 +94,15 @@ pub fn checkerboard1<T: GetBit>(x: T) -> bool {
 
 #[inline]
 pub fn checkerboard2<T: GetBit>(x: T, y: T) -> bool {
-    x.get_bit(0) ^ y.get_bit(0)
+    x.get_bit(0) ^
+    y.get_bit(0)
 }
 
 #[inline]
 pub fn checkerboard3<T: GetBit>(x: T, y: T, z: T) -> bool {
-    x.get_bit(0) ^ y.get_bit(0) ^ z.get_bit(0)
+    x.get_bit(0) ^
+    y.get_bit(0) ^
+    z.get_bit(0)
 }
 
 #[inline]
