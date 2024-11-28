@@ -1,5 +1,5 @@
 // DO NOT DELETE THIS FILE!
-// This is used included in color.rs
+// This is included in color.rs
 const BYTE_TO_F32: [f32; 256] = [
     0e0,
     3.921569e-3,
