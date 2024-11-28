@@ -58,7 +58,6 @@ mod tests {
         fn step1(input: i32) -> i32 {
             input + 55
         }
-
         fn step2(input: i32) -> u8 {
             input as u8
         }
