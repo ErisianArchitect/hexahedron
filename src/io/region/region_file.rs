@@ -1,4 +1,4 @@
-use std::{fs::File, io::{BufReader, BufWriter, Cursor, Read, Seek, SeekFrom, Take, Write}, path::Path, sync::{Arc, Mutex}};
+use std::{fs::File, io::{BufReader, BufWriter, Cursor, Read, Seek, SeekFrom, Take, Write}, path::Path};
 
 use flate2::{read::GzDecoder, write::GzEncoder, Compression};
 use crate::{error::*, io::region::sector_offset::SectorOffset, prelude::{write_zeros, Readable, Writeable}};
