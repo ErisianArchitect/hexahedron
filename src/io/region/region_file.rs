@@ -146,8 +146,8 @@ impl RegionFile {
         }
         encoder.finish()?;
         let length = self.write_buffer.get_ref().len() as u64;
-        let padded_size = padded_size(length + 4);
-        let block_size = padded_size / 4096;
+        let length_with_size = length + 4;
+        let block_size = padded_size(length_with_size) / 4096;
         if block_size > BlockSize::MAX_BLOCK_COUNT as u64 {
             return Err(Error::ChunkTooLarge);
         }
@@ -157,11 +157,10 @@ impl RegionFile {
         self.header.offsets[coord] = new_sector;
         let mut writer = BufWriter::new(&mut self.io);
         writer.seek(SeekFrom::Start(new_sector.file_offset()))?;
-        let len = length as u32;
-        len.write_to(&mut writer)?;
+        (length as u32).write_to(&mut writer)?;
         // write write_buffer to file.
         writer.write_all(self.write_buffer.get_ref().as_slice())?;
-        write_zeros(&mut writer, pad_size(length as u64 + 4))?;
+        write_zeros(&mut writer, pad_size(length_with_size))?;
         // Write sector to header
         writer.seek(SeekFrom::Start(coord.sector_offset()))?;
         new_sector.write_to(&mut writer)?;
@@ -210,7 +209,7 @@ impl RegionFile {
         let coord: RegionCoord = coord.into();
         let timestamp: Timestamp = timestamp.into();
         self.header.timestamps[coord] = timestamp;
-        let mut writer = BufWriter::new(&mut self.io);
+        let mut writer = BufWriter::with_capacity(16, &mut self.io);
         writer.seek(SeekFrom::Start(coord.timestamp_offset()))?;
         timestamp.write_to(&mut writer)?;
         writer.flush()?;
@@ -227,7 +226,7 @@ impl RegionFile {
         self.sector_manager.dealloc(sector);
         self.header.offsets[coord] = SectorOffset::default();
         self.header.timestamps[coord] = Timestamp::default();
-        let mut writer = BufWriter::new(&mut self.io);
+        let mut writer = BufWriter::with_capacity(64, &mut self.io);
         writer.seek(SeekFrom::Start(coord.sector_offset()))?;
         write_zeros(&mut writer, 4)?;
         writer.seek(SeekFrom::Start(coord.timestamp_offset()))?;
