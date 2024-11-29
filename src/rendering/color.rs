@@ -54,6 +54,59 @@ const fn byte_from_hex(hex: &[u8]) -> Option<u8> {
     }
 }
 
+pub fn find_color(name: &str) -> Option<Color> {
+    struct NameCmp<'a>(&'a str);
+    impl<'a> NameCmp<'a> {
+        fn cmp_str(&self, cmp_to: &str) -> std::cmp::Ordering {
+            use std::cmp::Ordering;
+            let mut achars = self.chars();
+            let mut bchars = cmp_to.chars();
+            loop {
+                match (achars.next(), bchars.next()) {
+                    (Some(a), Some(b)) => match a.cmp(&b) {
+                        Ordering::Equal => continue,
+                        ordering => return ordering,
+                    }
+                    (Some(_), None) => {
+                        return Ordering::Greater;
+                    }
+                    (None, Some(_)) => {
+                        return Ordering::Less;
+                    }
+                    (None, None) => {
+                        return Ordering::Equal;
+                    }
+                }
+            }
+        }
+
+        fn chars(&'a self) -> impl Iterator<Item = char> + 'a {
+            #[inline]
+            fn filter_fn(c: &char) -> bool {
+                !matches!(*c, ' ' | '_')
+            }
+            #[inline]
+            fn to_lower(c: char) -> char {
+                c.to_ascii_lowercase()
+            }
+            self.0.chars().filter(filter_fn).map(to_lower)
+        }
+    }
+    let name = NameCmp(name);
+    let mut low = 0usize;
+    let mut high = HTML_COLORS.len();
+    while low < high {
+        let mid = low + (high - low) / 2;
+        let mid_name = HTML_COLORS[mid].lower_name;
+        match name.cmp_str(mid_name) {
+            std::cmp::Ordering::Less => high = mid,
+            std::cmp::Ordering::Equal => return Some(HTML_COLORS[mid].color),
+            std::cmp::Ordering::Greater => low = mid + 1,
+        }
+    }
+    None
+}
+
 #[inline]
 pub fn byte_lerp(a: u8, b: u8, t: f32) -> u8 {
     if a == b {
@@ -196,24 +249,9 @@ impl Color {
         self.rgb().lerp(other.rgb(), t)
     }
 
-    pub const fn from_name(name: &str) -> Option<Color> {
-        macro_rules! search {
-            ($field:ident) => {
-                recursive_color_binary_search(name, 0, HTML_COLORS.len(), std::mem::offset_of!(ColorEntry, $field))
-            };
-        }
-        let Some(index) = (match get_name_case(name) {
-            NameCase::Unknown => None,
-            NameCase::Readable => search!(readable_name),
-            NameCase::Pascal => search!(pascal_name),
-            NameCase::LowerSnake => search!(lower_snake),
-            NameCase::UpperSnake => search!(upper_snake),
-            NameCase::Lowercase => search!(lower_name),
-            NameCase::Uppercase => search!(upper_name),
-        }) else {
-            return None;
-        };
-        Some(Color::SORTED_COLORS[index])
+    #[inline]
+    pub fn from_name(name: &str) -> Option<Color> {
+        find_color(name)
     }
 }
 
@@ -405,8 +443,8 @@ impl Rgb {
         Some(Self::new(r,g,b))
     }
 
-    pub const fn from_name(name: &str) -> Option<Self> {
-        let Some(color) = Color::from_name(name) else {
+    pub fn from_name(name: &str) -> Option<Self> {
+        let Some(color) = find_color(name) else {
             return None;
         };
         Some(color.rgb())
@@ -486,8 +524,8 @@ macro_rules! rgba_color_consts {
 html_colors!(rgba_color_consts);
 
 impl Rgba {
-    pub const     TRANSPARENTWHITE: Self = Rgba::WHITE.transparent();
-    pub const     TRANSPARENTBLACK: Self = Rgba::BLACK.transparent();
+    pub const TRANSPARENTWHITE: Self = Rgba::WHITE.transparent();
+    pub const TRANSPARENTBLACK: Self = Rgba::BLACK.transparent();
     
     #[inline]
     pub const fn new(r: u8, g: u8, b: u8, a: u8) -> Self {
@@ -650,8 +688,8 @@ impl Rgba {
         Some(Self::new(r,g,b,a))
     }
 
-    pub const fn from_name(name: &str) -> Option<Self> {
-        let Some(color) = Color::from_name(name) else {
+    pub fn from_name(name: &str) -> Option<Self> {
+        let Some(color) = find_color(name) else {
             return None;
         };
         Some(color.rgba())
@@ -909,8 +947,8 @@ impl ColorEntry {
     }
 }
 
+#[cfg(debug_assertions)]
 impl ColorEntry {
-    #[cfg(debug_assertions)]
     pub const fn string_memory(&self) -> usize {
         self.readable_name.len() +
         self.pascal_name.len() +
@@ -921,7 +959,6 @@ impl ColorEntry {
         self.hex.len()
     }
 
-    #[cfg(debug_assertions)]
     pub const fn memory_usage(&self) -> usize {
         self.string_memory() + std::mem::size_of::<Self>()
     }
@@ -958,157 +995,17 @@ macro_rules! color_table {
 
 html_colors!(color_table);
 
-struct CaseFlags {
-    has_space: bool,
-    has_under: bool,
-    has_lower: bool,
-    has_upper: bool,
-}
-
-impl CaseFlags {
-    const fn mark_space(self) -> Self {
-        Self {
-            has_space: true,
-            has_under: self.has_under,
-            has_lower: self.has_lower,
-            has_upper: self.has_upper,
-        }
-    }
-
-    const fn mark_under(self) -> Self {
-        Self {
-            has_space: self.has_space,
-            has_under: true,
-            has_lower: self.has_lower,
-            has_upper: self.has_upper,
-        }
-    }
-
-    const fn mark_lower(self) -> Self {
-        Self {
-            has_space: self.has_space,
-            has_under: self.has_under,
-            has_lower: true,
-            has_upper: self.has_upper,
-        }
-    }
-
-    const fn mark_upper(self) -> Self {
-        Self {
-            has_space: self.has_space,
-            has_under: self.has_under,
-            has_lower: self.has_lower,
-            has_upper: true,
-        }
-    }
-}
-
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-enum NameCase {
-    #[default]
-    Unknown,
-    Readable,
-    Pascal,
-    LowerSnake,
-    UpperSnake,
-    Lowercase,
-    Uppercase,
-}
-
-const fn recursive_get_case(name: &[u8], case_flags: CaseFlags, index: usize) -> Option<CaseFlags> {
-    if index >= name.len() {
-        return Some(case_flags);
-    }
-    let case_flags = match name[index] {
-        b' ' => case_flags.mark_space(),
-        b'_' => case_flags.mark_under(),
-        b'a'..=b'z' => case_flags.mark_lower(),
-        b'A'..=b'Z' => case_flags.mark_upper(),
-        _ => return None,
-    };
-    recursive_get_case(name, case_flags, index + 1)
-}
-
-const fn get_name_case(name: &str) -> NameCase {
-    let case_flags = recursive_get_case(name.as_bytes(), CaseFlags {
-        has_space: false,
-        has_under: false,
-        has_lower: false,
-        has_upper: false,
-    }, 0);
-    let Some(case_flags) = case_flags else {
-        return NameCase::Unknown
-    };
-    match (
-        case_flags.has_space,
-        case_flags.has_under,
-        case_flags.has_lower,
-        case_flags.has_upper
-    ) {
-        (true, false, true, true) => NameCase::Readable,
-        (false, false, true, false) => NameCase::Lowercase,
-        (false, true, true, false) => NameCase::LowerSnake,
-        (false, false, false, true) => NameCase::Uppercase,
-        (false, true, false, true) => NameCase::UpperSnake,
-        (false, false, true, true) => NameCase::Pascal,
-        _ => NameCase::Unknown,
-    }
-}
-
-const fn cmp_byte(a: u8, b: u8) -> std::cmp::Ordering {
-    use std::cmp::Ordering;
-    if a < b {
-        Ordering::Less
-    } else if a > b {
-        Ordering::Greater
-    } else {
-        Ordering::Equal
-    }
-}
-
-const fn recursive_cmp_next(a: &[u8], b: &[u8], index: usize) -> std::cmp::Ordering {
-    use std::cmp::Ordering;
-    match (a.len() == index, b.len() == index) {
-        (false, false) => match cmp_byte(a[index], b[index]) {
-            Ordering::Equal => recursive_cmp_next(a, b, index + 1),
-            cmp => cmp,
-        }
-        (false, true) => Ordering::Greater,
-        (true, false) => Ordering::Less,
-        (true, true) => Ordering::Equal,
-    }
-}
-
-const fn const_str_cmp_ascii(a: &str, b: &str) -> std::cmp::Ordering {
-    recursive_cmp_next(a.as_bytes(), b.as_bytes(), 0)
-}
-
-const fn recursive_color_binary_search(name: &str, low: usize, high: usize, field_offset: usize) -> Option<usize> {
-    use std::cmp::Ordering;
-    if low == high {
-        return None;
-    }
-    let mid = low + (high - low) / 2;
-    let field = unsafe {
-        let ptr = &HTML_COLORS[mid] as *const ColorEntry;
-        let ptr = ptr.byte_add(field_offset).cast::<&'static str>();
-        *ptr as &'static str
-    };
-    match const_str_cmp_ascii(name, field) {
-        Ordering::Equal => Some(mid),
-        Ordering::Less => recursive_color_binary_search(name, low, mid, field_offset),
-        Ordering::Greater => recursive_color_binary_search(name, mid + 1, high, field_offset),
-    }
-}
-
 #[cfg(test)]
 mod testing_sandbox {
+    use hashbrown::HashSet;
+
     // TODO: Remove this sandbox when it is no longer in use.
     use super::*;
     
     #[test]
     fn sandbox() {
-        
+        const COLOR: Rgb = Color::Brown.rgb();
+        println!("Color: {COLOR}");
         // const CB: Rgba = Color::CornflowerBlue.rgb().transparent();
         let memory = HTML_COLORS.iter().map(|entry| {
             entry.readable_name.len() +
@@ -1141,5 +1038,87 @@ mod testing_sandbox {
             std::slice::from_raw_parts(ptr, colors.len() * std::mem::size_of::<Rgb>())
         };
         println!("{}", buf.len());
+    }
+
+    
+
+    #[test]
+    fn sandbox_2() {
+        #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+        struct SwizBuilder {
+            swiz: [u8; 4],
+            len: u8,
+        }
+        impl SwizBuilder {
+            fn new(_0: u8, _1: u8, _2: u8, _3: u8) -> Self {
+                let mut new = Self::default();
+                new.push(_0 + 1);
+                new.push((_1 + 2) % 5);
+                new.push((_2 + 3) % 5);
+                new.push((_3 + 4) % 5);
+                new
+            }
+
+            #[inline]
+            fn post_increment(value: &mut u8) -> u8 {
+                let pre = *value;
+                *value += 1;
+                pre
+            }
+
+            #[inline]
+            fn push(&mut self, swiz: u8) {
+                if self.len == 4 {
+                    return;
+                }
+                match swiz {
+                    1 => self.swiz[Self::post_increment(&mut self.len) as usize] = b'r',
+                    2 => self.swiz[Self::post_increment(&mut self.len) as usize] = b'g',
+                    3 => self.swiz[Self::post_increment(&mut self.len) as usize] = b'b',
+                    4 => self.swiz[Self::post_increment(&mut self.len) as usize] = b'a',
+                    _ => return,
+                }
+            }
+
+            #[inline]
+            fn len(&self) -> usize {
+                self.len as usize
+            }
+
+            #[inline]
+            fn is_empty(&self) -> bool {
+                self.len == 0
+            }
+        }
+
+        impl std::fmt::Display for SwizBuilder {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                for i in 0..self.len() {
+                    write!(f, "{}", self.swiz[i] as char)?;
+                }
+                Ok(())
+            }
+        }
+        let mut swizzles = Vec::new();
+        let mut swiz_set = HashSet::new();
+        for _0 in 0..5 {
+            for _1 in 0..5 {
+                for _2 in 0..5 {
+                    for _3 in 0..5 {
+                        let swiz = SwizBuilder::new(_0, _1, _2, _3);
+                        if !swiz.is_empty() && swiz_set.insert(swiz) {
+                            swizzles.push(swiz);
+                        }
+                    }
+                }
+            }
+        }
+        swizzles.sort();
+        for swiz in swizzles.iter() {
+            if !swiz.is_empty() {
+                println!("{swiz}");
+            }
+        }
+        println!("Count: {}", swizzles.len());
     }
 }
