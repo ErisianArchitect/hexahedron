@@ -1,4 +1,4 @@
-use std::{iter::Map, slice::Iter};
+use std::{iter::Map, slice::Iter, vec::IntoIter};
 
 use glam::IVec3;
 
@@ -110,10 +110,27 @@ impl UpdateQueue {
         self.queue.iter().map(iter_helper)
     }
 
+    pub fn clone_queue(&self) -> Vec<IVec3> {
+        #[inline]
+        fn iter_helper<'a>(entry: &'a UpdateEntry) -> IVec3 {
+            entry.coord
+        }
+        self.queue.iter().map(iter_helper).collect::<Vec<_>>()
+    }
+
+    /// If you want to be able to mutate the [UpdateQueue] while iterating over elements in it,
+    /// you'll want to use this method.
+    #[inline]
+    pub fn clone_iter(&self) -> IntoIter<IVec3> {
+        self.clone_queue().into_iter()
+    }
+
+    #[inline]
     pub fn len(&self) -> usize {
         self.queue.len()
     }
 
+    #[inline]
     pub fn is_empty(&self) -> bool {
         self.queue.is_empty()
     }
