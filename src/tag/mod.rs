@@ -38,7 +38,7 @@ macro_rules! tag_table {
 [21 Orientation     Byte        unbox   <crate::voxel::orientation::Orientation>                ]
 [22 Axis            Byte        unbox   <crate::math::axis::Axis>                               ]
 [23 AxisFlags       Byte        unbox   <crate::math::axis_flags::AxisFlags>                    ]
-[24 FaceFlags       Byte        unbox   <crate::voxel::face_flags::FaceFlags>                    ]
+[24 FaceFlags       Byte        unbox   <crate::voxel::face_flags::FaceFlags>                   ]
 [25 Color           Byte        unbox   <crate::rendering::color::Color>                        ]
 [26 Rgb             NonByte     unbox   <crate::rendering::color::Rgb>                          ]
 [27 Rgba            NonByte     unbox   <crate::rendering::color::Rgba>                         ]
