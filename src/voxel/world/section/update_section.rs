@@ -15,6 +15,10 @@ impl<const W: i32> UpdateSection<W> {
         }
     }
 
+    pub fn is_allocated(&self) -> bool {
+        self.update_refs.is_some()
+    }
+
     pub fn get<C: Into<(i32, i32, i32)>>(&self, coord: C) -> UpdateId {
         let Some(refs) = self.update_refs.as_ref() else {
             return UpdateId::NULL;
