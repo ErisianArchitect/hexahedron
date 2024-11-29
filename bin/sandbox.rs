@@ -1,6 +1,10 @@
 #![allow(unused)]
 use std::num::{NonZeroU32, NonZeroUsize};
 
+use glam::{
+    IVec3,
+    ivec3,
+};
 use hexahedron::util::extensions::*;
 use hexahedron::io::region::block_size::*;
 
@@ -15,8 +19,29 @@ enum Seven {
     Seven2(Seven2),
 }
 
+struct NoCopy(u32);
+
 fn main() {
-    println!("{}", 256i32.rem_euclid(256));
+    let mut updates: Vec<(NoCopy, IVec3)> = (0..256*256).map(|_| {
+        (
+            NoCopy(rand::random()),
+            ivec3(rand::random(), rand::random(), rand::random()),
+        )
+    }).collect();
+    let start_time = std::time::Instant::now();
+
+    let update_clone = updates.iter().map(|(_, c)| *c).collect::<Vec<_>>();
+
+    let elapsed = start_time.elapsed();
+
+    let mut fin = 0i32;
+    for c in update_clone.into_iter() {
+        fin = fin.wrapping_add(c.x);
+        fin = fin.wrapping_add(c.y);
+        fin = fin.wrapping_add(c.z);
+    }
+    println!("Fin: {fin}");
+    println!("Elapsed: {}", elapsed.as_secs_f64())
 }
 
 #[allow(unused)]
