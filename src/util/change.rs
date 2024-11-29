@@ -108,9 +108,11 @@ mod tests {
     fn change_tracker_test() {
         let mut value = 1234;
         let change = value.replace_compare(1235);
+        assert!(change.changed());
         change.if_changed(|old_value| {
             assert_eq!(old_value, 1234);
         });
+        assert!(change.changed());
         change.if_changed(|old_value| {
             assert_eq!(old_value, 1234);
         });
