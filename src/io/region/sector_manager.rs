@@ -62,13 +62,13 @@ impl SectorManager {
             init,
             last_sector
         ) = filtered_sectors.into_iter()
-            .fold(initial_state, |(mut builder, previous), sector| {
-                if previous.has_gap(sector) {
-                    builder.new_insert_free_sector(ManagedSector::new(previous.end, sector.start));
+            .fold(initial_state, |(mut builder, previous), next| {
+                if previous.has_gap(next) {
+                    builder.new_insert_free_sector(ManagedSector::new(previous.end, next.start));
                 }
                 (
                     builder,
-                    sector
+                    next
                 )
             });
         init.tap_mut(move |init| {
@@ -254,19 +254,10 @@ impl ManagedSector {
         Self::new(self.start, other.end)
     }
 
+    /// This method is ordered where `self` must be to the left of `other`.
     const fn has_gap(self, other: Self) -> bool {
-        self.end < other.start || other.end < self.start
+        self.end < other.start
     }
-
-    // pub const fn gap(self, other: Self) -> Option<u32> {
-    //     if self.end < other.start {
-    //         Some(other.start - self.end)
-    //     } else if other.end < self.start {
-    //         Some(self.start - other.end)
-    //     } else {
-    //         None
-    //     }
-    // }
 }
 
 impl PartialOrd for ManagedSector {
