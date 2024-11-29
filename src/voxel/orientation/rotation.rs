@@ -100,12 +100,12 @@ impl Rotation {
     pub const fn up(self) -> Direction {
         let up = self.0 >> 2;
         match up {
-            4 => Direction::NegX,
-            3 => Direction::NegY,
-            5 => Direction::NegZ,
-            1 => Direction::PosX,
             0 => Direction::PosY,
+            1 => Direction::PosX,
             2 => Direction::PosZ,
+            3 => Direction::NegY,
+            4 => Direction::NegX,
+            5 => Direction::NegZ,
             _ => unreachable!(),
         }
     }
