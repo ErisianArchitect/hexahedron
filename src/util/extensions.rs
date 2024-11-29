@@ -43,15 +43,19 @@ impl private::Sealed<bool> for bool {}
 pub trait BoolExtension: private::Sealed<bool> {
     fn select<T>(self, _false: T, _true: T) -> T;
     fn select_fn<T, FF: FnOnce() -> T, TF: FnOnce() -> T>(self, _false: FF, _true: TF) -> T;
+    fn mark(&mut self) -> bool;
+    fn mark_if(&mut self, condition: bool) -> bool;
+    fn unmark(&mut self) -> bool;
+    fn unmark_if(&mut self, condition: bool) -> bool;
     fn toggle(&mut self) -> Self;
     fn toggle_if(&mut self, condition: bool) -> Self;
     fn some<T>(self, value: T) -> Option<T>;
     fn some_fn<T, F: FnOnce() -> T>(self, f: F) -> Option<T>;
     fn some_else<T>(self, value: T) -> Option<T>;
     fn some_else_fn<T, F: FnOnce() -> T>(self, f: F) -> Option<T>;
-    fn if_<F: Fn()>(self, _if: F);
-    fn if_not<F: Fn()>(self, _not: F);
-    fn if_else<R, If: Fn() -> R, Else: Fn() -> R>(self, _if: If, _else: Else) -> R;
+    fn if_<F: FnOnce()>(self, _if: F);
+    fn if_not<F: FnOnce()>(self, _not: F);
+    fn if_else<R, If: FnOnce() -> R, Else: FnOnce() -> R>(self, _if: If, _else: Else) -> R;
 }
 
 impl BoolExtension for bool {
@@ -65,6 +69,7 @@ impl BoolExtension for bool {
         }
     }
 
+    /// Execute and return the value of _false or _true depending if self is false or true.
     #[inline]
     fn select_fn<T, FF: FnOnce() -> T, TF: FnOnce() -> T>(self, _false: FF, _true: TF) -> T {
         if self {
@@ -74,13 +79,46 @@ impl BoolExtension for bool {
         }
     }
 
-    /// Inverts the value of the boolean.
+    /// Sets value to true and returns true if it was previously false.
+    #[inline]
+    fn mark(&mut self) -> bool {
+        !std::mem::replace(self, true)
+    }
+
+    /// If the condition is met, sets the value to true and returns true if the value was changed.
+    #[inline]
+    fn mark_if(&mut self, condition: bool) -> bool {
+        if condition {
+            !std::mem::replace(self, true)
+        } else {
+            false
+        }
+    }
+
+    /// Sets value to false and returns true if it was previously true.
+    #[inline]
+    fn unmark(&mut self) -> bool {
+        std::mem::replace(self, false)
+    }
+
+    /// If the condition is met, sets the value to false and returns true if the value was changed.
+    #[inline]
+    fn unmark_if(&mut self, condition: bool) -> bool {
+        if condition {
+            std::mem::replace(self, false)
+        } else {
+            false
+        }
+    }
+
+    /// Inverts the value of the boolean and returns the new value.
     #[inline]
     fn toggle(&mut self) -> Self {
         *self = !*self;
         *self
     }
 
+    /// Toggle value if condition is met and returns the new value.
     #[inline]
     fn toggle_if(&mut self, condition: bool) -> Self {
         if condition {
@@ -99,6 +137,7 @@ impl BoolExtension for bool {
         }
     }
 
+    /// Returns `Some(f())` if true.
     fn some_fn<T, F: FnOnce() -> T>(self, f: F) -> Option<T> {
         if self {
             Some(f())
@@ -117,6 +156,7 @@ impl BoolExtension for bool {
         }
     }
 
+    /// Returns `Some(f())` if false.
     fn some_else_fn<T, F: FnOnce() -> T>(self, f: F) -> Option<T> {
         if !self {
             Some(f())
@@ -125,28 +165,22 @@ impl BoolExtension for bool {
         }
     }
 
+    /// `if self { _if() }`
     #[inline]
-    fn if_<F: Fn()>(self, _if: F) {
-        if self {
-            _if();
-        }
+    fn if_<F: FnOnce()>(self, _if: F) {
+        if self { _if() }
     }
     
+    /// `if !self { _not() }`
     #[inline]
-    fn if_not<F: Fn()>(self, _not: F) {
-        if !self {
-            _not();
-        }
+    fn if_not<F: FnOnce()>(self, _not: F) {
+        if !self { _not() }
     }
 
     /// Like `if-else`, but with closures!
     #[inline]
-    fn if_else<R, If: Fn() -> R, Else: Fn() -> R>(self, _if: If, _else: Else) -> R {
-        if self {
-            _if()
-        } else {
-            _else()
-        }
+    fn if_else<R, If: FnOnce() -> R, Else: FnOnce() -> R>(self, _if: If, _else: Else) -> R {
+        self.select_fn(_else, _if)
     }
 }
 
@@ -198,6 +232,7 @@ impl<T, E> private::Sealed<std::result::Result<(), ()>> for std::result::Result<
 impl<T, E> ResultExtension for std::result::Result<T, E> {
     type Ok = T;
     type Error = E;
+    /// For when you want to ignore the return value of a result but you also want to handle the error if there is one.
     #[inline]
     fn handle_err<F: FnMut(E)>(self, mut f: F) {
         if let std::result::Result::Err(err) = self {
@@ -208,5 +243,58 @@ impl<T, E> ResultExtension for std::result::Result<T, E> {
     #[inline]
     fn try_fn<F: FnMut() -> Self>(mut f: F) -> Self {
         f()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn bool_ext_test() {
+        let mut edit = false;
+        assert!(edit.mark_if(true));
+        let mut executed = false;
+        edit.if_(|| {
+            executed.mark();
+        });
+        assert!(executed);
+        assert!(edit);
+        assert_eq!(edit.select("false", "true"), "true");
+        assert!(!edit.unmark_if(false));
+        assert!(edit);
+        assert!(edit.unmark_if(true));
+        let mut executed = false;
+        edit.if_not(|| {
+            executed.mark();
+        });
+        assert!(executed);
+        assert!(!edit);
+        assert_eq!(edit.select("false", "true"), "false");
+    }
+
+    #[test]
+    fn num_iter_tests() {
+        let mut to_2 = 2.iter();
+        assert_eq!(to_2.next(), Some(0));
+        assert_eq!(to_2.next(), Some(1));
+        assert_eq!(to_2.next(), None);
+        let mut to_1_inc = 1.iter_inclusive();
+        assert_eq!(to_1_inc.next(), Some(0));
+        assert_eq!(to_1_inc.next(), Some(1));
+        assert_eq!(to_1_inc.next(), None);
+        let mut _2_to_4 = 2.iter_to(4);
+        assert_eq!(_2_to_4.next(), Some(2));
+        assert_eq!(_2_to_4.next(), Some(3));
+        assert_eq!(_2_to_4.next(), None);
+        let mut _2_to_3_inc = 2.iter_to_inclusive(3);
+        assert_eq!(_2_to_3_inc.next(), Some(2));
+        assert_eq!(_2_to_3_inc.next(), Some(3));
+        assert_eq!(_2_to_3_inc.next(), None);
+        let mut rev_0_to_4 = 4.iter().rev();
+        assert_eq!(rev_0_to_4.next(), Some(3));
+        assert_eq!(rev_0_to_4.next(), Some(2));
+        assert_eq!(rev_0_to_4.next(), Some(1));
+        assert_eq!(rev_0_to_4.next(), Some(0));
+        assert_eq!(rev_0_to_4.next(), None);
     }
 }
