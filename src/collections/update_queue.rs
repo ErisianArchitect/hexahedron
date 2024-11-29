@@ -109,6 +109,14 @@ impl UpdateQueue {
         }
         self.queue.iter().map(iter_helper)
     }
+
+    pub fn len(&self) -> usize {
+        self.queue.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.queue.is_empty()
+    }
 }
 
 #[cfg(test)]

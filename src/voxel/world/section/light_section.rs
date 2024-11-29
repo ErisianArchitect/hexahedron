@@ -2,6 +2,21 @@
 
 use crate::{math::index3, prelude::OptionExtension, util::change::Change};
 
+
+/// Returns (low, high) where low is bits 0..=3 and high is bits 4..=7.
+#[inline]
+const fn get_nibble(nibble: u8) -> (u8, u8) {
+    let low = nibble & 0xf;
+    let high = nibble >> 4;
+    (low, high)
+}
+
+/// Sets (low, high) where low is bits 0..=3 and high is bits 4..=7.
+#[inline]
+const fn set_nibble(low: u8, high: u8) -> u8 {
+    low & 0xf | (high << 4)
+}
+
 #[derive(Debug, Default, Clone)]
 pub struct LightSection<const W: i32, const DEFAULT: u8> {
     light_data: Option<Box<[u8]>>,
@@ -11,6 +26,7 @@ pub struct LightSection<const W: i32, const DEFAULT: u8> {
 impl<const W: i32, const DEFAULT: u8> LightSection<W, DEFAULT> {
     /// This is the number of bytes that are used to get two 4-bit nibbles per byte..
     const NIBBLE_COUNT: usize = (W as usize).pow(3) / 2;
+    const DEFAULT_NIBBLE: u8 = set_nibble(DEFAULT, DEFAULT);
     pub const fn new() -> Self {
         Self {
             light_data: None,
@@ -37,19 +53,20 @@ impl<const W: i32, const DEFAULT: u8> LightSection<W, DEFAULT> {
         if self.light_data.is_none() && level == DEFAULT {
             return Change::Unchanged;
         }
-        let data = self.light_data.get_or_insert_with(|| (0..Self::NIBBLE_COUNT).map(|_| DEFAULT).collect());
+        let data = self.light_data.get_or_insert_with(|| (0..Self::NIBBLE_COUNT).map(|_| Self::DEFAULT_NIBBLE).collect());
         let index = index3::<W>(x, y, z);
         let subindex = index / 2;
         let lights = data[subindex];
-        let (injected, old) = if (index & 1) == 1 {
+        let (low, high) = get_nibble(lights);
+        let (old, injected) = if (index & 1) == 1 {
             (
-                (lights & 0xf) | (level << 4),
-                lights >> 4
+                high,
+                set_nibble(low, level),
             )
         } else {
             (
-                (lights & 0xf0) | (level & 0xf),
-                lights & 0xf
+                low,
+                set_nibble(level, high),
             )
         };
         data[subindex] = injected;

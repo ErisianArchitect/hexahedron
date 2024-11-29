@@ -36,10 +36,11 @@ impl<const WIDTH: i32> Section<WIDTH> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{blockstate, voxel::block::{block::BlockBehavior, block_registry::BlockRegistry, id::StateId}};
+    use glam::IVec3;
+
+    use crate::{blockstate, collections::update_queue::{UpdateId, UpdateQueue}, tag::Tag, util::change::Change, voxel::{block::{block::BlockBehavior, block_registry::BlockRegistry, id::StateId}, world::section::occlusion::Occlusion}};
 
     use super::*;
-    #[allow(unused)]
     #[test]
     fn section_test() {
         let reg = BlockRegistry::new();
@@ -50,23 +51,87 @@ mod tests {
             }
         }
         reg.register_block(DebugBlock("dirt")).unwrap();
-        reg.register_block(DebugBlock("stone")).unwrap();
-        reg.register_block(DebugBlock("sand")).unwrap();
-        reg.register_block(DebugBlock("grass")).unwrap();
         let dirt = reg.register_state(blockstate!(dirt)).unwrap();
-        let stone = reg.register_state(blockstate!(stone)).unwrap();
-        let sand = reg.register_state(blockstate!(sand)).unwrap();
-        let grass = reg.register_state(blockstate!(grass)).unwrap();
         let mut section = Section::<8>::new();
+        let mut update_queue = UpdateQueue::new();
+
         assert!(!section.blocks.is_allocated());
         assert!(!section.occlusion_data.is_allocated());
         assert!(!section.block_light.is_allocated());
         assert!(!section.sky_light.is_allocated());
         assert!(!section.tags.is_allocated());
         assert!(!section.update_ids.is_allocated());
-        section.blocks.set((7, 7, 7), dirt);
+        assert!(update_queue.is_empty());
+
+        let c = (7, 7, 7);
+        assert_eq!(
+            section.blocks.set(c, dirt),
+            Change::Changed(StateId::AIR)
+        );
+        assert_eq!(
+            section.occlusion_data.set(c, Occlusion::OCCLUDED),
+            Change::Changed(Occlusion::UNOCCLUDED)
+        );
+        assert_eq!(
+            section.block_light.set(c, 15),
+            Change::Changed(0)
+        );
+        assert_eq!(
+            section.sky_light.set(c, 0),
+            Change::Changed(15)
+        );
+        assert_eq!(
+            section.tags.insert(c, Tag::from("Hello, world!")),
+            None
+        );
+        assert_eq!(
+            section.update_ids.set(c, update_queue.insert(IVec3::new(c.0, c.1, c.2))),
+            Change::Changed(UpdateId::NULL)
+        );
+
         assert!(section.blocks.is_allocated());
-        section.blocks.set((7, 7, 7), StateId::AIR);
+        assert!(section.occlusion_data.is_allocated());
+        assert!(section.block_light.is_allocated());
+        assert!(section.sky_light.is_allocated());
+        assert!(section.tags.is_allocated());
+        assert!(section.update_ids.is_allocated());
+        assert!(!update_queue.is_empty());
+
+        assert_eq!(
+            section.blocks.set(c, StateId::AIR),
+            Change::Changed(dirt)
+        );
+        assert_eq!(
+            section.occlusion_data.set(c, Occlusion::UNOCCLUDED),
+            Change::Changed(Occlusion::OCCLUDED)
+        );
+        assert_eq!(
+            section.block_light.set(c, 0),
+            Change::Changed(15)
+        );
+        assert_eq!(
+            section.sky_light.set(c, 15),
+            Change::Changed(0)
+        );
+        section.tags.remove(c).and_then(|tag| {
+            assert_eq!(tag, Tag::from("Hello, world!"));
+            Some(tag)
+        }).or_else(|| {
+            panic!("Did not match tag.");
+        });
+        let mut changed = false;
+        section.update_ids.set(c, UpdateId::NULL).if_changed(|id| {
+            changed = true;
+            update_queue.remove(id);
+        });
+        assert!(changed);
+
         assert!(!section.blocks.is_allocated());
+        assert!(!section.occlusion_data.is_allocated());
+        assert!(!section.block_light.is_allocated());
+        assert!(!section.sky_light.is_allocated());
+        assert!(!section.tags.is_allocated());
+        assert!(!section.update_ids.is_allocated());
+        assert!(update_queue.is_empty());
     }
 }
