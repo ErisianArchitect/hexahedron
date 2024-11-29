@@ -9,7 +9,7 @@ include!("colors.rs");
 include!("byte_to_f32.rs");
 
 #[inline]
-const fn hex_byte(byte: u8) -> [u8; 2] {
+const fn byte_hex(byte: u8) -> [u8; 2] {
     const HEX_CHARS: [u8; 16] = [
         b'0',
         b'1',
@@ -55,7 +55,7 @@ const fn byte_from_hex(hex: &[u8]) -> Option<u8> {
 }
 
 #[inline]
-fn byte_lerp(a: u8, b: u8, t: f32) -> u8 {
+pub fn byte_lerp(a: u8, b: u8, t: f32) -> u8 {
     if a == b {
         return a;
     }
@@ -66,7 +66,7 @@ fn byte_lerp(a: u8, b: u8, t: f32) -> u8 {
 }
 
 #[inline]
-const fn normalized_byte(byte: u8) -> f32 {
+pub const fn normalized_byte(byte: u8) -> f32 {
     BYTE_TO_F32[byte as usize]
 }
 
@@ -366,9 +366,9 @@ impl Rgb {
 
     pub fn hex(self) -> String {
         let mut hex = String::with_capacity(6);
-        let r = hex_byte(self.r);
-        let g = hex_byte(self.g);
-        let b = hex_byte(self.b);
+        let r = byte_hex(self.r);
+        let g = byte_hex(self.g);
+        let b = byte_hex(self.b);
         hex.push(r[0] as char);
         hex.push(r[1] as char);
         hex.push(g[0] as char);
@@ -604,10 +604,10 @@ impl Rgba {
 
     pub fn hex(self) -> String {
         let mut hex = String::with_capacity(8);
-        let r = hex_byte(self.r);
-        let g = hex_byte(self.g);
-        let b = hex_byte(self.b);
-        let a = hex_byte(self.a);
+        let r = byte_hex(self.r);
+        let g = byte_hex(self.g);
+        let b = byte_hex(self.b);
+        let a = byte_hex(self.a);
         hex.push(r[0] as char);
         hex.push(r[1] as char);
         hex.push(g[0] as char);
