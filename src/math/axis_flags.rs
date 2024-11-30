@@ -1,8 +1,9 @@
+use serde::{Serialize, Deserialize};
 use bytemuck::NoUninit;
 
 use super::axis::Axis;
 
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash, NoUninit)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash, NoUninit, Serialize, Deserialize)]
 #[repr(C)]
 pub struct AxisFlags(u8);
 

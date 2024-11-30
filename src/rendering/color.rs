@@ -1,3 +1,4 @@
+use serde::{Serialize, Deserialize};
 use bytemuck::NoUninit;
 use std::slice::Iter;
 use std::iter::Cloned;
@@ -135,7 +136,7 @@ macro_rules! color_enum {
         RGB($r:literal, $g:literal, $b:literal)
     ])+) => {
         #[repr(u8)]
-        #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, NoUninit)]
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, NoUninit, Serialize, Deserialize)]
         pub enum Color {
             $(
                 $pascal_name,
@@ -270,7 +271,7 @@ impl From<Color> for Rgba {
 }
 
 #[repr(C)]
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, NoUninit)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, NoUninit, Serialize, Deserialize)]
 pub struct Rgb {
     pub r: u8,
     pub g: u8,
@@ -494,7 +495,7 @@ impl Into<glam::Vec4> for Rgb {
 }
 
 #[repr(C)]
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, NoUninit)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, NoUninit, Serialize, Deserialize)]
 pub struct Rgba {
     pub r: u8,
     pub g: u8,

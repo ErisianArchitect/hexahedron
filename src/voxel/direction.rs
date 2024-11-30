@@ -5,12 +5,13 @@ use crate::voxel::orientation::{
     flip::Flip,
     rotation::Rotation,
 };
+use serde::{Serialize, Deserialize};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, NoUninit)]
-#[repr(u8)]
 // The ids are out of order so that they can have a certain order for orientations.
 // If you change the discriminants, then some code might break.
 /// Represents each direction of a cube face.
+#[repr(u8)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, NoUninit, Serialize, Deserialize)]
 pub enum Direction {
     /// Left
     NegX = 4,
@@ -28,7 +29,7 @@ pub enum Direction {
 
 impl Direction {
     /// All directions, ordered logically (`NegX`, `NegY`, `NegZ`, `PosX`, `PosY`, `PosZ`).
-    pub const ALL: [Direction; 6] = [
+pub const ALL: [Direction; 6] = [
         Direction::NegX,
         Direction::NegY,
         Direction::NegZ,

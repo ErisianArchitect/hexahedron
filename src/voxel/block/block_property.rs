@@ -1,6 +1,5 @@
+use serde::{Serialize, Deserialize};
 use std::{borrow::Cow, rc::Rc, sync::Arc};
-
-use glam::{IVec2, IVec3, IVec4};
 
 use crate::io::*;
 
@@ -33,13 +32,16 @@ macro_rules! property_table {
             [23     Range(std::ops::Range<i64>)                         ]
             [24     RangeInclusive(std::ops::RangeInclusive<i64>)       ]
             [25     Bytes(Vec<u8>)                                      ]
+            [26     Map(std::collections::BTreeMap<String, Property>)   ]
+            // [27     Array(PropertyArray)                                ]
+            /* 28   PropertyArray::Any(Vec<Property>) */
         }
     };
 }
 
 macro_rules! build_property_enum {
     ($([$id:literal $name:ident($type:ty)])+) => {
-        #[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
+        #[derive(Debug, Default, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
         #[repr(u8)]
         pub enum Property {
             #[default]
@@ -47,6 +49,17 @@ macro_rules! build_property_enum {
             $(
                 $name($type) = $id,
             )+
+        }
+
+        #[derive(Debug, Default, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+        #[repr(u8)]
+        pub enum PropertyArray {
+            #[default]
+            Empty = 0,
+            $(
+                $name(Vec<$type>) = $id,
+            )+
+            Any(Vec<Property>) = 28,
         }
 
         impl Property {
@@ -58,6 +71,25 @@ macro_rules! build_property_enum {
                         Property::$name(_) => $id,
                     )+
                 }
+            }
+
+            pub(crate) fn read_with_id<R: std::io::Read>(id: u8, reader: &mut R) -> crate::prelude::VoxelResult<Self> {
+                Ok(match id {
+                    0 => Property::Null,
+                    $(
+                        $id => Property::$name(<$type>::read_from(reader)?),
+                    )*
+                    id => return Err(super::error::Error::InvalidPropertyId(id).into()),
+                })
+            }
+
+            pub(crate) fn write_without_id<W: std::io::Write>(&self, writer: &mut W) -> crate::prelude::VoxelResult<u64> {
+                Ok(match self {
+                    Property::Null => 0,
+                    $(
+                        Property::$name(inner) => inner.write_to(writer)?,
+                    )*
+                })
             }
         }
 
@@ -85,30 +117,14 @@ macro_rules! build_property_enum {
         impl Readable for Property {
             fn read_from<R: std::io::Read>(reader: &mut R) -> crate::prelude::VoxelResult<Self> {
                 let id = u8::read_from(reader)?;
-                Ok(match id {
-                    0 => Property::Null,
-                    $(
-                        $id => Property::$name(<$type>::read_from(reader)?),
-                    )*
-                    id => return Err(super::error::Error::InvalidPropertyId(id).into()),
-                })
+                Self::read_with_id(id, reader)
             }
         }
 
         impl Writeable for Property {
             fn write_to<W: std::io::Write>(&self, writer: &mut W) -> crate::prelude::VoxelResult<u64> {
-                Ok(1 + match self {
-                    Property::Null => {
-                        0u8.write_to(writer)?;
-                        0
-                    },
-                    $(
-                        Property::$name(inner) => {
-                            ($id as u8).write_to(writer)?;
-                            inner.write_to(writer)?
-                        },
-                    )*
-                })
+                self.id().write_to(writer)?;
+                Ok(1 + self.write_without_id(writer)?)
             }
         }
     };
@@ -118,28 +134,43 @@ property_table!(build_property_enum);
 
 impl Property {
     pub const NULL: Property = Property::Null;
-}
 
-impl From<(i32, i32)> for Property {
-    #[inline]
-    fn from((x, y): (i32, i32)) -> Self {
-        Property::IVec2(IVec2::new(x, y))
+    pub fn get_property(&self, name: &str) -> &Property {
+        if let Self::Map(map) = self {
+            map.get(name).unwrap_or_else(|| &Property::NULL)
+        } else {
+            &Property::NULL
+        }
     }
 }
 
-impl From<(i32, i32, i32)> for Property {
-    #[inline]
-    fn from((x, y, z): (i32, i32, i32)) -> Self {
-        Property::IVec3(IVec3::new(x, y, z))
+impl<S: AsRef<str>> std::ops::Index<S> for Property {
+    type Output = Property;
+    fn index(&self, index: S) -> &Self::Output {
+        self.get_property(index.as_ref())
     }
 }
 
-impl From<(i32, i32, i32, i32)> for Property {
-    #[inline]
-    fn from((x, y, z, w): (i32, i32, i32, i32)) -> Self {
-        Property::IVec4(IVec4::new(x, y, z, w))
-    }
-}
+// impl From<(i32, i32)> for Property {
+//     #[inline]
+//     fn from(coord: (i32, i32)) -> Self {
+//         Property::IVec2(coord)
+//     }
+// }
+
+// impl From<(i32, i32, i32)> for Property {
+//     #[inline]
+//     fn from(coord: (i32, i32, i32)) -> Self {
+//         Property::IVec3(coord)
+//     }
+// }
+
+// impl From<(i32, i32, i32, i32)> for Property {
+//     #[inline]
+//     fn from(coord: (i32, i32, i32, i32)) -> Self {
+//         Property::IVec4(coord)
+//     }
+// }
 
 impl From<&str> for Property {
     #[inline]
@@ -211,7 +242,7 @@ impl From<&[u8]> for Property {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct BlockProperty {
     pub(in super) name: String,
     pub(in super) value: Property

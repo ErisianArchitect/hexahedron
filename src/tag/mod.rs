@@ -1,3 +1,4 @@
+use serde::{Serialize, Deserialize};
 use crate::error::{Error, Result};
 use crate::io::{
     Readable,
@@ -15,50 +16,50 @@ macro_rules! tag_table {
     ($macro:path) => {
         $macro! {
 //  ID | Name | Byte-Size or Non-Byte-Size | Boxed | Type
-[ 1 Bool            Byte        unbox   <bool>                                                  ]
-[ 2 BitFlags8       Byte        unbox   <crate::math::bit::BitFlags8>                           ]
-[ 3 BitFlags16      NonByte     unbox   <crate::math::bit::BitFlags16>                          ]
-[ 4 BitFlags32      NonByte     unbox   <crate::math::bit::BitFlags32>                          ]
-[ 5 BitFlags64      NonByte     unbox   <crate::math::bit::BitFlags64>                          ]
-[ 6 BitFlags128     NonByte     box     <crate::math::bit::BitFlags128>                         ]
-[ 7 U8              Byte        unbox   <u8>                                                    ]
-[ 8 I8              Byte        unbox   <i8>                                                    ]
-[ 9 U16             NonByte     unbox   <u16>                                                   ]
-[10 I16             NonByte     unbox   <i16>                                                   ]
-[11 U32             NonByte     unbox   <u32>                                                   ]
-[12 I32             NonByte     unbox   <i32>                                                   ]
-[13 U64             NonByte     unbox   <u64>                                                   ]
-[14 I64             NonByte     unbox   <i64>                                                   ]
-[15 F32             NonByte     unbox   <f32>                                                   ]
-[16 F64             NonByte     unbox   <f64>                                                   ]
-[17 Direction       Byte        unbox   <crate::voxel::direction::Direction>                    ]
-[18 Cardinal        Byte        unbox   <crate::voxel::cardinal::Cardinal>                      ]
-[19 Rotation        Byte        unbox   <crate::voxel::orientation::Rotation>                   ]
-[20 Flip            Byte        unbox   <crate::voxel::orientation::Flip>                       ]
-[21 Orientation     Byte        unbox   <crate::voxel::orientation::Orientation>                ]
-[22 Axis            Byte        unbox   <crate::math::axis::Axis>                               ]
-[23 AxisFlags       Byte        unbox   <crate::math::axis_flags::AxisFlags>                    ]
-[24 FaceFlags       Byte        unbox   <crate::voxel::face_flags::FaceFlags>                   ]
-[25 Color           Byte        unbox   <crate::rendering::color::Color>                        ]
-[26 Rgb             NonByte     unbox   <crate::rendering::color::Rgb>                          ]
-[27 Rgba            NonByte     unbox   <crate::rendering::color::Rgba>                         ]
-[28 IVec2           NonByte     unbox   <glam::IVec2>                                           ]
-[29 IVec3           NonByte     unbox   <glam::IVec3>                                           ]
-[30 IVec4           NonByte     box     <glam::IVec4>                                           ]
-[31 Vec2            NonByte     unbox   <glam::Vec2>                                            ]
-[32 Vec3            NonByte     unbox   <glam::Vec3>                                            ]
-[33 Vec4            NonByte     box     <glam::Vec4>                                            ]
-[34 Mat2            NonByte     box     <glam::Mat2>                                            ]
-[35 Mat3            NonByte     box     <glam::Mat3>                                            ]
-[36 Mat4            NonByte     box     <glam::Mat4>                                            ]
-[37 Quat            NonByte     box     <glam::Quat>                                            ]
-[38 Bounds2         NonByte     box     <rollgrid::rollgrid2d::Bounds2D>                        ]
-[39 Bounds3         NonByte     box     <rollgrid::rollgrid3d::Bounds3D>                        ]
-[40 Range           NonByte     box     <std::ops::Range<i64>>                                  ]
-[41 RangeInclusive  NonByte     box     <std::ops::RangeInclusive<i64>>                         ]
-[42 String          NonByte     box     <String>                                                ]
-[43 Array           NonByte     box     <crate::tag::Array>                                     ]
-[44 Map             NonByte     box     <hashbrown::HashMap<String, Tag>>                       ]
+[ 1 Bool            Byte        unbox   <bool>                                  ]
+[ 2 BitFlags8       Byte        unbox   <crate::math::bit::BitFlags8>           ]
+[ 3 BitFlags16      NonByte     unbox   <crate::math::bit::BitFlags16>          ]
+[ 4 BitFlags32      NonByte     unbox   <crate::math::bit::BitFlags32>          ]
+[ 5 BitFlags64      NonByte     unbox   <crate::math::bit::BitFlags64>          ]
+[ 6 BitFlags128     NonByte     box     <crate::math::bit::BitFlags128>         ]
+[ 7 U8              Byte        unbox   <u8>                                    ]
+[ 8 I8              Byte        unbox   <i8>                                    ]
+[ 9 U16             NonByte     unbox   <u16>                                   ]
+[10 I16             NonByte     unbox   <i16>                                   ]
+[11 U32             NonByte     unbox   <u32>                                   ]
+[12 I32             NonByte     unbox   <i32>                                   ]
+[13 U64             NonByte     unbox   <u64>                                   ]
+[14 I64             NonByte     unbox   <i64>                                   ]
+[15 F32             NonByte     unbox   <f32>                                   ]
+[16 F64             NonByte     unbox   <f64>                                   ]
+[17 Direction       Byte        unbox   <crate::voxel::direction::Direction>    ]
+[18 Cardinal        Byte        unbox   <crate::voxel::cardinal::Cardinal>      ]
+[19 Rotation        Byte        unbox   <crate::voxel::orientation::Rotation>   ]
+[20 Flip            Byte        unbox   <crate::voxel::orientation::Flip>       ]
+[21 Orientation     Byte        unbox   <crate::voxel::orientation::Orientation>]
+[22 Axis            Byte        unbox   <crate::math::axis::Axis>               ]
+[23 AxisFlags       Byte        unbox   <crate::math::axis_flags::AxisFlags>    ]
+[24 FaceFlags       Byte        unbox   <crate::voxel::face_flags::FaceFlags>   ]
+[25 Color           Byte        unbox   <crate::rendering::color::Color>        ]
+[26 Rgb             NonByte     unbox   <crate::rendering::color::Rgb>          ]
+[27 Rgba            NonByte     unbox   <crate::rendering::color::Rgba>         ]
+[28 IVec2           NonByte     unbox   <glam::IVec2>                           ]
+[29 IVec3           NonByte     unbox   <glam::IVec3>                           ]
+[30 IVec4           NonByte     box     <glam::IVec4>                           ]
+[31 Vec2            NonByte     unbox   <glam::Vec2>                            ]
+[32 Vec3            NonByte     unbox   <glam::Vec3>                            ]
+[33 Vec4            NonByte     box     <glam::Vec4>                            ]
+[34 Mat2            NonByte     box     <glam::Mat2>                            ]
+[35 Mat3            NonByte     box     <glam::Mat3>                            ]
+[36 Mat4            NonByte     box     <glam::Mat4>                            ]
+[37 Quat            NonByte     box     <glam::Quat>                            ]
+[38 Bounds2         NonByte     box     <rollgrid::rollgrid2d::Bounds2D>        ]
+[39 Bounds3         NonByte     box     <rollgrid::rollgrid3d::Bounds3D>        ]
+[40 Range           NonByte     box     <std::ops::Range<i64>>                  ]
+[41 RangeInclusive  NonByte     box     <std::ops::RangeInclusive<i64>>         ]
+[42 String          NonByte     box     <String>                                ]
+[43 Array           NonByte     box     <crate::tag::Array>                     ]
+[44 Map             NonByte     box     <hashbrown::HashMap<String, Tag>>       ]
 /* This line should remain commented out.
 This represents a tag ID that I inserted manually into the generation code.
 (See: TAG_ARRAY_ID)
@@ -78,7 +79,7 @@ macro_rules! table_impls {
             impl $impl for $type {}
         )*
 
-        #[derive(Debug, Default, Clone, PartialEq)]
+        #[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
         #[repr(u8)]
         pub enum Tag {
             #[default]
@@ -89,6 +90,16 @@ macro_rules! table_impls {
         }
 
         impl Tag {
+            pub const MAX_ID: u8 = {
+                let mut max = 0u8;
+                $(
+                    if $id > max {
+                        max = $id;
+                    }
+                )*
+                max
+            };
+
             pub fn id(&self) -> u8 {
                 match self {
                     Tag::Null => 0,
@@ -97,11 +108,8 @@ macro_rules! table_impls {
                     )*
                 }
             }
-        }
 
-        impl Readable for Tag {
-            fn read_from<R: Read>(reader: &mut R) -> Result<Self> {
-                let id: u8 = u8::read_from(reader)?;
+            pub(crate) fn read_with_id<R: Read>(id: u8, reader: &mut R) -> Result<Self> {
                 Ok(match id {
                     0 => Tag::Null,
                     $(
@@ -110,21 +118,32 @@ macro_rules! table_impls {
                     _ => return Err(Error::InvalidBinaryFormat),
                 })
             }
-        }
 
-        impl Writeable for Tag {
-            fn write_to<W: Write>(&self, writer: &mut W) -> Result<u64> {
-                self.id().write_to(writer)?;
+            pub(crate) fn write_without_id<W: Write>(&self, writer: &mut W) -> Result<u64> {
                 Ok(match self {
                     Tag::Null => 0,
                     $(
                         Tag::$name(value) => value.write_to(writer)?,
                     )*
-                } + 1)
+                })
             }
         }
 
-        #[derive(Debug, Default, Clone, PartialEq)]
+        impl Readable for Tag {
+            fn read_from<R: Read>(reader: &mut R) -> Result<Self> {
+                let id: u8 = u8::read_from(reader)?;
+                Tag::read_with_id(id, reader)
+            }
+        }
+
+        impl Writeable for Tag {
+            fn write_to<W: Write>(&self, writer: &mut W) -> Result<u64> {
+                self.id().write_to(writer)?;
+                Ok(self.write_without_id(writer)? + 1)
+            }
+        }
+
+        #[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
         #[repr(u8)]
         pub enum Array {
             #[default]

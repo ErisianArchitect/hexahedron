@@ -1,9 +1,9 @@
 use bytemuck::NoUninit;
+use serde::{Serialize, Deserialize};
 use crate::voxel::direction::Direction;
-
 use super::Orientation;
 
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash, NoUninit)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash, NoUninit, Serialize, Deserialize)]
 #[repr(C)]
 pub struct Rotation(pub u8);
 

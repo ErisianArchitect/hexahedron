@@ -1,9 +1,10 @@
 use super::direction::Direction;
 use paste::paste;
 use bytemuck::NoUninit;
+use serde::{Serialize, Deserialize};
 
 #[repr(C)]
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash, NoUninit)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash, NoUninit, Serialize, Deserialize)]
 pub struct FaceFlags(u8);
 
 impl FaceFlags {

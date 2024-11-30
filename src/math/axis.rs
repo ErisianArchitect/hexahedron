@@ -1,8 +1,9 @@
+use serde::{Serialize, Deserialize};
 use bytemuck::NoUninit;
 
 use crate::prelude::Direction;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, NoUninit)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, NoUninit, Serialize, Deserialize)]
 #[repr(u8)]
 pub enum Axis {
     X = 0,

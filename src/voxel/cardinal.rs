@@ -1,6 +1,7 @@
 use bytemuck::NoUninit;
+use serde::{Serialize, Deserialize};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, NoUninit)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, NoUninit, Serialize, Deserialize)]
 #[repr(u8)]
 pub enum Cardinal {
     /// -X

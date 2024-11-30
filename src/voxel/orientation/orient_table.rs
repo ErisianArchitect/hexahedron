@@ -1,7 +1,8 @@
 use crate::prelude::{Direction, Flip, Rotation};
+use serde::{Serialize, Deserialize};
 
 #[repr(u8)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum AxisMap {
     PosX,
     PosY,
@@ -21,7 +22,7 @@ impl AxisMap {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct CoordMap {
     x: AxisMap,
     y: AxisMap,

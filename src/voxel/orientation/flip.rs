@@ -1,6 +1,7 @@
+use serde::{Serialize, Deserialize};
 use crate::prelude::Direction;
 
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Flip(pub u8);
 
 impl Flip {

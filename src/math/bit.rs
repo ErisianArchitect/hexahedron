@@ -1,3 +1,4 @@
+use serde::{Serialize, Deserialize};
 use bytemuck::NoUninit;
 
 use std::ops::Range;
@@ -228,7 +229,7 @@ pub trait BitFlags: private::BitFlagsSealed {
 macro_rules! bitflags_impls {
     ($type:ident($inner_type:ty)) => {
         #[repr(C)]
-        #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, NoUninit)]
+        #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, NoUninit, Serialize, Deserialize)]
         pub struct $type(pub $inner_type);
 
         impl private::BitFlagsSealed for $type {}

@@ -1,4 +1,5 @@
 use crate::prelude::Direction;
+use serde::{Serialize, Deserialize};
 
 macro_rules! make_face_constants {
     ($($name:ident = $dir:ident;)*) => {
@@ -8,7 +9,7 @@ macro_rules! make_face_constants {
     };
 }
 
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Occlusion(pub u8);
 
 impl Occlusion {

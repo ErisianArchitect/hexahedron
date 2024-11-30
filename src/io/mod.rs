@@ -1,6 +1,8 @@
 pub mod region;
 use crate::error::{Error, Result};
 use crate::math::axis_flags::AxisFlags;
+use crate::voxel::block::block_property::{BlockProperty, Property};
+use std::collections::BTreeMap;
 use std::io::{Read, Write};
 use crate::for_each_int_type;
 use crate::math::bit::*;
@@ -1248,7 +1250,7 @@ impl Readable for hashbrown::HashMap<String, Tag> {
                 break;
             }
             let name: String = String::read_from(reader)?;
-            let tag: Tag = Tag::read_from(reader)?;
+            let tag: Tag = Tag::read_with_id(id, reader)?;
             map.insert(name, tag);
         }
         Ok(map)
@@ -1260,11 +1262,67 @@ impl Writeable for hashbrown::HashMap<String, Tag> {
         let size = self.iter().try_fold(0u64, |mut size, (name, tag)| {
             size += tag.id().write_to(writer)?;
             size += name.write_to(writer)?;
-            size += tag.write_to(writer)?;
+            size += tag.write_without_id(writer)?;
             Result::Ok(size)
         })?;
         255u8.write_to(writer)?;
-        // writer.write_value(&255u8)?;
+        Ok(size + 1)
+    }
+}
+
+impl Readable for BTreeMap<String, Tag> {
+    fn read_from<R: Read>(reader: &mut R) -> Result<Self> {
+        let mut map = BTreeMap::new();
+        loop {
+            let id = u8::read_from(reader)?;
+            if id == 255 {
+                break;
+            }
+            let name = String::read_from(reader)?;
+            let tag = Tag::read_with_id(id, reader)?;
+            map.insert(name, tag);
+        }
+        Ok(map)
+    }
+}
+
+impl Writeable for BTreeMap<String, Tag> {
+    fn write_to<W: Write>(&self, writer: &mut W) -> Result<u64> {
+        let size = self.iter().try_fold(0u64, |mut size, (name, tag)| {
+            size += tag.id().write_to(writer)?;
+            size += name.write_to(writer)?;
+            size += tag.write_without_id(writer)?;
+            Result::Ok(size)
+        })?;
+        255u8.write_to(writer)?;
+        Ok(size + 1)
+    }
+}
+
+impl Readable for BTreeMap<String, Property> {
+    fn read_from<R: Read>(reader: &mut R) -> Result<Self> {
+        let mut map = BTreeMap::new();
+        loop {
+            let id = u8::read_from(reader)?;
+            if id == 255 {
+                break;
+            }
+            let name = String::read_from(reader)?;
+            let prop = Property::read_with_id(id, reader)?;
+            map.insert(name, prop);
+        }
+        Ok(map)
+    }
+}
+
+impl Writeable for BTreeMap<String, Property> {
+    fn write_to<W: Write>(&self, writer: &mut W) -> Result<u64> {
+        let size = self.iter().try_fold(0u64, |mut size, (name, prop)| {
+            size += prop.id().write_to(writer)?;
+            size += name.write_to(writer)?;
+            Result::Ok(size + prop.write_without_id(writer)?)
+        })?;
+        255u8.write_to(writer)?;
         Ok(size + 1)
     }
 }

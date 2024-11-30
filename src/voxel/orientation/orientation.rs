@@ -1,3 +1,4 @@
+use serde::{Serialize, Deserialize};
 use crate::voxel::{
     orientation::{
         Flip,
@@ -8,7 +9,7 @@ use crate::voxel::{
     direction::Direction,
 };
 
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Orientation(pub(crate) u8);
 
 impl Orientation {

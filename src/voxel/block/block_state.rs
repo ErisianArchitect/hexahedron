@@ -1,8 +1,8 @@
-
+use serde::{Serialize, Deserialize};
 use super::block_property::Property;
 use super::block_property::BlockProperty;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct BlockState {
     block_name: String,
     sorted_properties: Vec<BlockProperty>,
