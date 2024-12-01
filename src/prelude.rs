@@ -86,7 +86,7 @@ pub use crate::{
         Rgb,
         Rgba,
         Gray,
-        normalized_byte,
+        byte_scalar,
         byte_lerp,
         find_color,
         rgb,
