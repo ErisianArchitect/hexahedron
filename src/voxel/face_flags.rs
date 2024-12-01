@@ -1,3 +1,5 @@
+use crate::prelude::BoolExtension;
+
 use super::direction::Direction;
 use paste::paste;
 use bytemuck::NoUninit;
@@ -224,35 +226,31 @@ impl std::fmt::Display for FaceFlags {
         let mut sep = false;
         if self.pos_x() {
             write!(f, "PosX")?;
-            sep = true;
+            sep.mark();
         }
         if self.pos_y() {
-            if sep {
+            if !sep.mark() {
                 write!(f, "|")?;
             }
             write!(f, "PosY")?;
-            sep = true;
         }
         if self.pos_z() {
-            if sep {
+            if !sep.mark() {
                 write!(f, "|")?;
             }
             write!(f, "PosZ")?;
-            sep = true;
         }
         if self.neg_x() {
-            if sep {
+            if !sep.mark() {
                 write!(f, "|")?;
             }
             write!(f, "NegX")?;
-            sep = true;
         }
         if self.neg_y() {
-            if sep {
+            if !sep.mark() {
                 write!(f, "|")?;
             }
             write!(f, "NegY")?;
-            sep = true;
         }
         if self.neg_z() {
             if sep {
