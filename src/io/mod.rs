@@ -1,7 +1,7 @@
 pub mod region;
 use crate::error::{Error, Result};
 use crate::math::axis_flags::AxisFlags;
-use crate::voxel::block::block_property::{BlockProperty, Property};
+use crate::voxel::block::block_property::Property;
 use std::collections::BTreeMap;
 use std::io::{Read, Write};
 use crate::for_each_int_type;
