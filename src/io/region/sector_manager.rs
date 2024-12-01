@@ -89,7 +89,7 @@ impl SectorManager {
     }
 
     fn insert_free_sector(&mut self, sector: ManagedSector) {
-        // Complexity is roughly O(100)
+        // Complexity is roughly O(140)
         // Merge adjacent sectors.
         let left = self.remove_end_sector(sector.start);    // O(20)
         let right = self.remove_start_sector(sector.end);   // O(20)
@@ -136,7 +136,7 @@ impl SectorManager {
         }
     }
 
-    fn pop_sized_sector(&mut self, size: u32) -> Option<ManagedSector> {
+    fn pop_min_sized_sector(&mut self, size: u32) -> Option<ManagedSector> {
         let (&found_size, sized_map) = self.sized_sectors.range_mut(size..).next()?;
         // pop from the left side to ensure that the allocation is coming from the left-most sector.
         let Some((start, end)) = sized_map.pop_first() else {
@@ -160,7 +160,7 @@ impl SectorManager {
     /// Attempts to allocate a sector.
     pub fn alloc(&mut self, block_size: BlockSize) -> Option<SectorOffset> {
         let block_count = block_size.block_count();
-        let Some(sector) = self.pop_sized_sector(block_count as u32) else {
+        let Some(sector) = self.pop_min_sized_sector(block_count as u32) else {
             return None;
         };
         Some(SectorOffset::new(block_size, sector.start))
