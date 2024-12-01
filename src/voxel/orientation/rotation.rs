@@ -10,36 +10,56 @@ pub struct Rotation(pub u8);
 impl Rotation {
     pub const UNROTATED: Rotation = Rotation::new(Direction::PosY, 0);
     pub const ROTATE_X: Rotation = Rotation::new(Direction::NegZ, 2);
-    pub const X_ROTATIONS: [Rotation; 4] = [
-        Rotation::new(Direction::PosY, 0),
-        Rotation::new(Direction::NegZ, 2),
-        Rotation::new(Direction::NegY, 0),
-        Rotation::new(Direction::PosZ, 0),
-    ];
     pub const ROTATE_Y: Rotation = Rotation::new(Direction::PosY, 1);
-    pub const Y_ROTATIONS: [Rotation; 4] = [
-        Rotation::new(Direction::PosY, 0),
-        Rotation::new(Direction::PosY, 1),
-        Rotation::new(Direction::PosY, 2),
-        Rotation::new(Direction::PosY, 3),
-    ];
     pub const ROTATE_Z: Rotation = Rotation::new(Direction::PosX, 1);
-    pub const Z_ROTATIONS: [Rotation; 4] = [
-        Rotation::new(Direction::PosY, 0),
-        Rotation::new(Direction::PosX, 1),
-        Rotation::new(Direction::NegY, 2),
-        Rotation::new(Direction::NegX, 3),
-    ];
-    pub const CORNER_ROTATIONS_MATRIX: [[[Rotation; 2]; 2]; 2] = [
+    pub const X_ROTATIONS: [Rotation; 4] = Self::ROTATE_X.angles();
+    pub const Y_ROTATIONS: [Rotation; 4] = Self::ROTATE_Y.angles();
+    pub const Z_ROTATIONS: [Rotation; 4] = Self::ROTATE_Z.angles();
+
+    pub const CORNER_ROTATIONS_MATRIX: [[[[Rotation; 3]; 2]; 2]; 2] = [
         [
-            [Rotation::new(Direction::PosZ, 3), Rotation::new(Direction::NegX, 2)],
-            [Rotation::new(Direction::PosX, 0), Rotation::new(Direction::NegZ, 1)]
+            [Rotation::new(Direction::PosZ, 3).corner_angles(), Rotation::new(Direction::NegX, 2).corner_angles()],
+            [Rotation::new(Direction::PosX, 0).corner_angles(), Rotation::new(Direction::NegZ, 1).corner_angles()]
         ],
         [
-            [Rotation::new(Direction::NegX, 0), Rotation::new(Direction::NegZ, 3)],
-            [Rotation::new(Direction::PosZ, 1), Rotation::new(Direction::PosX, 2)]
+            [Rotation::new(Direction::NegX, 0).corner_angles(), Rotation::new(Direction::NegZ, 3).corner_angles()],
+            [Rotation::new(Direction::PosZ, 1).corner_angles(), Rotation::new(Direction::PosX, 2).corner_angles()]
         ],
     ];
+
+    pub const FACE_ROTATIONS: [[Rotation; 4]; 6] = [
+        Rotation::new(Direction::PosY, 1).angles(), // PosY
+        Rotation::new(Direction::NegZ, 2).angles(), // PosX
+        Rotation::new(Direction::PosX, 1).angles(), // PosZ
+        Rotation::new(Direction::PosY, 3).angles(), // NegY
+        Rotation::new(Direction::PosZ, 0).angles(), // NegX
+        Rotation::new(Direction::NegX, 3).angles(), // NegZ
+    ];
+
+    #[inline]
+    pub const fn face_rotation(face: Direction, angle: i32) -> Self {
+        Self::FACE_ROTATIONS[face as usize][(angle & 3) as usize]
+    }
+
+    pub const fn corner_rotation(x: i32, y: i32, z: i32, angle: i32) -> Rotation {
+        let x = if x <= 0 {
+            0
+        } else {
+            1
+        } as usize;
+        let y = if y <= 0 {
+            0
+        } else {
+            1
+        } as usize;
+        let z = if z <= 0 {
+            0
+        } else {
+            1
+        } as usize;
+        let angle = angle.rem_euclid(3) as usize;
+        Self::CORNER_ROTATIONS_MATRIX[y][z][x][angle]
+    }
     
     #[inline]
     pub const fn new(up: Direction, angle: i32) -> Self {
@@ -48,10 +68,48 @@ impl Rotation {
         Self(angle | up << 2)
     }
 
+    /// A helper function to create 4 rotations for a rotation group.  
+    /// A rotation group is a series of "contiguous" rotations. That is, the rotations are logically sequential.
+    /// An example would be rotations around an axis, or around a face, where there are 4 rotations possible.
+    /// The first rotation is unrotated, the second rotation is the target rotation, the
+    /// third rotation is the target rotation applied twice, and
+    /// the fourth rotation is the target rotation applied three times.
+    pub const fn angles(self) -> [Self; 4] {
+        let angle1 = self;
+        let angle2 = angle1.reorient(angle1);
+        let angle3 = angle2.reorient(angle1);
+        [
+            Self::UNROTATED,
+            angle1,
+            angle2,
+            angle3,
+        ]
+    }
+
+    /// A helper function to create 3 rotations for a corner rotation group.
+    /// The first rotation is unrotated, the second rotation is the target rotation,
+    /// and the third rotation is the target rotation applied to itself.
+    pub const fn corner_angles(self) -> [Self; 3] {
+        let angle1 = self;
+        let angle2 = angle1.reorient(angle1);
+        [
+            Self::UNROTATED,
+            angle1,
+            angle2
+        ]
+    }
+
+    
+    #[inline]
+    pub const fn with_flip(self, flip: super::Flip) -> Orientation {
+        Orientation::new(self, flip)
+    }
+
     #[inline]
     pub const fn orientation(self) -> Orientation {
-        Orientation::new(self, super::Flip::NONE)
+        self.with_flip(super::Flip::NONE)
     }
+
 
     pub const fn from_up_and_forward(up: Direction, forward: Direction) -> Option<Rotation> {
         use Direction::*;
@@ -86,6 +144,7 @@ impl Rotation {
 
     // Yes, this method works. I checked.
     /// Cycle through rotations (24 in total).
+    #[inline]
     #[must_use]
     pub const fn cycle(self, offset: i32) -> Rotation {
         let index = self.0 as i32;
@@ -93,8 +152,23 @@ impl Rotation {
         Rotation(new_index)
     }
 
+    #[inline]
     pub const fn angle(self) -> i32 {
         (self.0 & 0b11) as i32
+    }
+
+    #[inline]
+    pub fn set_up(&mut self, up: Direction) {
+        let angle = self.0 & 0b11;
+        let up_and_angle = angle | ((up as u8) << 2);
+        self.0 = up_and_angle;
+    }
+
+    #[inline]
+    pub fn set_angle(&mut self, angle: i32) {
+        let top = self.0 & 0b11111100;
+        let angle = angle.rem_euclid(4) as u8;
+        self.0 = top | angle;
     }
 
     pub const fn up(self) -> Direction {
@@ -633,6 +707,35 @@ impl Rotation {
     #[inline]
     pub const fn invert(self) -> Self {
         Self::UNROTATED.deorient(self)
+    }
+
+    #[inline]
+    pub const fn rotate_x(self, angle: i32) -> Self {
+        self.reorient(Self::X_ROTATIONS[(angle & 3) as usize])
+    }
+
+    #[inline]
+    pub const fn rotate_y(self, angle: i32) -> Self {
+        self.reorient(Self::Y_ROTATIONS[(angle & 3) as usize])
+    }
+
+    #[inline]
+    pub const fn rotate_z(self, angle: i32) -> Self {
+        self.reorient(Self::Z_ROTATIONS[(angle & 3) as usize])
+    }
+
+    /// Rotate `face` clockwise by `angle`. Use a negative `angle` to rotate counter-clockwise.
+    #[inline]
+    pub const fn rotate_face(self, face: Direction, angle: i32) -> Self {
+        let rot = Self::face_rotation(face, angle);
+        self.reorient(rot)
+    }
+
+    /// Rotate corner clockwise by `angle`.
+    #[inline]
+    pub const fn rotate_corner(self, x: i32, y: i32, z: i32, angle: i32) -> Self {
+        let rot = Self::corner_rotation(x, y, z, angle);
+        self.reorient(rot)
     }
 }
 

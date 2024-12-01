@@ -21,7 +21,9 @@ enum Seven {
 struct NoCopy(u32);
 
 fn main() {
-    println!("{}", std::mem::size_of::<Option<std::num::NonZero<u8>>>());
+    let n = -1i32;
+    println!("{}", n.rem_euclid(4));
+    println!("{}", n & 3);
     return;
     let mut updates: Vec<(NoCopy, IVec3)> = (0..256*256).map(|_| {
         (
