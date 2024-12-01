@@ -15,40 +15,93 @@ pub struct Orientation(pub(crate) u8);
 impl Orientation {
     pub const UNORIENTED: Orientation = Orientation::new(Rotation::new(Direction::PosY, 0), Flip::NONE);
     pub const ROTATE_X: Orientation = Rotation::ROTATE_X.orientation();
-    pub const X_ROTATIONS: [Orientation; 4] = [
-        Rotation::X_ROTATIONS[0].orientation(),
-        Rotation::X_ROTATIONS[1].orientation(),
-        Rotation::X_ROTATIONS[2].orientation(),
-        Rotation::X_ROTATIONS[3].orientation(),
-    ];
+    pub const X_ROTATIONS: [Orientation; 4] = Self::ROTATE_X.angles();
     pub const ROTATE_Y: Orientation = Rotation::ROTATE_Y.orientation();
-    pub const Y_ROTATIONS: [Orientation; 4] = [
-        Rotation::Y_ROTATIONS[0].orientation(),
-        Rotation::Y_ROTATIONS[1].orientation(),
-        Rotation::Y_ROTATIONS[2].orientation(),
-        Rotation::Y_ROTATIONS[3].orientation(),
-    ];
+    pub const Y_ROTATIONS: [Orientation; 4] = Self::ROTATE_Y.angles();
     pub const ROTATE_Z: Orientation = Rotation::ROTATE_Z.orientation();
-    pub const Z_ROTATIONS: [Orientation; 4] = [
-        Rotation::Z_ROTATIONS[0].orientation(),
-        Rotation::Z_ROTATIONS[1].orientation(),
-        Rotation::Z_ROTATIONS[2].orientation(),
-        Rotation::Z_ROTATIONS[3].orientation(),
-    ];
-    pub const CORNER_ORIENTATIONS_MATRIX: [[[Orientation; 2]; 2]; 2] = [
+    pub const Z_ROTATIONS: [Orientation; 4] = Self::ROTATE_Z.angles();
+
+    pub const CORNER_ORIENTATIONS_MATRIX: [[[[Orientation; 3]; 2]; 2]; 2] = [
         [
-            [Orientation::new(Rotation::new(Direction::PosZ, 3), Flip::NONE), Orientation::new(Rotation::new(Direction::NegX, 2), Flip::NONE)],
-            [Orientation::new(Rotation::new(Direction::PosX, 0), Flip::NONE), Orientation::new(Rotation::new(Direction::NegZ, 1), Flip::NONE)]
+            [Rotation::new(Direction::PosZ, 3).orientation().corner_angles(), Rotation::new(Direction::NegX, 2).orientation().corner_angles()],
+            [Rotation::new(Direction::PosX, 0).orientation().corner_angles(), Rotation::new(Direction::NegZ, 1).orientation().corner_angles()]
         ],
         [
-            [Orientation::new(Rotation::new(Direction::NegX, 0), Flip::NONE), Orientation::new(Rotation::new(Direction::NegZ, 3), Flip::NONE)],
-            [Orientation::new(Rotation::new(Direction::PosZ, 1), Flip::NONE), Orientation::new(Rotation::new(Direction::PosX, 2), Flip::NONE)]
+            [Rotation::new(Direction::NegX, 0).orientation().corner_angles(), Rotation::new(Direction::NegZ, 3).orientation().corner_angles()],
+            [Rotation::new(Direction::PosZ, 1).orientation().corner_angles(), Rotation::new(Direction::PosX, 2).orientation().corner_angles()]
         ],
     ];
+
+    pub const FACE_ORIENTATIONS: [[Orientation; 4]; 6] = [
+        Rotation::new(Direction::PosY, 1).orientation().angles(), // PosY
+        Rotation::new(Direction::NegZ, 2).orientation().angles(), // PosX
+        Rotation::new(Direction::PosX, 1).orientation().angles(), // PosZ
+        Rotation::new(Direction::PosY, 3).orientation().angles(), // NegY
+        Rotation::new(Direction::PosZ, 0).orientation().angles(), // NegX
+        Rotation::new(Direction::NegX, 3).orientation().angles(), // NegZ
+    ];
+    
+    /// An orientation that you can orient an orientation by to rotate around a face by angle. That was a mouthful.  
+    /// If angle == 0, orientation is default orientation.
+    #[inline]
+    pub const fn face_orientation(face: Direction, angle: i32) -> Self {
+        Self::FACE_ORIENTATIONS[face as usize][(angle & 3) as usize]
+    }
+
+    pub const fn corner_orientation(x: i32, y: i32, z: i32, angle: i32) -> Orientation {
+        let x = if x <= 0 {
+            0
+        } else {
+            1
+        } as usize;
+        let y = if y <= 0 {
+            0
+        } else {
+            1
+        } as usize;
+        let z = if z <= 0 {
+            0
+        } else {
+            1
+        } as usize;
+        let angle = angle.rem_euclid(3) as usize;
+        Self::CORNER_ORIENTATIONS_MATRIX[y][z][x][angle]
+    }
 
     #[inline]
     pub const fn new(rotation: Rotation, flip: Flip) -> Self {
         Self(pack_flip_and_rotation(flip, rotation))
+    }
+
+    /// A helper function to create 4 orientations for an orientation group.  
+    /// An orientation group is a series of "contiguous" orientations. That is, the orientations are logically sequential.
+    /// An example would be rotations around an axis, or around a face, where there are 4 orientations possible.
+    /// The first orientation is unoriented, the second orientation is the target orientation
+    /// applied once, the third orientation is the target orientation applied twice,
+    /// and the fourth orientation is the target orientation applied three times.
+    pub const fn angles(self) -> [Orientation; 4] {
+        let angle1 = self;
+        let angle2 = angle1.reorient(angle1);
+        let angle3 = angle2.reorient(angle1);
+        [
+            Orientation::UNORIENTED,
+            angle1,
+            angle2,
+            angle3,
+        ]
+    }
+
+    /// A helper function to create 3 orientations for a corner orientation group.
+    /// The first orientation is unoriented, the second orientation is the target orientation,
+    /// and the third orientation is the target orientation applied to itself.
+    pub const fn corner_angles(self) -> [Orientation; 3] {
+        let angle1 = self;
+        let angle2 = angle1.reorient(angle1);
+        [
+            Orientation::UNORIENTED,
+            angle1,
+            angle2,
+        ]
     }
 
     #[inline]
@@ -69,6 +122,20 @@ impl Orientation {
     #[inline]
     pub fn set_rotation(&mut self, rotation: Rotation) {
         self.0 = (self.0 & 0b111) | rotation.0 << 3;
+    }
+
+    #[inline]
+    pub fn set_up(&mut self, up: Direction) {
+        let mut rot = self.rotation();
+        rot.set_up(up);
+        self.set_rotation(rot);
+    }
+
+    #[inline]
+    pub fn set_angle(&mut self, angle: i32) {
+        let mut rot = self.rotation();
+        rot.set_angle(angle);
+        self.set_rotation(rot);
     }
 
     /// `reface` can be used to determine where a face will end up after orientation.
@@ -210,17 +277,30 @@ impl Orientation {
 
     #[inline]
     pub const fn rotate_x(self, angle: i32) -> Self {
-        self.reorient(Orientation::X_ROTATIONS[angle.rem_euclid(4) as usize])
+        self.reorient(Orientation::X_ROTATIONS[(angle & 3) as usize])
     }
 
     #[inline]
     pub const fn rotate_y(self, angle: i32) -> Self {
-        self.reorient(Orientation::Y_ROTATIONS[angle.rem_euclid(4) as usize])
+        self.reorient(Orientation::Y_ROTATIONS[(angle & 3) as usize])
     }
 
     #[inline]
     pub const fn rotate_z(self, angle: i32) -> Self {
-        self.reorient(Orientation::Z_ROTATIONS[angle.rem_euclid(4) as usize])
+        self.reorient(Orientation::Z_ROTATIONS[(angle & 3) as usize])
+    }
+
+    /// Rotate `face` clockwise by `angle`. Use a negative `angle` to rotate counter-clockwise.
+    #[inline]
+    pub const fn rotate_face(self, face: Direction, angle: i32) -> Self {
+        let orient = Self::face_orientation(face, angle);
+        self.reorient(orient)
+    }
+
+    #[inline]
+    pub const fn rotate_corner(self, x: i32, y: i32, z: i32, angle: i32) -> Self {
+        let orient = Self::corner_orientation(x, y, z, angle);
+        self.reorient(orient)
     }
 }
 
