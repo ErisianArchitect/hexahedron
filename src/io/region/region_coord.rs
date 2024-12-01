@@ -1,9 +1,12 @@
 use super::{region_table::RegionTableItem, sector_offset::SectorOffset, time_stamp::Timestamp};
 
+/// A coordinate within a region file. A value from (0, 0) to (31, 31).
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct RegionCoord(u16);
 
 impl RegionCoord {
+    /// Creates a new [RegionCoord] at the specified coordinate.
+    /// The coordinate is wrapped by a factor of 32.
     #[inline]
     pub const fn new(x: i32, z: i32) -> Self {
         RegionCoord((x & 31) as u16 | ((z & 31) as u16) << 5)
@@ -32,16 +35,19 @@ impl RegionCoord {
         Self::new(x, z)
     }
 
+    /// The index in 32x32 flat array.
     #[inline]
     pub const fn index(self) -> usize {
         self.0 as usize
     }
 
+    /// The offset of this [RegionCoord]'s [SectorOffset] in the file header.
     #[inline]
     pub const fn sector_offset(self) -> u64 {
         SectorOffset::OFFSET + 4 * self.0 as u64
     }
 
+    /// The offset of this [RegionCoord]'s [Timestamp] in the file header.
     #[inline]
     pub const fn timestamp_offset(self) -> u64 {
         Timestamp::OFFSET + 8 * self.0 as u64
