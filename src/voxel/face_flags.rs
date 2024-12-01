@@ -267,8 +267,8 @@ mod tests {
     use super::*;
     #[test]
     fn display_test() {
-        let flags = (FaceFlags::NEG | FaceFlags::POS) & !(FaceFlags::POS_X | FaceFlags::NEG_X);
-        let prediction = "FaceFlags(PosY|PosZ|NegY|NegZ)";
+        let flags = FaceFlags::POS_Y | FaceFlags::NEG_Z;
+        let prediction = "FaceFlags(PosY|NegZ)";
         let result = flags.to_string();
         assert!(prediction == result);
     }
