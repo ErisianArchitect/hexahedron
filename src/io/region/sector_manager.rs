@@ -161,9 +161,7 @@ impl SectorManager {
     /// Attempts to allocate a sector.
     pub fn alloc(&mut self, block_size: BlockSize) -> Option<SectorOffset> {
         let block_count = block_size.block_count();
-        let Some(sector) = self.pop_min_sized_sector(block_count as u32) else {
-            return None;
-        };
+        let sector = self.pop_min_sized_sector(block_count as u32)?;
         Some(SectorOffset::new(block_size, sector.start))
     }
 
