@@ -279,10 +279,7 @@ impl<T, M: Copy> ObjectPool<T, M> {
             return None;
         }
         let pool_index = self.indices[id.index()];
-        if self.pool[pool_index].id != id {
-            // Actually, I'm pretty sure this would be a bug.
-            return None;
-        }
+        assert!(self.pool[pool_index].id == id, "Corrupted ObjectPool: internal pool id does not match");
         Some(&self.pool[pool_index].value)
     }
 
@@ -292,9 +289,7 @@ impl<T, M: Copy> ObjectPool<T, M> {
             return None;
         }
         let pool_index = self.indices[id.index()];
-        if self.pool[pool_index].id.0 != id.0 {
-            return None;
-        }
+        assert!(self.pool[pool_index].id == id, "Corrupted ObjectPool: internal pool id does not match");
         Some(&mut self.pool[pool_index].value)
     }
 
