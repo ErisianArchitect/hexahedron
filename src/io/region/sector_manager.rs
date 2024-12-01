@@ -136,6 +136,7 @@ impl SectorManager {
         }
     }
 
+    /// Attempts to pop the left-most sector that is at least large enough to fit `size`.
     fn pop_min_sized_sector(&mut self, size: u32) -> Option<ManagedSector> {
         let (&found_size, sized_map) = self.sized_sectors.range_mut(size..).next()?;
         // pop from the left side to ensure that the allocation is coming from the left-most sector.
