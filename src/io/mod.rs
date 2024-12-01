@@ -10,13 +10,7 @@ use crate::rendering::color::{
     Color, Rgb, Rgba
 };
 use crate::prelude::{
-    Direction,
-    Cardinal,
-    Rotation,
-    Flip,
-    Orientation,
-    Axis,
-    FaceFlags,
+    Axis, Cardinal, Direction, FaceFlags, Flip, Increment, Orientation, Rotation
 };
 use crate::tag::{
     NonByte,
@@ -1032,19 +1026,53 @@ impl Writeable for Vec<Direction> {
 
 impl Readable for Vec<Cardinal> {
     fn read_from<R: Read>(reader: &mut R) -> Result<Self> {
-        let mut buf = [0u8; 4];
-        reader.read_exact(&mut buf[1..4])?;
-        let length = u32::from_be_bytes(buf);
-        let bytes = read_bytes(reader, length as usize/*  / 4 + (length % 4 != 0) as usize */)?;
-        bytes.into_iter().map(|b| {
-            Ok(match b {
-                0 => Cardinal::West,
-                1 => Cardinal::North,
-                2 => Cardinal::East,
-                3 => Cardinal::West,
-                _ => return Err(Error::InvalidBinaryFormat)
-            })
-        }).collect()
+        let length = read_u24(reader)?;
+        if length == 0 {
+            return Ok(Vec::new());
+        }
+        let bit_len = length * 2;
+        let byte_count = if bit_len % 8 != 0 {
+            bit_len / 8 + 1
+        } else {
+            bit_len / 8
+        } as usize;
+        let bytes = read_bytes(reader, byte_count as usize)?;
+        // I'm taking advantage of the fact that Cardinal only takes up
+        // 2 bits, which means that 4 of them fit in a byte
+        // and there's no cross-byte splitting.
+        struct BitReader<'a> {
+            bytes: &'a [u8],
+            top: usize,
+        }
+        impl<'a> BitReader<'a> {
+            fn new(bytes: &'a [u8]) -> Self {
+                Self {
+                    bytes,
+                    top: 0,
+                }
+            }
+            fn read_next(&mut self) -> Result<Cardinal> {
+                let byte_index = self.top / 8;
+                let byte = self.bytes[byte_index];
+                let sub_index = self.top % 8;
+                let bits = (byte >> sub_index) & 0b11;
+                self.top += 2;
+                Ok(match bits {
+                    0 => Cardinal::West,
+                    1 => Cardinal::North,
+                    2 => Cardinal::East,
+                    3 => Cardinal::South,
+                    // We know this is unreachable because bits was & with 0b11.
+                    _ => unreachable!(),
+                })
+            }
+        }
+        let mut bit_reader = BitReader::new(&bytes);
+        let mut accum = Vec::with_capacity(length as usize);
+        for _ in 0..length {
+            accum.push(bit_reader.read_next()?);
+        }
+        Ok(accum)
     }
 }
 
@@ -1053,10 +1081,66 @@ impl Writeable for Vec<Cardinal> {
         if self.len() > MAX_ARRAY_LENGTH {
             return Err(Error::ArrayTooLong);
         }
-        let buf = (self.len() as u32).to_be_bytes();
-        writer.write_all(&buf[1..4])?;
-        writer.write_all(bytemuck::cast_slice(self.as_slice()))?;
-        Ok(self.len() as u64 + 3)
+        struct BitWriter {
+            top: u32,
+            accum: u16,
+            bytes: Box<[u8]>,
+            index: usize,
+        }
+        impl BitWriter {
+            fn new(count: usize) -> Self {
+                let bit_len = count * 2;
+                let byte_count = if bit_len % 8 != 0 {
+                    bit_len / 8 + 1
+                } else {
+                    bit_len / 8
+                };
+                Self {
+                    top: 0,
+                    accum: 0,
+                    index: 0,
+                    bytes: (0..byte_count).map(|_| 0u8).collect(),
+                }
+            }
+
+            fn push_byte(&mut self, byte: u8) {
+                self.bytes[self.index.post_increment()] = byte;
+            }
+
+            fn push_bits(&mut self, bits: u8) {
+                let bits = bits as u16;
+                self.accum |= bits << self.top;
+                self.top += 2;
+                if self.top >= 8 {
+                    let byte = (self.accum & 0xff) as u8;
+                    self.push_byte(byte);
+                    self.accum >>= 8;
+                    self.top -= 8;
+                }
+            }
+
+            fn finish(mut self) -> Box<[u8]> {
+                if self.top % 8 != 0 {
+                    self.push_byte((self.accum & 0xff) as u8);
+                }
+                self.bytes
+            }
+        }
+        let mut bit_writer = BitWriter::new(self.len());
+        self.iter().map(|&cardinal| {
+            match cardinal {
+                Cardinal::West => 0u8,
+                Cardinal::North => 1u8,
+                Cardinal::East => 2u8,
+                Cardinal::South => 3u8,
+            }
+        }).for_each(|bits| {
+            bit_writer.push_bits(bits);
+        });
+        Ok(
+            write_u24(writer, self.len() as u32)? +
+            write_bytes(writer, &bit_writer.finish())?
+        )
     }
 }
 
@@ -1214,16 +1298,53 @@ impl Writeable for Vec<Orientation> {
 
 impl Readable for Vec<Axis> {
     fn read_from<R: Read>(reader: &mut R) -> Result<Self> {
-        let mut buf = [0u8; 4];
-        reader.read_exact(&mut buf[1..4])?;
-        let length = u32::from_be_bytes(buf);
-        let bytes = read_bytes(reader, length as usize)?;
-        Ok(bytes.into_iter().map(|b| match b {
-            0 => Axis::X,
-            1 => Axis::Y,
-            2 => Axis::Z,
-            _ => panic!("Invalid binary format for Axis")
-        }).collect())
+        let length = read_u24(reader)?;
+        if length == 0 {
+            return Ok(Vec::new());
+        }
+        let bit_len = length * 2;
+        let byte_count = if bit_len % 8 != 0 {
+            bit_len / 8 + 1
+        } else {
+            bit_len / 8
+        } as usize;
+        let bytes = read_bytes(reader, byte_count as usize)?;
+        // I'm taking advantage of the fact that Axis only takes up
+        // 2 bits, which means that 4 of them fit in a byte
+        // and there's no cross-byte splitting.
+        struct BitReader<'a> {
+            bytes: &'a [u8],
+            top: usize,
+        }
+        impl<'a> BitReader<'a> {
+            fn new(bytes: &'a [u8]) -> Self {
+                Self {
+                    bytes,
+                    top: 0,
+                }
+            }
+            fn read_next(&mut self) -> Result<Axis> {
+                let byte_index = self.top / 8;
+                let byte = self.bytes[byte_index];
+                let sub_index = self.top % 8;
+                let bits = (byte >> sub_index) & 0b11;
+                self.top += 2;
+                Ok(match bits {
+                    0 => Axis::X,
+                    1 => Axis::Y,
+                    2 => Axis::Z,
+                    3 => return Err(Error::InvalidBinaryFormat),
+                    // We know this is unreachable because bits was & with 0b11.
+                    _ => unreachable!(),
+                })
+            }
+        }
+        let mut bit_reader = BitReader::new(&bytes);
+        let mut accum = Vec::with_capacity(length as usize);
+        for _ in 0..length {
+            accum.push(bit_reader.read_next()?);
+        }
+        Ok(accum)
     }
 }
 
@@ -1232,10 +1353,65 @@ impl Writeable for Vec<Axis> {
         if self.len() > MAX_ARRAY_LENGTH {
             return Err(Error::ArrayTooLong);
         }
-        let buf = (self.len() as u32).to_be_bytes();
-        writer.write_all(&buf[1..4])?;
-        writer.write_all(bytemuck::cast_slice(self.as_slice()))?;
-        Ok(self.len() as u64 + 3)
+        struct BitWriter {
+            top: u32,
+            accum: u16,
+            bytes: Box<[u8]>,
+            index: usize,
+        }
+        impl BitWriter {
+            fn new(count: usize) -> Self {
+                let bit_len = count * 2;
+                let byte_count = if bit_len % 8 != 0 {
+                    bit_len / 8 + 1
+                } else {
+                    bit_len / 8
+                };
+                Self {
+                    top: 0,
+                    accum: 0,
+                    index: 0,
+                    bytes: (0..byte_count).map(|_| 0u8).collect(),
+                }
+            }
+
+            fn push_byte(&mut self, byte: u8) {
+                self.bytes[self.index.post_increment()] = byte;
+            }
+
+            fn push_bits(&mut self, bits: u8) {
+                let bits = bits as u16;
+                self.accum |= bits << self.top;
+                self.top += 2;
+                if self.top >= 8 {
+                    let byte = (self.accum & 0xff) as u8;
+                    self.push_byte(byte);
+                    self.accum >>= 8;
+                    self.top -= 8;
+                }
+            }
+
+            fn finish(mut self) -> Box<[u8]> {
+                if self.top % 8 != 0 {
+                    self.push_byte((self.accum & 0xff) as u8);
+                }
+                self.bytes
+            }
+        }
+        let mut bit_writer = BitWriter::new(self.len());
+        self.iter().map(|&axis| {
+            match axis {
+                Axis::X => 0u8,
+                Axis::Y => 1u8,
+                Axis::Z => 2u8,
+            }
+        }).for_each(|bits| {
+            bit_writer.push_bits(bits);
+        });
+        Ok(
+            write_u24(writer, self.len() as u32)? +
+            write_bytes(writer, &bit_writer.finish())?
+        )
     }
 }
 
@@ -1386,3 +1562,35 @@ tuple_impls!(T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12);
 tuple_impls!(T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13);
 tuple_impls!(T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14);
 tuple_impls!(T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15);
+
+#[cfg(test)]
+mod tests {
+    #![allow(unused)]
+    use std::io::{Seek, SeekFrom};
+
+    use super::*;
+    #[test]
+    fn axis_write_read_test() {
+        use std::io::{
+            BufWriter, BufReader,
+            Write, Read,
+            Cursor,
+        };
+        let mut buffer = Cursor::new(Vec::<u8>::new());
+        use Axis::*;
+        let mut axes = vec![
+            X, Y, Z,
+            X, Z, Y,
+            Y, X, Z,
+            Y, Z, X,
+            Z, X, Y,
+            Z, Y, X,
+            Z, Y, X,
+            Y, X,
+        ];
+        axes.write_to(&mut buffer).unwrap();
+        buffer.seek(SeekFrom::Start(0)).unwrap();
+        let axes2 = Vec::<Axis>::read_from(&mut buffer).unwrap();
+        assert!(axes == axes2);
+    }
+}
