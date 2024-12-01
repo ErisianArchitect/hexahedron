@@ -16,7 +16,7 @@ impl RegionCoord {
 
     #[inline]
     pub const fn z(self) -> i32 {
-        (self.0 & 31) as i32
+        (self.0 >> 5 & 31) as i32
     }
 
     #[inline]
