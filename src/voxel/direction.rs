@@ -29,7 +29,7 @@ pub enum Direction {
 
 impl Direction {
     /// All directions, ordered logically (`NegX`, `NegY`, `NegZ`, `PosX`, `PosY`, `PosZ`).
-pub const ALL: [Direction; 6] = [
+    pub const ALL: [Direction; 6] = [
         Direction::NegX,
         Direction::NegY,
         Direction::NegZ,
@@ -45,6 +45,19 @@ pub const ALL: [Direction; 6] = [
         Direction::PosZ,
         Direction::NegY,
         Direction::NegX,
+        Direction::NegZ,
+    ];
+
+    /// All directions, ordered for a flood fill algorithm.
+    /// ```no_run
+    /// [PosY, NegY, PosX, NegX, PosZ, NegZ]
+    /// ```
+    pub const FLOOD: [Direction; 6] = [
+        Direction::PosY,
+        Direction::NegY,
+        Direction::PosX,
+        Direction::NegX,
+        Direction::PosZ,
         Direction::NegZ,
     ];
 
