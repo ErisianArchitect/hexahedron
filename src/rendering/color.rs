@@ -126,7 +126,7 @@ pub fn byte_lerp(a: u8, b: u8, t: f32) -> u8 {
 }
 
 #[inline]
-pub const fn normalized_byte(byte: u8) -> f32 {
+pub const fn byte_scalar(byte: u8) -> f32 {
     BYTE_TO_F32[byte as usize]
 }
 
@@ -362,11 +362,6 @@ impl Rgb {
     }
 
     #[inline]
-    pub const fn from_tuple((r,g,b): (u8, u8, u8)) -> Self {
-        Self{r,g,b}
-    }
-
-    #[inline]
     pub const fn to_bytes(self) -> [u8; 3] {
         [self.r, self.g, self.b]
     }
@@ -386,25 +381,39 @@ impl Rgb {
     }
 
     #[inline]
+    pub const fn from_tuple((r,g,b): (u8, u8, u8)) -> Self {
+        Self{r,g,b}
+    }
+
+    #[inline]
     pub const fn to_tuple(self) -> (u8, u8, u8) {
         (self.r, self.g, self.b)
     }
 
     #[inline]
+    pub fn from_vec3(rgb: glam::Vec3) -> Self {
+        Self {
+            r: byte_lerp(0, 255, rgb.x),
+            g: byte_lerp(0, 255, rgb.y),
+            b: byte_lerp(0, 255, rgb.z),
+        }
+    }
+
+    #[inline]
     pub const fn to_vec3(self) -> glam::Vec3 {
         glam::Vec3::new(
-            normalized_byte(self.r),
-            normalized_byte(self.g),
-            normalized_byte(self.b),
+            byte_scalar(self.r),
+            byte_scalar(self.g),
+            byte_scalar(self.b),
         )
     }
 
     #[inline]
     pub const fn to_vec4(self) -> glam::Vec4 {
         glam::Vec4::new(
-            normalized_byte(self.r),
-            normalized_byte(self.g),
-            normalized_byte(self.b),
+            byte_scalar(self.r),
+            byte_scalar(self.g),
+            byte_scalar(self.b),
             1.0,
         )
     }
@@ -609,11 +618,6 @@ impl Rgba {
     }
 
     #[inline]
-    pub const fn from_tuple((r,g,b,a): (u8, u8, u8, u8)) -> Self {
-        Self{r,g,b,a}
-    }
-
-    #[inline]
     pub const fn to_bytes(self) -> [u8; 4] {
         [self.r, self.g, self.b, self.a]
     }
@@ -633,17 +637,32 @@ impl Rgba {
     }
 
     #[inline]
+    pub const fn from_tuple((r,g,b,a): (u8, u8, u8, u8)) -> Self {
+        Self{r,g,b,a}
+    }
+
+    #[inline]
     pub const fn to_tuple(self) -> (u8, u8, u8, u8) {
         (self.r, self.g, self.b, self.a)
     }
 
     #[inline]
+    pub fn from_vec4(rgba: glam::Vec4) -> Self {
+        Self {
+            r: byte_lerp(0, 255, rgba.x),
+            g: byte_lerp(0, 255, rgba.y),
+            b: byte_lerp(0, 255, rgba.z),
+            a: byte_lerp(0, 255, rgba.w),
+        }
+    }
+
+    #[inline]
     pub const fn to_vec4(self) -> glam::Vec4 {
         glam::Vec4::new(
-            normalized_byte(self.r),
-            normalized_byte(self.g),
-            normalized_byte(self.b),
-            normalized_byte(self.a),
+            byte_scalar(self.r),
+            byte_scalar(self.g),
+            byte_scalar(self.b),
+            byte_scalar(self.a),
         )
     }
 
@@ -775,7 +794,7 @@ impl Gray {
 
     #[inline]
     pub const fn to_vec3(self) -> glam::Vec3 {
-        let g = normalized_byte(self.level);
+        let g = byte_scalar(self.level);
         glam::Vec3::new(
             g,
             g,
@@ -785,7 +804,7 @@ impl Gray {
 
     #[inline]
     pub const fn to_vec4(self) -> glam::Vec4 {
-        let g = normalized_byte(self.level);
+        let g = byte_scalar(self.level);
         glam::Vec4::new(
             g,
             g,
@@ -1127,5 +1146,13 @@ mod testing_sandbox {
             }
         }
         println!("Count: {}", swizzles.len());
+    }
+
+    #[test]
+    fn check_color_indices() {
+        for color in Color::iter() {
+            let name = format!("{color:#?}");
+            assert!(name == color.pascal_name());
+        }
     }
 }
