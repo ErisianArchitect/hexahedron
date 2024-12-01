@@ -1,10 +1,10 @@
 use serde::{Serialize, Deserialize};
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub struct BlockId(pub(super) u32);
+pub struct BlockId(pub(crate) u32);
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub struct StateId(pub(super) u32);
+pub struct StateId(pub(crate) u32);
 
 impl BlockId {
     pub const AIR: Self = Self(0);
