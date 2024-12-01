@@ -36,18 +36,10 @@ impl InnerBlockRegistry {
     fn new() -> Self {
         let air_state = Arc::new(blockstate!(air));
         Self {
-            blocks: {
-                // I know it looks weird, but I have to do it this way
-                // because of the typing of the Arc<dyn BlockBehavior>.
-                // Type coercion shits the bed if I try to construct it
-                // from an array.
-                let mut blocks = Vec::<Arc<dyn BlockBehavior>>::new();
-                blocks.push(Arc::new(AirBlock));
-                blocks
-            },
+            blocks: vec![Arc::new(AirBlock)],
             block_lookup: HashMap::from([("air".to_owned(), BlockId(0))]),
-            states: Vec::from([air_state.clone()]),
-            block_ids: Vec::from([BlockId(0)]),
+            states: vec![air_state.clone()],
+            block_ids: vec![BlockId(0)],
             state_lookup: HashMap::from([(air_state, StateId(0))]),
         }
     }
@@ -244,25 +236,25 @@ mod tests {
         // for on_register call which will replace value with true.
         let hello_cell = Rc::new(RefCell::new(false));
         let _hello = reg.register_block(DebugBlock("hello", hello_cell.clone()))?;
-        assert!(hello_cell.take());
+        debug_assert!(hello_cell.take());
         let world_cell = Rc::new(RefCell::new(false));
         let world = reg.register_block(DebugBlock("world", world_cell.clone()))?;
-        assert!(world_cell.take());
+        debug_assert!(world_cell.take());
         let hello1 = reg.register_state(BlockState::new("hello", []))?;
         reg.access_state(StateId::AIR, |state| {
-            assert_eq!(state.name(), "air");
+            debug_assert_eq!(state.name(), "air");
         })?;
         reg.access_block(StateId::AIR, |block| {
-            assert_eq!(*block.description().as_ref().unwrap(), "A block of air.");
+            debug_assert_eq!(*block.description().as_ref().unwrap(), "A block of air.");
         })?;
         reg.access_block(hello1, |block| {
-            assert_eq!(block.name(), "hello");
+            debug_assert_eq!(block.name(), "hello");
         })?;
         reg.access_block(world, |block| {
-            assert_eq!(block.name(), "world");
+            debug_assert_eq!(block.name(), "world");
         })?;
         reg.access_state(hello1, |state| {
-            assert_eq!(state.name(), "hello");
+            debug_assert_eq!(state.name(), "hello");
         })?;
         Ok(())
     }
