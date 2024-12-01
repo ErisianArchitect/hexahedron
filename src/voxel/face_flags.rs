@@ -261,3 +261,15 @@ impl std::fmt::Display for FaceFlags {
         write!(f, ")")
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn display_test() {
+        let flags = (FaceFlags::NEG | FaceFlags::POS) & !(FaceFlags::POS_X | FaceFlags::NEG_X);
+        let prediction = "FaceFlags(PosY|PosZ|NegY|NegZ)";
+        let result = flags.to_string();
+        assert!(prediction == result);
+    }
+}
