@@ -15,6 +15,10 @@ path = "./bin/codegen.rs"
 name = "sandbox"
 path = "./bin/sandbox.rs"
 
+[[bin]]
+name = "netbox"
+path = "./bin/netbox/main.rs"
+
 [dependencies]
 bincode = "1.3.3"
 bytemuck = { version = "1.18.0", features = ["derive"] }
@@ -35,3 +39,4 @@ sha2 = "0.10.8"
 splines = { version = "4.3.1", features = ["glam"] }
 tap = "1.0.1"
 thiserror = "1.0.63"
+tokio = { version = "1.41.1", features = ["full"] }
