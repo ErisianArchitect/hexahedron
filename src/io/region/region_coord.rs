@@ -20,6 +20,19 @@ impl RegionCoord {
     }
 
     #[inline]
+    pub const fn to_tuple(self) -> (i32, i32) {
+        (
+            self.x(),
+            self.z(),
+        )
+    }
+
+    #[inline]
+    pub const fn from_tuple((x, z): (i32, i32)) -> Self {
+        Self::new(x, z)
+    }
+
+    #[inline]
     pub const fn index(self) -> usize {
         self.0 as usize
     }
