@@ -220,6 +220,48 @@ macro_rules! num_iter_impls {
 
 for_each_int_type!(num_iter_impls);
 
+pub trait Increment {
+    fn pre_increment(&mut self) -> Self;
+    fn post_increment(&mut self) -> Self;
+}
+
+pub trait Decrement {
+    fn pre_decrement(&mut self) -> Self;
+    fn post_decrement(&mut self) -> Self;
+}
+
+macro_rules! inc_dec_impls {
+    ($type:ty) => {
+        impl Increment for $type {
+            fn pre_increment(&mut self) -> Self {
+                *self += 1;
+                *self
+            }
+
+            fn post_increment(&mut self) -> Self {
+                let current = *self;
+                *self += 1;
+                current
+            }
+        }
+
+        impl Decrement for $type {
+            fn pre_decrement(&mut self) -> Self {
+                *self -= 1;
+                *self
+            }
+
+            fn post_decrement(&mut self) -> Self {
+                let current = *self;
+                *self -= 1;
+                current
+            }
+        }
+    };
+}
+
+for_each_int_type!(inc_dec_impls);
+
 pub trait ResultExtension: private::Sealed<Result<(), ()>> {
     type Ok;
     type Error;
