@@ -5,6 +5,8 @@ pub mod axis_flags;
 use bit::GetBit;
 use glam::{IVec2, IVec3, IVec4, Vec3};
 
+/// Wraps coordinates within `W` and returns the index within that space.  
+/// This is used for getting the index within a 1-D array with WxW elements.
 #[inline]
 pub const fn index2<const W: i32>(x: i32, y: i32) -> usize {
     let x = x.rem_euclid(W);
@@ -12,6 +14,8 @@ pub const fn index2<const W: i32>(x: i32, y: i32) -> usize {
     (y * W + x) as usize
 }
 
+/// Wraps coordinates within `W` and returns the index within that space.  
+/// This is used for getting the index within a 1-D array with WxWxW elements.
 #[inline]
 pub const fn index3<const W: i32>(x: i32, y: i32, z: i32) -> usize {
     let x = x.rem_euclid(W);
