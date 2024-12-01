@@ -37,7 +37,7 @@ impl<const W: i32, const DEFAULT: u8> LightSection<W, DEFAULT> {
     pub fn get<C: Into<(i32, i32, i32)>>(&self, coord: C) -> u8 {
         let (x, y, z): (i32, i32, i32) = coord.into();
         self.light_data.as_ref().and_then(|data| {
-            let index = index3::<W>(x, y, z);
+            let index = index3::<W, W, W>(x, y, z);
             let subindex = index / 2;
             let lights = data[subindex];
             if (index & 1) == 1 {
@@ -54,7 +54,7 @@ impl<const W: i32, const DEFAULT: u8> LightSection<W, DEFAULT> {
             return Change::Unchanged;
         }
         let data = self.light_data.get_or_insert_with(|| (0..Self::NIBBLE_COUNT).map(|_| Self::DEFAULT_NIBBLE).collect());
-        let index = index3::<W>(x, y, z);
+        let index = index3::<W, W, W>(x, y, z);
         let subindex = index / 2;
         let lights = data[subindex];
         let (low, high) = get_nibble(lights);

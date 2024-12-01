@@ -3,7 +3,7 @@ use crate::io::{
     Readable,
 };
 use crate::prelude::{
-    index2,
+    index2_32,
     Replace,
     VoxelResult,
 };
@@ -34,12 +34,12 @@ impl<T: RegionTableItem> RegionTable<T> {
     }
 
     pub fn get(&self, x: i32, y: i32) -> T {
-        let index = index2::<32>(x, y);
+        let index = index2_32(x, y);
         self.table[index]
     }
 
     pub fn set(&mut self, x: i32, y: i32, value: T) -> T {
-        let index = index2::<32>(x, y);
+        let index = index2_32(x, y);
         self.table[index].replace(value)
     }
 

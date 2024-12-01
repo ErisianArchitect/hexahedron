@@ -28,7 +28,7 @@ impl<const W: i32> BlockSection<W> {
             return Change::Unchanged;
         }
         let blocks = self.blocks.get_or_insert_with(|| (0..Self::BLOCK_COUNT).map(|_| StateId::AIR).collect());
-        let index = index3::<W>(x, y, z);
+        let index = index3::<W, W, W>(x, y, z);
         let old = blocks[index].replace(id);
         if old == id {
             Change::Unchanged
@@ -50,7 +50,7 @@ impl<const W: i32> BlockSection<W> {
         let Some(blocks) = &self.blocks else {
             return StateId::AIR;
         };
-        let index = index3::<W>(x, y, z);
+        let index = index3::<W, W, W>(x, y, z);
         blocks[index]
     }
 

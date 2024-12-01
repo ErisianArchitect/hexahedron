@@ -48,7 +48,7 @@ impl<const W: i32> TagSection<W> {
     pub fn insert<C: Into<(i32, i32, i32)>, T: Into<Tag>>(&mut self, coord: C, value: T) -> Option<Tag> {
         let (x, y, z) = coord.into();
         let ids = self.ids.get_or_init();
-        let index = index3::<W>(x, y, z);
+        let index = index3::<W, W, W>(x, y, z);
         let id = ids[index];
         if id.is_null() {
             let id = self.container.insert(value);
@@ -67,7 +67,7 @@ impl<const W: i32> TagSection<W> {
         }
         // This will always succeed because we've early returned if None.
         let ids = self.ids.unwrap_mut();
-        let index = index3::<W>(x, y, z);
+        let index = index3::<W, W, W>(x, y, z);
         let id = ids[index].replace(TagId::NULL);
         if id.is_null() {
             None
@@ -85,7 +85,7 @@ impl<const W: i32> TagSection<W> {
     pub fn get<C: Into<(i32, i32, i32)>>(&self, coord: C) -> Option<&Tag> {
         let (x, y, z) = coord.into();
         self.ids.0.as_ref().and_then(|ids| {
-            let index = index3::<W>(x, y, z);
+            let index = index3::<W, W, W>(x, y, z);
             let id = ids[index];
             if id.is_null() {
                 None
@@ -98,7 +98,7 @@ impl<const W: i32> TagSection<W> {
     pub fn get_mut<C: Into<(i32, i32, i32)>>(&mut self, coord: C) -> Option<&mut Tag> {
         let (x, y, z) = coord.into();
         self.ids.0.as_mut().and_then(|ids| {
-            let index = index3::<W>(x, y, z);
+            let index = index3::<W, W, W>(x, y, z);
             let id = ids[index];
             if id.is_null() {
                 None
@@ -111,7 +111,7 @@ impl<const W: i32> TagSection<W> {
     pub fn get_or_insert_with<C: Into<(i32, i32, i32)>, T: Into<Tag>, F: FnOnce() -> T>(&mut self, coord: C, insert: F) -> &mut Tag {
         let (x, y, z) = coord.into();
         let ids = self.ids.get_or_init();
-        let index = index3::<W>(x, y, z);
+        let index = index3::<W, W, W>(x, y, z);
         let id = ids[index];
         if id.is_null() {
             let id = self.container.insert(insert());

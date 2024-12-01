@@ -24,7 +24,7 @@ impl<const W: i32> UpdateSection<W> {
             return UpdateId::NULL;
         };
         let (x, y, z) = coord.into();
-        let index = index3::<W>(x, y, z);
+        let index = index3::<W, W, W>(x, y, z);
         refs[index]
     }
 
@@ -34,7 +34,7 @@ impl<const W: i32> UpdateSection<W> {
         }
         let (x, y, z) = coord.into();
         let refs = self.update_refs.get_or_insert_with(|| (0..Self::BLOCK_COUNT).map(|_| UpdateId::NULL).collect());
-        let index = index3::<W>(x, y, z);
+        let index = index3::<W, W, W>(x, y, z);
         let old = refs[index].replace(value);
         match (old.is_null(), value.is_null()) {
             (true, true) => Change::Unchanged,

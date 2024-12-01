@@ -23,7 +23,7 @@ impl<const W: i32> OcclusionSection<W> {
             return Change::Unchanged;
         };
         let (x, y, z) = coord.into();
-        let index = index3::<W>(x, y, z);
+        let index = index3::<W, W, W>(x, y, z);
         let mut occ = occlusion_data[index];
         let old = occ.show(face);
         if old {
@@ -44,7 +44,7 @@ impl<const W: i32> OcclusionSection<W> {
     pub fn hide_face<C: Into<(i32, i32, i32)>>(&mut self, coord: C, face: Direction) -> Change<bool> {
         let occlusion_data = self.occlusion_data.get_or_insert_with(|| (0..Self::BLOCK_COUNT).map(|_| Occlusion::UNOCCLUDED).collect());
         let (x, y, z) = coord.into();
-        let index = index3::<W>(x, y, z);
+        let index = index3::<W, W, W>(x, y, z);
         let mut occ = occlusion_data[index];
         let was_unoccluded = occ.is_fully_unoccluded();
         let old = occ.hide(face);
@@ -64,7 +64,7 @@ impl<const W: i32> OcclusionSection<W> {
             return Change::Unchanged;
         };
         let (x, y, z) = coord.into();
-        let index = index3::<W>(x, y, z);
+        let index = index3::<W, W, W>(x, y, z);
         let old = occlusion_data[index].replace(Occlusion::UNOCCLUDED);
         if old != Occlusion::UNOCCLUDED {
             self.occluded_count -= 1;
@@ -81,7 +81,7 @@ impl<const W: i32> OcclusionSection<W> {
     pub fn hide_all_faces<C: Into<(i32, i32, i32)>>(&mut self, coord: C) -> Change<Occlusion> {
         let occlusion_data = self.occlusion_data.get_or_insert_with(|| (0..Self::BLOCK_COUNT).map(|_| Occlusion::UNOCCLUDED).collect());
         let (x, y, z) = coord.into();
-        let index = index3::<W>(x, y, z);
+        let index = index3::<W, W, W>(x, y, z);
         let old = occlusion_data[index].replace(Occlusion::OCCLUDED);
         match old {
             Occlusion::OCCLUDED => Change::Unchanged,
@@ -98,7 +98,7 @@ impl<const W: i32> OcclusionSection<W> {
             return Occlusion::UNOCCLUDED;
         };
         let (x, y, z) = coord.into();
-        let index = index3::<W>(x, y, z);
+        let index = index3::<W, W, W>(x, y, z);
         occlusion_data[index]
     }
 
@@ -108,7 +108,7 @@ impl<const W: i32> OcclusionSection<W> {
         }
         let occlusion_data = self.occlusion_data.get_or_insert_with(|| (0..Self::BLOCK_COUNT).map(|_| Occlusion::UNOCCLUDED).collect());
         let (x, y, z) = coord.into();
-        let index = index3::<W>(x, y, z);
+        let index = index3::<W, W, W>(x, y, z);
         let old = occlusion_data[index].replace(occlusion);
         match (old.is_fully_unoccluded(), occlusion.is_fully_unoccluded()) {
             (true, true) => Change::Unchanged,
