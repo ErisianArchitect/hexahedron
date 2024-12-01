@@ -5,23 +5,68 @@ pub mod axis_flags;
 use bit::GetBit;
 use glam::{IVec2, IVec3, IVec4, Vec3};
 
-/// Wraps coordinates within `W` and returns the index within that space.  
-/// This is used for getting the index within a 1-D array with WxW elements.
+/// Wraps coordinates within `W`x`H` and returns the index within that space.  
+/// This is used for getting the index within a 1-D array with WxH elements.
 #[inline]
-pub const fn index2<const W: i32>(x: i32, y: i32) -> usize {
+pub const fn index2<const W: i32, const H: i32>(x: i32, y: i32) -> usize {
     let x = x.rem_euclid(W);
-    let y = y.rem_euclid(W);
+    let y = y.rem_euclid(H);
     (y * W + x) as usize
 }
 
-/// Wraps coordinates within `W` and returns the index within that space.  
-/// This is used for getting the index within a 1-D array with WxWxW elements.
+/// Wraps coordinates within `W`x`H`x`D` and returns the index within that space.  
+/// This is used for getting the index within a 1-D array with WxHxD elements.
 #[inline]
-pub const fn index3<const W: i32>(x: i32, y: i32, z: i32) -> usize {
+pub const fn index3<const W: i32, const H: i32, const D: i32>(x: i32, y: i32, z: i32) -> usize {
     let x = x.rem_euclid(W);
-    let y = y.rem_euclid(W);
-    let z = z.rem_euclid(W);
-    (y * W*W + z * W + x) as usize
+    let y = y.rem_euclid(H);
+    let z = z.rem_euclid(D);
+    (y * W*D + z * W + x) as usize
+}
+
+#[inline]
+pub const fn index2_16(x: i32, y: i32) -> usize {
+    let x = (x & 15) as usize;
+    let y = (y & 15) as usize;
+    y << 4 | x
+}
+
+#[inline]
+pub const fn index3_16(x: i32, y: i32, z: i32) -> usize {
+    let x = (x & 15) as usize;
+    let y = (y & 15) as usize;
+    let z = (z & 15) as usize;
+    y << 8 | z << 4 | x
+}
+
+#[inline]
+pub const fn index2_32(x: i32, y: i32) -> usize {
+    let x = (x & 31) as usize;
+    let y = (y & 31) as usize;
+    y << 5 | x
+}
+
+#[inline]
+pub const fn index3_32(x: i32, y: i32, z: i32) -> usize {
+    let x = (x & 31) as usize;
+    let y = (y & 31) as usize;
+    let z = (z & 31) as usize;
+    y << 10 | z << 5 | x
+}
+
+#[inline]
+pub const fn index2_64(x: i32, y: i32) -> usize {
+    let x = (x & 63) as usize;
+    let y = (y & 63) as usize;
+    y << 6 | x
+}
+
+#[inline]
+pub const fn index3_64(x: i32, y: i32, z: i32) -> usize {
+    let x = (x & 63) as usize;
+    let y = (y & 63) as usize;
+    let z = (z & 63) as usize;
+    y << 12 | z << 6 | x
 }
 
 /// Returns (min, max).
@@ -55,6 +100,7 @@ pub fn f64_is_zero(value: f64) -> bool {
 /// 7.5, you would expect to get a result of `Some(0.5)` because 7.5 is halfway
 /// between 5 and 10.
 pub fn check_between_f32(value: f32, min: f32, max: f32) -> Option<f32> {
+    debug_assert!(min < max, "min must be less than max.");
     if value < min || value > max {
         None
     } else {
@@ -70,6 +116,7 @@ pub fn check_between_f32(value: f32, min: f32, max: f32) -> Option<f32> {
 /// 7.5, you would expect to get a result of `Some(0.5)` because 7.5 is halfway
 /// between 5 and 10.
 pub fn check_between_f64(value: f64, min: f64, max: f64) -> Option<f64> {
+    debug_assert!(min < max, "min must be less than max.");
     if value < min || value > max {
         None
     } else {
@@ -200,5 +247,17 @@ impl Checkerboard for IVec4 {
     #[inline]
     fn checkerboard(self) -> bool {
         checkerboard4(self.x, self.y, self.z, self.w)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn minmax_test() {
+        assert_eq!(minmax(4, 2), (2, 4));
+        assert_eq!(minmax(2, 4), (2, 4));
+        assert_eq!(minmax(4, 4), (4, 4));
+        assert_eq!(minmax(3.14, 2.15), (2.15, 3.14));
     }
 }
