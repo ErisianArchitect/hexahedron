@@ -48,3 +48,17 @@ impl From<(i32, i32)> for RegionCoord {
         Self::new(value.0, value.1)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn coord_test() {
+        let c1 = RegionCoord::new(3, 5);
+        let c2 = RegionCoord::new(5, 3);
+        assert_eq!(c1.x(), 3);
+        assert_eq!(c1.z(), 5);
+        assert_eq!(c2.x(), 5);
+        assert_eq!(c2.z(), 3);
+    }
+}
