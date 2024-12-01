@@ -78,7 +78,7 @@ pub fn check_between_f64(value: f64, min: f64, max: f64) -> Option<f64> {
 
 /// Calculate the normal of a triangle.
 pub fn calculate_tri_normal(tri: &[Vec3]) -> Vec3 {
-    assert_eq!(tri.len(), 3);
+    debug_assert_eq!(tri.len(), 3);
     let a = tri[1] - tri[0];
     let b = tri[2] - tri[0];
     let nx = a.y * b.z - a.z * b.y;

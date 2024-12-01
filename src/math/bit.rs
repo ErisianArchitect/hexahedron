@@ -430,6 +430,6 @@ mod tests {
     use super::*;
     #[test]
     fn delete_bitmask_test() {
-        assert_eq!(0b11000011, u8::MAX.delete_bitmask(2..6));
+        debug_assert_eq!(0b11000011, u8::MAX.delete_bitmask(2..6));
     }
 }

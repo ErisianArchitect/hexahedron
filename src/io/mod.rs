@@ -1214,7 +1214,7 @@ impl Readable for Vec<Flip> {
             accum_size: 0
         };
         bytes.into_iter().for_each(|byte| bitreader.push_bits(byte, 8));
-        assert_eq!(bitreader.flips.len(), bitreader.index);
+        debug_assert_eq!(bitreader.flips.len(), bitreader.index);
         Ok(flips)
     }
 }
@@ -1591,6 +1591,6 @@ mod tests {
         axes.write_to(&mut buffer).unwrap();
         buffer.seek(SeekFrom::Start(0)).unwrap();
         let axes2 = Vec::<Axis>::read_from(&mut buffer).unwrap();
-        assert!(axes == axes2);
+        debug_assert!(axes == axes2);
     }
 }

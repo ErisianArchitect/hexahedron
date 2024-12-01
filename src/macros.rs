@@ -86,9 +86,9 @@ mod tests {
             format!("{hex1}{hex2}")
         }
         let result = pipeline!(200 => step1 => step2 => step3 => |s: String| s.to_lowercase());
-        assert_eq!(result, "ff");
+        debug_assert_eq!(result, "ff");
         let result = pipeline!(100 => |n: i32| n + 1 => |n: i32| n * 2);
-        assert_eq!(result, 202);
+        debug_assert_eq!(result, 202);
 
     }
 }

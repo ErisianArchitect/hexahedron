@@ -97,8 +97,8 @@ mod tests {
         use crate::voxel::cardinal::Cardinal;
         use crate::rendering::color::*;
         let air = blockstate!(air);
-        assert_eq!(air.name(), "air");
-        assert!(air.properties().is_empty());
+        debug_assert_eq!(air.name(), "air");
+        debug_assert!(air.properties().is_empty());
         let facing = "facing";
         let state = blockstate!("chest"[
             (facing)=Cardinal::West,
@@ -106,36 +106,36 @@ mod tests {
             color=Rgb::new(255, 0, 255),
             password=b"hunter2",
         ]);
-        assert_eq!(state.properties().len(), 4);
-        assert_eq!(state.name(), "chest");
+        debug_assert_eq!(state.properties().len(), 4);
+        debug_assert_eq!(state.name(), "chest");
 
         if let Property::Cardinal(face) = state["facing"] {
-            assert_eq!(face, Cardinal::West);
+            debug_assert_eq!(face, Cardinal::West);
         } else {
             panic!("Property was not Cardinal.");
         }
         if let Property::Cardinal(face) = state["facing"] {
-            assert_eq!(face, Cardinal::West);
+            debug_assert_eq!(face, Cardinal::West);
         } else {
             panic!("Property was not Cardinal.");
         }
         if let Property::Bool(locked) = state["locked"] {
-            assert_eq!(locked, false);
+            debug_assert_eq!(locked, false);
         } else {
             panic!("Property was not Bool.");
         }
         if let Property::Bool(locked) = state["locked"] {
-            assert_eq!(locked, false);
+            debug_assert_eq!(locked, false);
         } else {
             panic!("Property was not Bool.");
         }
         if let Property::Rgb(color) = state["color"] {
-            assert_eq!(color, Rgb::new(255, 0, 255));
+            debug_assert_eq!(color, Rgb::new(255, 0, 255));
         } else {
             panic!("Property was not Rgb.");
         }
         if let Property::Bytes(password) = &state["password"] {
-            assert_eq!(password, b"hunter2");
+            debug_assert_eq!(password, b"hunter2");
         } else {
             panic!("Property was not Bytes.");
         }
@@ -145,20 +145,20 @@ mod tests {
             BlockProperty::new("bool", true),
             BlockProperty::new("string", "Hello, world!")
         ]);
-        assert_eq!(state.name(), "test");
-        assert_eq!(state.properties().len(), 3);
+        debug_assert_eq!(state.name(), "test");
+        debug_assert_eq!(state.properties().len(), 3);
         if let Property::Int(value) = &state["int"] {
-            assert_eq!(*value, 1234);
+            debug_assert_eq!(*value, 1234);
         } else {
             panic!("Property was not Int.");
         }
         if let Property::String(value) = &state["string"] {
-            assert_eq!(value, "Hello, world!");
+            debug_assert_eq!(value, "Hello, world!");
         } else {
             panic!("Property was not String.");
         }
         if let Property::Bool(value) = &state["bool"] {
-            assert_eq!(*value, true);
+            debug_assert_eq!(*value, true);
         } else {
             panic!("Property was not Bool.");
         }

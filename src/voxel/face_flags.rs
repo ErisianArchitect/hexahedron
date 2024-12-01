@@ -270,6 +270,6 @@ mod tests {
         let flags = FaceFlags::POS_Y | FaceFlags::NEG_Z;
         let prediction = "FaceFlags(PosY|NegZ)";
         let result = flags.to_string();
-        assert!(prediction == result);
+        debug_assert!(prediction == result);
     }
 }

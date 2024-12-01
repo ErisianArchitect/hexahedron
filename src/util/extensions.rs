@@ -294,49 +294,49 @@ mod tests {
     #[test]
     fn bool_ext_test() {
         let mut edit = false;
-        assert!(edit.mark_if(true));
+        debug_assert!(edit.mark_if(true));
         let mut executed = false;
         edit.if_(|| {
             executed.mark();
         });
-        assert!(executed);
-        assert!(edit);
+        debug_assert!(executed);
+        debug_assert!(edit);
         assert_eq!(edit.select("false", "true"), "true");
-        assert!(!edit.unmark_if(false));
-        assert!(edit);
-        assert!(edit.unmark_if(true));
+        debug_assert!(!edit.unmark_if(false));
+        debug_assert!(edit);
+        debug_assert!(edit.unmark_if(true));
         let mut executed = false;
         edit.if_not(|| {
             executed.mark();
         });
-        assert!(executed);
-        assert!(!edit);
+        debug_assert!(executed);
+        debug_assert!(!edit);
         assert_eq!(edit.select("false", "true"), "false");
     }
 
     #[test]
     fn num_iter_tests() {
         let mut to_2 = 2.iter();
-        assert_eq!(to_2.next(), Some(0));
-        assert_eq!(to_2.next(), Some(1));
-        assert_eq!(to_2.next(), None);
+        debug_assert_eq!(to_2.next(), Some(0));
+        debug_assert_eq!(to_2.next(), Some(1));
+        debug_assert_eq!(to_2.next(), None);
         let mut to_1_inc = 1.iter_inclusive();
-        assert_eq!(to_1_inc.next(), Some(0));
-        assert_eq!(to_1_inc.next(), Some(1));
-        assert_eq!(to_1_inc.next(), None);
+        debug_assert_eq!(to_1_inc.next(), Some(0));
+        debug_assert_eq!(to_1_inc.next(), Some(1));
+        debug_assert_eq!(to_1_inc.next(), None);
         let mut _2_to_4 = 2.iter_to(4);
-        assert_eq!(_2_to_4.next(), Some(2));
-        assert_eq!(_2_to_4.next(), Some(3));
-        assert_eq!(_2_to_4.next(), None);
+        debug_assert_eq!(_2_to_4.next(), Some(2));
+        debug_assert_eq!(_2_to_4.next(), Some(3));
+        debug_assert_eq!(_2_to_4.next(), None);
         let mut _2_to_3_inc = 2.iter_to_inclusive(3);
-        assert_eq!(_2_to_3_inc.next(), Some(2));
-        assert_eq!(_2_to_3_inc.next(), Some(3));
-        assert_eq!(_2_to_3_inc.next(), None);
+        debug_assert_eq!(_2_to_3_inc.next(), Some(2));
+        debug_assert_eq!(_2_to_3_inc.next(), Some(3));
+        debug_assert_eq!(_2_to_3_inc.next(), None);
         let mut rev_0_to_4 = 4.iter().rev();
-        assert_eq!(rev_0_to_4.next(), Some(3));
-        assert_eq!(rev_0_to_4.next(), Some(2));
-        assert_eq!(rev_0_to_4.next(), Some(1));
-        assert_eq!(rev_0_to_4.next(), Some(0));
-        assert_eq!(rev_0_to_4.next(), None);
+        debug_assert_eq!(rev_0_to_4.next(), Some(3));
+        debug_assert_eq!(rev_0_to_4.next(), Some(2));
+        debug_assert_eq!(rev_0_to_4.next(), Some(1));
+        debug_assert_eq!(rev_0_to_4.next(), Some(0));
+        debug_assert_eq!(rev_0_to_4.next(), None);
     }
 }

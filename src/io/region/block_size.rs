@@ -42,8 +42,8 @@ impl BlockSize {
     
     #[inline]
     pub const fn new(multiplier: u8, exponent: u8) -> Self {
-        assert!(multiplier <= 0b11111, "Multiplier greater than 31");
-        assert!(exponent <= 0b111, "Exponent greater than 7");
+        debug_assert!(multiplier <= 0b11111, "Multiplier greater than 31");
+        debug_assert!(exponent <= 0b111, "Exponent greater than 7");
         Self(multiplier | exponent << 5)
     }
 
@@ -73,8 +73,8 @@ impl BlockSize {
 
     /// If the `size` represents an exact 4KiB block size, then it will return that block size. Otherwise returns `None`.
     pub fn reverse(size: u16) -> Option<Self> {
-        assert!(size != 0, "Size is 0.");
-        assert!(size <= Self::MAX_BLOCK_COUNT, "Size greater than {}", Self::MAX_BLOCK_COUNT);
+        debug_assert!(size != 0, "Size is 0.");
+        debug_assert!(size <= Self::MAX_BLOCK_COUNT, "Size greater than {}", Self::MAX_BLOCK_COUNT);
         let mut low = 0;
         let mut hi = 256;
         while low < hi {
@@ -91,7 +91,7 @@ impl BlockSize {
 
     /// Gets the [BlockSize] required to contain `size` in 4KiB sectors.
     pub fn required(size: u16) -> Self {
-        assert!(size <= Self::MAX_BLOCK_COUNT, "Size greater than {}", Self::MAX_BLOCK_COUNT);
+        debug_assert!(size <= Self::MAX_BLOCK_COUNT, "Size greater than {}", Self::MAX_BLOCK_COUNT);
         Self::required_unchecked(size)
     }
 

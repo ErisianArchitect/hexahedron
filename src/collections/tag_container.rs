@@ -81,7 +81,7 @@ impl TagContainer {
         }
         let tag: Tag = tag.into();
         let data = &mut self.data[id.index()];
-        assert!(data.is_some(), "TagContainer slot was empty while replacing; this likely indicates program corruption.");
+        debug_assert!(data.is_some(), "TagContainer slot was empty while replacing; this likely indicates program corruption.");
         data.replace(tag).unwrap()
     }
 

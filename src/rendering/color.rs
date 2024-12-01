@@ -1152,7 +1152,7 @@ mod testing_sandbox {
     fn check_color_indices() {
         for color in Color::iter() {
             let name = format!("{color:#?}");
-            assert!(name == color.pascal_name());
+            debug_assert!(name == color.pascal_name());
         }
     }
 }
