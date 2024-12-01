@@ -63,15 +63,9 @@ impl<M: Copy> PoolId<M> {
     #[inline]
     fn new(pool_id: u64, index: usize, generation: u64) -> Self {
         let index = index as u64 + 1;
-        if index > Self::INDEX_BITS {
-            panic!("Index out of bounds.");
-        }
-        if generation > Self::GENERATION_MAX {
-            panic!("Generation out of bounds.");
-        }
-        if pool_id > Self::POOL_ID_MAX {
-            panic!("Pool Id out of bounds.");
-        }
+        debug_assert!(index <= Self::INDEX_BITS, "Index out of bounds.");
+        debug_assert!(generation <= Self::GENERATION_MAX, "Generation out of bounds.");
+        debug_assert!(pool_id <= Self::POOL_ID_MAX, "Pool ID out of bounds.");
         Self(index | pool_id << Self::POOL_ID_OFFSET | generation << Self::GENERATION_ID_OFFSET, PhantomData)
     }
     
@@ -103,9 +97,7 @@ impl<M: Copy> PoolId<M> {
     #[must_use]
     #[inline]
     pub fn index(self) -> usize {
-        if self.is_null() {
-            panic!("index() on PoolId(null).");
-        }
+        debug_assert!(self.is_non_null(), "index() on PoolId(null).");
         ((self.0 & Self::INDEX_BITS) as usize) - 1
     }
 
@@ -202,19 +194,11 @@ impl<T, M: Copy> ObjectPool<T, M> {
     }
     
     pub fn remove(&mut self, id: PoolId<M>) -> T {
-        if id.is_null() {
-            panic!("ID was null.");
-        }
-        if id.pool_id() != self.id {
-            panic!("Id does not belong to this pool.");
-        }
-        if id.index() >= self.indices.len() {
-            panic!("Out of bounds");
-        }
+        debug_assert!(id.is_non_null(), "ID was null.");
+        debug_assert!(id.pool_id() == self.id, "ID does not belong to this pool.");
+        debug_assert!(id.index() < self.indices.len(), "Out of bounds.");
         let pool_index = self.indices[id.index()];
-        if self.pool[pool_index].id != id {
-            panic!("Dead pool ID");
-        }
+        debug_assert!(self.pool[pool_index].id == id, "Dead pool ID.");
         let old = self.pool.swap_remove(pool_index).value;
         // If we didn't just swap_remove the last element, then
         // we need to adjust the index in the ObjectPool.
@@ -228,15 +212,9 @@ impl<T, M: Copy> ObjectPool<T, M> {
 
     /// Replaces the value with the given ID with a new value.
     pub fn replace(&mut self, id: PoolId<M>, value: T) -> T {
-        if id.is_null() {
-            panic!("Provided a null ID.");
-        }
-        if id.pool_id() != self.id {
-            panic!("Id does not belong to this pool.");
-        }
-        if id.index() >= self.indices.len() {
-            panic!("Out of bounds.");
-        }
+        debug_assert!(id.is_non_null(), "Provided a null ID.");
+        debug_assert!(id.pool_id() == self.id, "ID does not belong to this pool.");
+        debug_assert!(id.index() < self.indices.len(), "Out of bounds.");
         let pool_index = self.indices[id.index()];
         self.pool[pool_index].value.replace(value)
     }
@@ -279,7 +257,7 @@ impl<T, M: Copy> ObjectPool<T, M> {
             return None;
         }
         let pool_index = self.indices[id.index()];
-        assert!(self.pool[pool_index].id == id, "Corrupted ObjectPool: internal pool id does not match");
+        debug_assert!(self.pool[pool_index].id == id, "Corrupted ObjectPool: internal pool id does not match");
         Some(&self.pool[pool_index].value)
     }
 
@@ -289,7 +267,7 @@ impl<T, M: Copy> ObjectPool<T, M> {
             return None;
         }
         let pool_index = self.indices[id.index()];
-        assert!(self.pool[pool_index].id == id, "Corrupted ObjectPool: internal pool id does not match");
+        debug_assert!(self.pool[pool_index].id == id, "Corrupted ObjectPool: internal pool id does not match");
         Some(&mut self.pool[pool_index].value)
     }
 
