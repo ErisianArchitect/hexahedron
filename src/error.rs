@@ -24,8 +24,10 @@ pub enum Error {
     NoHead,
     #[error("Path was not a file")]
     NotAFile,
-    #[error("Allocation failed ({0}, {1})")]
-    AllocationFailure(SectorOffset, BlockSize),
+    #[error("Allocation failed (size: {0})")]
+    AllocationFailure(BlockSize),
+    #[error("Realllocation failed ({0}, {1})")]
+    ReallocationFailure(SectorOffset, BlockSize),
     #[error("Chunk not found")]
     ChunkNotFound,
     #[error("Parent directory not found")]

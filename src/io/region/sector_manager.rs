@@ -166,6 +166,10 @@ impl SectorManager {
         Some(SectorOffset::new(block_size, sector.start))
     }
 
+    pub fn alloc_err(&mut self, block_size: BlockSize) -> Result<SectorOffset> {
+        self.alloc(block_size).ok_or_else(|| Error::AllocationFailure(block_size))
+    }
+
     pub fn dealloc(&mut self, sector: SectorOffset) {
         if sector.is_empty() {
             return;
@@ -191,7 +195,7 @@ impl SectorManager {
     }
 
     pub fn realloc_err(&mut self, free: SectorOffset, size: BlockSize) -> Result<SectorOffset> {
-        self.realloc(free, size).ok_or_else(|| Error::AllocationFailure(free, size))
+        self.realloc(free, size).ok_or_else(|| Error::ReallocationFailure(free, size))
     }
     
     fn realloc_unchecked(&mut self, free: SectorOffset, new_size: BlockSize) -> Option<SectorOffset> {
