@@ -38,8 +38,8 @@ const fn byte_hex(byte: u8) -> [u8; 2] {
 const fn hex_char_value(hex_char: u8) -> Option<u8> {
     Some(hex_char - match hex_char {
         b'0'..=b'9' => b'0',
-        b'a'..=b'f' => b'W',
         b'A'..=b'F' => b'7',
+        b'a'..=b'f' => b'W',
         _ => return None,
     })
 }
@@ -113,10 +113,16 @@ pub fn byte_lerp(a: u8, b: u8, t: f32) -> u8 {
     if a == b {
         return a;
     }
-    let a = a as f32;
-    let b = b as f32;
-    let result = a + (b - a) * t;
-    result as u8
+    if t <= 0.0 {
+        a
+    } else if t >= 1.0 {
+        b
+    } else {
+        let a = a as f32;
+        let b = b as f32;
+        let result = a + (b - a) * t;
+        result as u8
+    }
 }
 
 #[inline]
