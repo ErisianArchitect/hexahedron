@@ -66,15 +66,6 @@ impl TagContainer {
         }
     }
 
-    pub fn remove(&mut self, id: TagId) -> Tag {
-        if id.is_null() {
-            panic!("id is null.");
-        }
-        let tag = self.data[id.index()].take().expect("TagContainer slot was empty.");
-        self.unused.push(id.index() as u16);
-        tag
-    }
-
     pub fn replace<T: Into<Tag>>(&mut self, id: TagId, tag: T) -> Tag {
         if id.is_null() {
             panic!("id is null.");
@@ -83,6 +74,15 @@ impl TagContainer {
         let data = &mut self.data[id.index()];
         debug_assert!(data.is_some(), "TagContainer slot was empty while replacing; this likely indicates program corruption.");
         data.replace(tag).unwrap()
+    }
+
+    pub fn remove(&mut self, id: TagId) -> Tag {
+        if id.is_null() {
+            panic!("id is null.");
+        }
+        let tag = self.data[id.index()].take().expect("TagContainer slot was empty.");
+        self.unused.push(id.index() as u16);
+        tag
     }
 
     /// This method can panic if id is invalid.
