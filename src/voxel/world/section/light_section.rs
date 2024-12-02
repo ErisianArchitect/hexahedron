@@ -1,6 +1,8 @@
 // use bytemuck::NoUninit;
 
-use crate::{math::index3, prelude::OptionExtension, util::change::Change};
+use crate::{prelude::OptionExtension, util::change::Change};
+
+use super::SectionIndex;
 
 
 /// Returns (low, high) where low is bits 0..=3 and high is bits 4..=7.
@@ -34,10 +36,9 @@ impl<const W: i32, const DEFAULT: u8> LightSection<W, DEFAULT> {
         }
     }
 
-    pub fn get<C: Into<(i32, i32, i32)>>(&self, coord: C) -> u8 {
-        let (x, y, z): (i32, i32, i32) = coord.into();
+    pub fn get<I: SectionIndex<W>>(&self, coord: I) -> u8 {
         self.light_data.as_ref().and_then(|data| {
-            let index = index3::<W, W, W>(x, y, z);
+            let index = coord.section_index();
             let subindex = index / 2;
             let lights = data[subindex];
             if (index & 1) == 1 {
@@ -48,13 +49,12 @@ impl<const W: i32, const DEFAULT: u8> LightSection<W, DEFAULT> {
         }).unwrap_or(DEFAULT)
     }
 
-    pub fn set<C: Into<(i32, i32, i32)>>(&mut self, coord: C, level: u8) -> Change<u8> {
-        let (x, y, z): (i32, i32, i32) = coord.into();
+    pub fn set<I: SectionIndex<W>>(&mut self, coord: I, level: u8) -> Change<u8> {
         if self.light_data.is_none() && level == DEFAULT {
             return Change::Unchanged;
         }
         let data = self.light_data.get_or_insert_with(|| (0..Self::NIBBLE_COUNT).map(|_| Self::DEFAULT_NIBBLE).collect());
-        let index = index3::<W, W, W>(x, y, z);
+        let index = coord.section_index();
         let subindex = index / 2;
         let lights = data[subindex];
         let (low, high) = get_nibble(lights);

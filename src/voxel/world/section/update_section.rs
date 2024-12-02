@@ -1,4 +1,6 @@
-use crate::{collections::update_queue::*, math::index3, prelude::{OptionExtension, Replace}, util::change::Change};
+use crate::{collections::update_queue::*, prelude::{OptionExtension, Replace}, util::change::Change};
+
+use super::SectionIndex;
 
 pub struct UpdateSection<const W: i32> {
     update_refs: Option<Box<[UpdateId]>>,
@@ -19,22 +21,20 @@ impl<const W: i32> UpdateSection<W> {
         self.update_refs.is_some()
     }
 
-    pub fn get<C: Into<(i32, i32, i32)>>(&self, coord: C) -> UpdateId {
+    pub fn get<I: SectionIndex<W>>(&self, coord: I) -> UpdateId {
         let Some(refs) = self.update_refs.as_ref() else {
             return UpdateId::NULL;
         };
-        let (x, y, z) = coord.into();
-        let index = index3::<W, W, W>(x, y, z);
+        let index = coord.section_index();
         refs[index]
     }
 
-    pub fn set<C: Into<(i32, i32, i32)>>(&mut self, coord: C, value: UpdateId) -> Change<UpdateId> {
+    pub fn set<I: SectionIndex<W>>(&mut self, coord: I, value: UpdateId) -> Change<UpdateId> {
         if self.update_refs.is_none() && value.is_null() {
             return Change::Unchanged;
         }
-        let (x, y, z) = coord.into();
         let refs = self.update_refs.get_or_insert_with(|| (0..Self::BLOCK_COUNT).map(|_| UpdateId::NULL).collect());
-        let index = index3::<W, W, W>(x, y, z);
+        let index = coord.section_index();
         let old = refs[index].replace(value);
         match (old.is_null(), value.is_null()) {
             (true, true) => Change::Unchanged,

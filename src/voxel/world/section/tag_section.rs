@@ -1,4 +1,6 @@
-use crate::{collections::tag_container::{TagContainer, TagId}, math::index3, prelude::{OptionExtension, Replace}, tag::Tag};
+use crate::{collections::tag_container::{TagContainer, TagId}, prelude::{OptionExtension, Replace}, tag::Tag};
+
+use super::SectionIndex;
 
 
 #[derive(Debug, Default)]
@@ -45,10 +47,9 @@ impl<const W: i32> TagSection<W> {
         }
     }
 
-    pub fn insert<C: Into<(i32, i32, i32)>, T: Into<Tag>>(&mut self, coord: C, value: T) -> Option<Tag> {
-        let (x, y, z) = coord.into();
+    pub fn insert<I: SectionIndex<W>, T: Into<Tag>>(&mut self, coord: I, value: T) -> Option<Tag> {
         let ids = self.ids.get_or_init();
-        let index = index3::<W, W, W>(x, y, z);
+        let index = coord.section_index();
         let id = ids[index];
         if id.is_null() {
             let id = self.container.insert(value);
@@ -60,14 +61,13 @@ impl<const W: i32> TagSection<W> {
         }
     }
 
-    pub fn remove<C: Into<(i32, i32, i32)>>(&mut self, coord: C) -> Option<Tag> {
-        let (x, y, z) = coord.into();
+    pub fn remove<I: SectionIndex<W>>(&mut self, coord: I) -> Option<Tag> {
         if self.ids.0.is_none() {
             return None;
         }
         // This will always succeed because we've early returned if None.
         let ids = self.ids.unwrap_mut();
-        let index = index3::<W, W, W>(x, y, z);
+        let index = coord.section_index();
         let id = ids[index].replace(TagId::NULL);
         if id.is_null() {
             None
@@ -82,10 +82,9 @@ impl<const W: i32> TagSection<W> {
         }
     }
 
-    pub fn get<C: Into<(i32, i32, i32)>>(&self, coord: C) -> Option<&Tag> {
-        let (x, y, z) = coord.into();
+    pub fn get<I: SectionIndex<W>>(&self, coord: I) -> Option<&Tag> {
         self.ids.0.as_ref().and_then(|ids| {
-            let index = index3::<W, W, W>(x, y, z);
+            let index = coord.section_index();
             let id = ids[index];
             if id.is_null() {
                 None
@@ -95,10 +94,9 @@ impl<const W: i32> TagSection<W> {
         })
     }
 
-    pub fn get_mut<C: Into<(i32, i32, i32)>>(&mut self, coord: C) -> Option<&mut Tag> {
-        let (x, y, z) = coord.into();
+    pub fn get_mut<I: SectionIndex<W>>(&mut self, coord: I) -> Option<&mut Tag> {
         self.ids.0.as_mut().and_then(|ids| {
-            let index = index3::<W, W, W>(x, y, z);
+            let index = coord.section_index();
             let id = ids[index];
             if id.is_null() {
                 None
@@ -108,10 +106,9 @@ impl<const W: i32> TagSection<W> {
         })
     }
 
-    pub fn get_or_insert_with<C: Into<(i32, i32, i32)>, T: Into<Tag>, F: FnOnce() -> T>(&mut self, coord: C, insert: F) -> &mut Tag {
-        let (x, y, z) = coord.into();
+    pub fn get_or_insert_with<I: SectionIndex<W>, T: Into<Tag>, F: FnOnce() -> T>(&mut self, coord: I, insert: F) -> &mut Tag {
         let ids = self.ids.get_or_init();
-        let index = index3::<W, W, W>(x, y, z);
+        let index = coord.section_index();
         let id = ids[index];
         if id.is_null() {
             let id = self.container.insert(insert());
@@ -124,7 +121,7 @@ impl<const W: i32> TagSection<W> {
     }
 
     #[inline]
-    pub fn get_or_insert<C: Into<(i32, i32, i32)>, T: Into<Tag>>(&mut self, coord: C, insert: T) -> &mut Tag {
+    pub fn get_or_insert<I: SectionIndex<W>, T: Into<Tag>>(&mut self, coord: I, insert: T) -> &mut Tag {
         self.get_or_insert_with(coord, move || insert)
     }
 

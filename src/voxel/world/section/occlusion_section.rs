@@ -1,6 +1,6 @@
-use crate::{math::index3, prelude::{Direction, OptionExtension, Replace}, util::change::Change};
+use crate::{prelude::{Direction, OptionExtension, Replace}, util::change::Change};
 
-use super::occlusion::Occlusion;
+use super::{occlusion::Occlusion, SectionIndex};
 
 pub struct OcclusionSection<const W: i32> {
     occlusion_data: Option<Box<[Occlusion]>>,
@@ -16,14 +16,13 @@ impl<const W: i32> OcclusionSection<W> {
         }
     }
 
-    pub fn show_face<C: Into<(i32, i32, i32)>>(&mut self, coord: C, face: Direction) -> Change<bool> {
+    pub fn show_face<I: SectionIndex<W>>(&mut self, coord: I, face: Direction) -> Change<bool> {
         // Faces are shown by default, so we should return Unchanged
         // if the occlusion data is unallocated.
         let Some(occlusion_data) = self.occlusion_data.as_mut() else {
             return Change::Unchanged;
         };
-        let (x, y, z) = coord.into();
-        let index = index3::<W, W, W>(x, y, z);
+        let index = coord.section_index();
         let mut occ = occlusion_data[index];
         let old = occ.show(face);
         if old {
@@ -41,10 +40,9 @@ impl<const W: i32> OcclusionSection<W> {
         }
     }
 
-    pub fn hide_face<C: Into<(i32, i32, i32)>>(&mut self, coord: C, face: Direction) -> Change<bool> {
+    pub fn hide_face<I: SectionIndex<W>>(&mut self, coord: I, face: Direction) -> Change<bool> {
         let occlusion_data = self.occlusion_data.get_or_insert_with(|| (0..Self::BLOCK_COUNT).map(|_| Occlusion::UNOCCLUDED).collect());
-        let (x, y, z) = coord.into();
-        let index = index3::<W, W, W>(x, y, z);
+        let index = coord.section_index();
         let mut occ = occlusion_data[index];
         let was_unoccluded = occ.is_fully_unoccluded();
         let old = occ.hide(face);
@@ -59,12 +57,11 @@ impl<const W: i32> OcclusionSection<W> {
         }
     }
 
-    pub fn show_all_faces<C: Into<(i32, i32, i32)>>(&mut self, coord: C) -> Change<Occlusion> {
+    pub fn show_all_faces<I: SectionIndex<W>>(&mut self, coord: I) -> Change<Occlusion> {
         let Some(occlusion_data) = self.occlusion_data.as_mut() else {
             return Change::Unchanged;
         };
-        let (x, y, z) = coord.into();
-        let index = index3::<W, W, W>(x, y, z);
+        let index = coord.section_index();
         let old = occlusion_data[index].replace(Occlusion::UNOCCLUDED);
         if old != Occlusion::UNOCCLUDED {
             self.occluded_count -= 1;
@@ -78,10 +75,9 @@ impl<const W: i32> OcclusionSection<W> {
         }
     }
 
-    pub fn hide_all_faces<C: Into<(i32, i32, i32)>>(&mut self, coord: C) -> Change<Occlusion> {
+    pub fn hide_all_faces<I: SectionIndex<W>>(&mut self, coord: I) -> Change<Occlusion> {
         let occlusion_data = self.occlusion_data.get_or_insert_with(|| (0..Self::BLOCK_COUNT).map(|_| Occlusion::UNOCCLUDED).collect());
-        let (x, y, z) = coord.into();
-        let index = index3::<W, W, W>(x, y, z);
+        let index = coord.section_index();
         let old = occlusion_data[index].replace(Occlusion::OCCLUDED);
         match old {
             Occlusion::OCCLUDED => Change::Unchanged,
@@ -93,22 +89,20 @@ impl<const W: i32> OcclusionSection<W> {
         }
     }
 
-    pub fn get<C: Into<(i32, i32, i32)>>(&self, coord: C) -> Occlusion {
+    pub fn get<I: SectionIndex<W>>(&self, coord: I) -> Occlusion {
         let Some(occlusion_data) = self.occlusion_data.as_ref() else {
             return Occlusion::UNOCCLUDED;
         };
-        let (x, y, z) = coord.into();
-        let index = index3::<W, W, W>(x, y, z);
+        let index = coord.section_index();
         occlusion_data[index]
     }
 
-    pub fn set<C: Into<(i32, i32, i32)>>(&mut self, coord: C, occlusion: Occlusion) -> Change<Occlusion> {
+    pub fn set<I: SectionIndex<W>>(&mut self, coord: I, occlusion: Occlusion) -> Change<Occlusion> {
         if self.occlusion_data.is_none() && occlusion.is_fully_unoccluded() {
             return Change::Unchanged;
         }
         let occlusion_data = self.occlusion_data.get_or_insert_with(|| (0..Self::BLOCK_COUNT).map(|_| Occlusion::UNOCCLUDED).collect());
-        let (x, y, z) = coord.into();
-        let index = index3::<W, W, W>(x, y, z);
+        let index = coord.section_index();
         let old = occlusion_data[index].replace(occlusion);
         match (old.is_fully_unoccluded(), occlusion.is_fully_unoccluded()) {
             (true, true) => Change::Unchanged,
