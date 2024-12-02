@@ -2,6 +2,8 @@ use std::{iter::Map, slice::Iter, vec::IntoIter};
 
 use glam::IVec3;
 
+use crate::prelude::Replace;
+
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct UpdateId(u32);
 
@@ -86,6 +88,11 @@ impl UpdateQueue {
             self.queue.push(UpdateEntry::new(coord, id));
             id
         }
+    }
+
+    pub fn replace(&mut self, id: UpdateId, coord: IVec3) -> IVec3 {
+        let index = self.indices[id.index()] as usize;
+        self.queue[index].coord.replace(coord)
     }
 
     pub fn remove(&mut self, id: UpdateId) -> IVec3 {
