@@ -221,40 +221,44 @@ macro_rules! num_iter_impls {
 for_each_int_type!(num_iter_impls);
 
 pub trait Increment {
-    fn pre_increment(&mut self) -> Self;
+    /// Increment and return the result of incrementation.
+    fn increment(&mut self) -> Self;
+    /// Increment and return the value prior to incrementation.
     fn post_increment(&mut self) -> Self;
 }
 
 pub trait Decrement {
-    fn pre_decrement(&mut self) -> Self;
+    /// Decrement and return the result of decrementation.
+    fn decrement(&mut self) -> Self;
+    /// Decrement and return the value prior to decrementation.
     fn post_decrement(&mut self) -> Self;
 }
 
 macro_rules! inc_dec_impls {
     ($type:ty) => {
         impl Increment for $type {
-            fn pre_increment(&mut self) -> Self {
+            fn increment(&mut self) -> Self {
                 *self += 1;
                 *self
             }
 
             fn post_increment(&mut self) -> Self {
-                let current = *self;
+                let original = *self;
                 *self += 1;
-                current
+                original
             }
         }
 
         impl Decrement for $type {
-            fn pre_decrement(&mut self) -> Self {
+            fn decrement(&mut self) -> Self {
                 *self -= 1;
                 *self
             }
 
             fn post_decrement(&mut self) -> Self {
-                let current = *self;
+                let original = *self;
                 *self -= 1;
-                current
+                original
             }
         }
     };
