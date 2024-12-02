@@ -90,6 +90,7 @@ impl UpdateQueue {
         }
     }
 
+    // I just realized that it doesn't really make sense to have this.
     pub fn replace(&mut self, id: UpdateId, coord: IVec3) -> IVec3 {
         let index = self.indices[id.index()] as usize;
         self.queue[index].coord.replace(coord)
