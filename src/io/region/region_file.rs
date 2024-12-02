@@ -1,3 +1,69 @@
+//! # Region File Format:
+//! I designed this format based on Minecraft's region file format.
+//! The key difference is that only Gzip is used for compression, and
+//! chunks can be as large as 8034 4KiB sectors, as well as timestamps
+//! being 64-bit rather than 32-bit.
+//! 
+//! The size of the chunks is possible due to an expander function
+//! that increases the maximum value representable by 8-bits at the
+//! cost of being unable to represent a contiguous range of values.
+//! Larger chunks will potentially have more padding, where the largest
+//! chunks will use blocks of 128 4KiB sectors. That's up to 512KiB of
+//! padding that could be added. But that's only for the largest
+//! chunks. Most chunks will be <= 128KiB, which means that they will
+//! use an exact number of 4KiB sectors rather than 8KiB or more.
+//! 
+//! Here's what that expander function looks like:
+//! ```rust,no_run
+//! pub const fn block_size_notation<const BIT_SIZE: u32>(block_count: u64, exponent: u32) -> u64 {
+//!     let max_block_size = const { 2u64.pow(BIT_SIZE)-1 };
+//!     let spacer1 = (2u64.pow(exponent) - 1) * max_block_size;
+//!     let spacer2 = if exponent > 0 {
+//!         2u64.pow(exponent)
+//!     } else {
+//!         0
+//!     };
+//!     block_count * 2u64.pow(exponent) + spacer1 + spacer2 + 1
+//! }
+//! ``````
+//! This function takes pieces of the 8-bit number and performs some math
+//! on them in order to create the new value.
+//! For BlockSize, it uses 5 bits for block_count and 3 bits for exponent.
+//! The BlockSize struct has functionality for reversing these values
+//! using binary search.
+//! 
+//! The first portion of the file is the 12KiB header. The header contains
+//! two tables: The 8KiB timestamp table, and the 4KiB offset table.
+//! 
+//! The timestamp table is at offset 0 in the file, and the sector table
+//! is at offset 8192.
+//! 
+//! After the sector table is the storage for chunks.
+//! 
+//! Timestamps are 64-bit signed integers representing 64-bit Unix time.
+//! Offsets are actually two values. A Block Size, and an offset in 4KiB
+//! blocks. The offset is not relative, it is absolute to the beginning
+//! of the file. The Sector Offset is layed out in memory like so:
+//! |0: Block Size (1 byte) |1: Offset (3 bytes) |
+//! If the Block Size and Offset are both 0, that means it's an empty
+//! sector (unused). Block Size of 0 does not mean size of zero because
+//! chunks can not have a size of 0. Instead, BlockSize 0 means size of 1.
+//! 
+//! Finally, there's the chunk storage section of the file. This section
+//! may contain unused sectors of memory that are considered unallocated.
+//! Any implementation of this format should account for that when reading
+//! the offset table to determine these unused sectors and manage them
+//! accordingly.
+//! 
+//! A chunk itself can be any data that you desire. The first 4-bytes are
+//! a 32-bit unsigned integer for the length of the data.
+//! After that is length bytes of Gzip compressed data.
+//! 
+//! I should also mention that chunks must be padded to be 4KiB (4096 bytes).
+//! That means the file size should be a multiple of 4096.
+//! (All integer types are stored in big-endian byte order)
+//! And that's it. That's the whole format.
+
 use std::{fs::File, io::{BufReader, BufWriter, Cursor, Read, Seek, SeekFrom, Take, Write}, path::Path};
 
 use flate2::{read::GzDecoder, write::GzEncoder, Compression};
@@ -19,6 +85,9 @@ pub struct RegionFile {
     sector_manager: SectorManager,
     /// Used for both reading and writing. The file is kept locked while the region is open.
     io: File,
+    /// Buffer used for writing compressed data into, which is then written
+    /// to the file.
+    /// This is necessary to get the length written before writing to the file.
     write_buffer: Cursor<Vec<u8>>,
     header: RegionHeader,
 }
