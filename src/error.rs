@@ -30,7 +30,7 @@ pub enum Error {
     ReallocationFailure(SectorOffset, BlockSize),
     #[error("Chunk not found")]
     ChunkNotFound,
-    #[error("Parent directory not found")]
+    #[error("No parent directory. Likely indicates root diretory or something.")]
     ParentNotFound,
     #[error("u24 was out of range")]
     U24OutOfRange,
