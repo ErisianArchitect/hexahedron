@@ -237,11 +237,13 @@ pub trait Decrement {
 macro_rules! inc_dec_impls {
     ($type:ty) => {
         impl Increment for $type {
+            #[inline]
             fn increment(&mut self) -> Self {
                 *self += 1;
                 *self
             }
 
+            #[inline]
             fn post_increment(&mut self) -> Self {
                 let original = *self;
                 *self += 1;
@@ -250,11 +252,13 @@ macro_rules! inc_dec_impls {
         }
 
         impl Decrement for $type {
+            #[inline]
             fn decrement(&mut self) -> Self {
                 *self -= 1;
                 *self
             }
 
+            #[inline]
             fn post_decrement(&mut self) -> Self {
                 let original = *self;
                 *self -= 1;
