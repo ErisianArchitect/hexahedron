@@ -177,19 +177,24 @@ impl SectorManager {
     }
 
     pub fn realloc(&mut self, free: SectorOffset, new_size: BlockSize) -> Option<SectorOffset> {
+        // Must check free.is_empty() first because an empty SectorOffset
+        // has the same block_size as the smallest new_size.
         if free.is_empty() {
             self.alloc(new_size)
-        } else if free.block_size() > new_size {
+        } else if free.block_size() == new_size {
+            // It's likely that the requested size will be the same size
+            // as the old size, so this branch is second in the chain.
+            Some(free)
+        } else if new_size > free.block_size() {
+            self.realloc_unchecked(free, new_size)
+        } else {
+        // else if new_size > free.block_size() {
             let old_sector = ManagedSector::from(free);
             let (new, old) = old_sector.split_left(new_size.block_count() as u32);
             if old.is_not_empty() {
                 self.insert_free_sector(old);
             }
             Some(SectorOffset::new(new_size, new.start))
-        } else if free.block_size() == new_size {
-            Some(free)
-        } else {
-            self.realloc_unchecked(free, new_size)
         }
     }
 
