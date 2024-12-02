@@ -33,11 +33,13 @@ macro_rules! property_table {
             [24     RangeInclusive(std::ops::RangeInclusive<i64>)       ]
             [25     Bytes(Vec<u8>)                                      ]
             [26     Map(std::collections::BTreeMap<String, Property>)   ]
-            // [27     Array(PropertyArray)                                ]
+            [27     Array(PropertyArray)                                ]
             /* 28   PropertyArray::Any(Vec<Property>) */
         }
     };
 }
+
+const PROPERTY_ARRAY_ID: u8 = 28;
 
 macro_rules! build_property_enum {
     ($([$id:literal $name:ident($type:ty)])+) => {
@@ -59,10 +61,20 @@ macro_rules! build_property_enum {
             $(
                 $name(Vec<$type>) = $id,
             )+
-            Any(Vec<Property>) = 28,
+            Any(Vec<Property>) = PROPERTY_ARRAY_ID,
         }
 
         impl Property {
+            // const MAX_ID: u8 = {
+            //     let mut max = 0;
+            //     $(
+            //         if $id > max {
+            //             max = $id;
+            //         }
+            //     )*
+            //     max
+            // };
+
             #[inline]
             pub const fn id(&self) -> u8 {
                 match self {
@@ -113,6 +125,52 @@ macro_rules! build_property_enum {
                 }
             }
         )+
+
+        impl PropertyArray {
+            pub fn id(&self) -> u8 {
+                match self {
+                    Self::Empty => 0,
+                    $(
+                        Self::$name { .. } => $id,
+                    )*
+                    Self::Any { .. } => 28,
+                }
+            }
+
+            fn read_with_id<R: std::io::Read>(id: u8, reader: &mut R) -> crate::prelude::VoxelResult<Self> {
+                Ok(match id {
+                    $(
+                        $id => PropertyArray::$name(Vec::<$type>::read_from(reader)?),
+                    )*
+                    PROPERTY_ARRAY_ID => PropertyArray::Any(Vec::<Property>::read_from(reader)?),
+                    id => return Err(super::error::Error::InvalidPropertyId(id).into()),
+                })
+            }
+
+            fn write_without_id<W: std::io::Write>(&self, writer: &mut W) -> crate::prelude::VoxelResult<u64> {
+                Ok(match self {
+                    Self::Empty => 0,
+                    $(
+                        Self::$name(items) => items.write_to(writer)?,
+                    )*
+                    Self::Any(props) => props.write_to(writer)?,
+                })
+            }
+        }
+
+        impl Readable for PropertyArray {
+            fn read_from<R: std::io::Read>(reader: &mut R) -> crate::prelude::VoxelResult<Self> {
+                let id = u8::read_from(reader)?;
+                Self::read_with_id(id, reader)
+            }
+        }
+
+        impl Writeable for PropertyArray {
+            fn write_to<W: std::io::Write>(&self, writer: &mut W) -> crate::prelude::VoxelResult<u64> {
+                let length = self.id().write_to(writer)?;
+                Ok(length + self.write_without_id(writer)?)
+            }
+        }
 
         impl Readable for Property {
             fn read_from<R: std::io::Read>(reader: &mut R) -> crate::prelude::VoxelResult<Self> {
