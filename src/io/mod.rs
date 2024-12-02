@@ -10,7 +10,7 @@ use crate::rendering::color::{
     Color, Rgb, Rgba
 };
 use crate::prelude::{
-    Axis, Cardinal, Direction, FaceFlags, Flip, Increment, Orientation, Rotation
+    Axis, Cardinal, Direction, FaceFlags, Flip, Increment, Orientation, PropertyArray, Rotation
 };
 use crate::tag::{
     NonByte,
@@ -83,6 +83,23 @@ pub fn write_u24<W: Write>(writer: &mut W, value: u32) -> Result<u64> {
     let buf = value.to_be_bytes();
     writer.write_all(&buf[1..4])?;
     Ok(3)
+}
+
+pub fn read_vec<T: Readable, R: std::io::Read>(reader: &mut R) -> Result<Vec<T>> {
+    let length = read_u24(reader)?;
+    let mut result = Vec::with_capacity(length as usize);
+    for _ in 0..length {
+        result.push(T::read_from(reader)?);
+    }
+    Ok(result)
+}
+
+pub fn write_slice<T: Writeable, W: std::io::Write>(writer: &mut W, slice: &[T]) -> Result<u64> {
+    let mut length = write_u24(writer, slice.len() as u32)?;
+    for item in slice {
+        length += item.write_to(writer)?;
+    }
+    Ok(length)
 }
 
 pub fn write_zeros<W: Write>(writer: &mut W, count: u64) -> Result<u64> {
@@ -794,29 +811,61 @@ impl Writeable for std::ops::RangeInclusive<i64> {
 
 impl<T: Readable + NonByte> Readable for Vec<T> {
     fn read_from<R: Read>(reader: &mut R) -> Result<Self> {
-        let mut buf = [0u8; 4];
-        reader.read_exact(&mut buf[1..4])?;
-        let length = u32::from_be_bytes(buf);
-        let mut result = Vec::new();
-        for _ in 0..length {
-            result.push(T::read_from(reader)?);
-        }
-        Ok(result)
+        read_vec(reader)
     }
 }
 
 impl<T: Writeable + NonByte> Writeable for Vec<T> {
     fn write_to<W: Write>(&self, writer: &mut W) -> Result<u64> {
-        if self.len() > MAX_ARRAY_LENGTH {
-            return Err(Error::ArrayTooLong);
-        }
-        let buf = (self.len() as u32).to_be_bytes();
-        writer.write_all(&buf[1..4])?;
-        let mut length = 0;
-        for i in 0..self.len() {
-            length += self[i].write_to(writer)?;
-        }
-        Ok(length + 3)
+        write_slice(writer, self)
+    }
+}
+
+impl Readable for Vec<Property> {
+    fn read_from<R: Read>(reader: &mut R) -> Result<Self> {
+        read_vec(reader)
+    }
+}
+
+impl Writeable for Vec<Property> {
+    fn write_to<W: Write>(&self, writer: &mut W) -> Result<u64> {
+        write_slice(writer, self)
+    }
+}
+
+impl Readable for Vec<PropertyArray> {
+    fn read_from<R: Read>(reader: &mut R) -> Result<Self> {
+        read_vec(reader)
+    }
+}
+
+impl Writeable for Vec<PropertyArray> {
+    fn write_to<W: Write>(&self, writer: &mut W) -> Result<u64> {
+        write_slice(writer, self)
+    }
+}
+
+impl Readable for Vec<Vec<u8>> {
+    fn read_from<R: Read>(reader: &mut R) -> Result<Self> {
+        read_vec(reader)
+    }
+}
+
+impl Writeable for Vec<Vec<u8>> {
+    fn write_to<W: Write>(&self, writer: &mut W) -> Result<u64> {
+        write_slice(writer, self)
+    }
+}
+
+impl Readable for Vec<BTreeMap<String, Property>> {
+    fn read_from<R: Read>(reader: &mut R) -> Result<Self> {
+        read_vec(reader)
+    }
+}
+
+impl Writeable for Vec<BTreeMap<String, Property>> {
+    fn write_to<W: Write>(&self, writer: &mut W) -> Result<u64> {
+        write_slice(writer, self)
     }
 }
 
