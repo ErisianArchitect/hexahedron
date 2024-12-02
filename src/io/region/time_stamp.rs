@@ -2,6 +2,7 @@ use chrono::*;
 
 use crate::prelude::{Readable, Writeable};
 
+#[repr(C)]
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Timestamp(pub i64);
 
