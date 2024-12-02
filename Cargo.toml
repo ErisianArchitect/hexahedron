@@ -13,7 +13,7 @@ path = "./bin/codegen.rs"
 
 [[bin]]
 name = "sandbox"
-path = "./bin/sandbox.rs"
+path = "./bin/sandbox/main.rs"
 
 [[bin]]
 name = "netbox"
