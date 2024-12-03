@@ -7,8 +7,13 @@ mod any_map;
 use hexahedron::prelude::Increment;
 
 fn main() {
-    // scheduler::experiment();
-    any_map::any_map_test();
+    /*
+    Next experiment:
+        A sparse struct using manual memory management
+        and unsafe code.
+    */
+    scheduler::experiment();
+    // any_map::any_map_test();
 }
 
 // Code Graveyard beyond this point.
