@@ -25,12 +25,12 @@ pub fn experiment() {
 
 enum SchedulerNode {
     Emtpy,
-    Single(Box<dyn Fn(&mut Scheduler)>),
-    Multi(Vec<Box<dyn Fn(&mut Scheduler)>>),
+    Single(Box<dyn FnOnce(&mut Scheduler)>),
+    Multi(Vec<Box<dyn FnOnce(&mut Scheduler)>>),
 }
 
 impl SchedulerNode {
-    pub fn push(&mut self, callback: Box<dyn Fn(&mut Scheduler)>) {
+    pub fn push(&mut self, callback: Box<dyn FnOnce(&mut Scheduler)>) {
         let old = std::mem::replace(self, Self::Emtpy);
         std::mem::replace(self, match old {
             SchedulerNode::Emtpy => SchedulerNode::Single(callback),
@@ -42,12 +42,12 @@ impl SchedulerNode {
         });
     }
 
-    pub fn invoke(&self, scheduler: &mut Scheduler) {
+    pub fn invoke(self, scheduler: &mut Scheduler) {
         match self {
             SchedulerNode::Emtpy => (),
             SchedulerNode::Single(single) => single(scheduler),
             SchedulerNode::Multi(vec) => {
-                vec.iter().for_each(|callback| {
+                vec.into_iter().for_each(|callback| {
                     callback(scheduler);
                 });
             },
