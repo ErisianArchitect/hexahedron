@@ -1,6 +1,7 @@
 use std::{collections::{BTreeMap, BinaryHeap}, marker::PhantomData, sync::Arc, time::{Duration, Instant}};
-
+use paste::paste;
 use super::context::InvokeContext;
+use super::time_key::*;
 
 pub enum SchedulerResponse {
     Finish,
@@ -41,9 +42,6 @@ Self: Callback {
 
 pub fn inject<Args, Output, F>(callback: F) -> ContextInjector<(), Args, Output, F>
 where
-Args: 'static,
-Output: 'static,
-F: 'static,
 ContextInjector<(), Args, Output, F>: Callback {
     ContextInjector {
         phantom: PhantomData,
@@ -59,6 +57,18 @@ ContextInjector<Data, Args, Output, F>: Callback {
         phantom: PhantomData,
         data,
         callback,
+    }
+}
+
+impl<Args, R, F> From<F> for ContextInjector<(), Args, R, F>
+where
+Self: Callback {
+    fn from(value: F) -> Self {
+        ContextInjector {
+            phantom: PhantomData,
+            data: (),
+            callback: value,
+        }
     }
 }
 
@@ -93,20 +103,6 @@ Self: Callback {
     }
 }
 
-impl<F, Output> From<F> for ContextInjector<(), (), Output, F>
-where
-Output: 'static,
-F: Fn() -> Output + 'static,
-Self: Callback {
-    fn from(value: F) -> Self {
-        ContextInjector {
-            phantom: PhantomData,
-            data: (),
-            callback: value,
-        }
-    }
-}
-
 impl<R: Into<SchedulerResponse>, F> Callback for F
 where F: Fn() -> R + 'static {
     fn invoke(
@@ -128,6 +124,67 @@ F: Fn() + 'static {
         ) -> SchedulerResponse {
         (self.callback)();
         SchedulerResponse::Finish
+    }
+}
+
+impl<Data0, Arg0, R, F> Callback for ContextInjector<(Data0,), (Arg0,), R, F>
+where
+R: Into<SchedulerResponse>,
+Data0: Send + Sync + 'static,
+Arg0: Send + Sync + 'static,
+F: Fn(
+    &mut Data0,
+    Arc<Arg0>
+) -> R + 'static {
+    fn invoke(
+            &mut self,
+            context: &InvokeContext,
+            scheduler: &mut Scheduler
+        ) -> SchedulerResponse {
+        let (
+            data0,
+        ) = &mut self.data;
+        (self.callback)(
+            data0,
+            context.get::<Arg0>().expect("Failed to get field from context."),
+        ).into()
+    }
+}
+
+impl<Data0, F> Callback for ContextInjector<(Data0,), (), (), F>
+where
+Data0: Send + Sync + 'static,
+F: Fn(
+    &mut Data0,
+) + 'static {
+    fn invoke(
+            &mut self,
+            context: &InvokeContext,
+            scheduler: &mut Scheduler
+        ) -> SchedulerResponse {
+        let (
+            data0,
+        ) = &mut self.data;
+        (self.callback)(
+            data0,
+        );
+        SchedulerResponse::Finish
+    }
+}
+
+impl<Arg0, R, F> Callback for ContextInjector<(), (Arg0,), R, F>
+where
+R: Into<SchedulerResponse>,
+Arg0: Send + Sync + 'static,
+F: Fn(Arc<Arg0>) -> R + 'static {
+    fn invoke(
+            &mut self,
+            context: &InvokeContext,
+            scheduler: &mut Scheduler
+        ) -> SchedulerResponse {
+        (self.callback)(
+            context.get::<Arg0>().expect("Failed to get field from context."),
+        ).into()
     }
 }
 
@@ -253,143 +310,6 @@ impl Scheduler {
     
 }
 
-// TODO: I would prefer to use chrono for time.
-struct TimeKey<T> {
-    time: Instant,
-    value: T,
-}
-
-impl<T> TimeKey<T> {
-    #[inline]
-    pub fn new(time: Instant, value: T) -> Self {
-        Self {
-            time,
-            value,
-        }
-    }
-    #[inline]
-    pub fn now(value: T) -> Self {
-        Self::new(Instant::now(), value)
-    }
-
-    #[inline]
-    pub fn after(duration: Duration, value: T) -> Self {
-        Self::new(Instant::now() + duration, value)
-    }
-
-    #[inline]
-    pub fn after_micros(micros: u64, value: T) -> Self {
-        Self::after(Duration::from_micros(micros), value)
-    }
-
-    #[inline]
-    pub fn after_millis(millis: u64, value: T) -> Self {
-        Self::after(Duration::from_millis(millis), value)
-    }
-
-    #[inline]
-    pub fn after_nanos(nanos: u64, value: T) -> Self {
-        Self::after(Duration::from_nanos(nanos), value)
-    }
-
-    #[inline]
-    pub fn after_secs(secs: u64, value: T) -> Self {
-        Self::after(Duration::from_secs(secs), value)
-    }
-
-    #[inline]
-    pub fn after_secs_f32(secs_f32: f32, value: T) -> Self {
-        Self::after(Duration::from_secs_f32(secs_f32), value)
-    }
-
-    #[inline]
-    pub fn after_secs_f64(secs_f64: f64, value: T) -> Self {
-        Self::after(Duration::from_secs_f64(secs_f64), value)
-    }
-
-    #[inline]
-    pub fn after_mins(mins: u64, value: T) -> Self {
-        Self::after(Duration::from_secs(mins * 60), value)
-    }
-
-    #[inline]
-    pub fn after_mins_f32(mins: f32, value: T) -> Self {
-        Self::after(Duration::from_secs_f32(mins * 60.0), value)
-    }
-
-    #[inline]
-    pub fn after_mins_f64(mins: f64, value: T) -> Self {
-        Self::after(Duration::from_secs_f64(mins * 60.0), value)
-    }
-
-    #[inline]
-    pub fn after_hours(hours: u64, value: T) -> Self {
-        Self::after(Duration::from_secs(hours * 3600), value)
-    }
-
-    #[inline]
-    pub fn after_hours_f32(hours: f32, value: T) -> Self {
-        Self::after(Duration::from_secs_f32(hours * 3600.0), value)
-    }
-
-    #[inline]
-    pub fn after_hours_f64(hours: f64, value: T) -> Self {
-        Self::after(Duration::from_secs_f64(hours * 3600.0), value)
-    }
-
-    #[inline]
-    pub fn after_days(days: u64, value: T) -> Self {
-        Self::after(Duration::from_secs(days * 86400), value)
-    }
-
-    #[inline]
-    pub fn after_days_f32(days: f32, value: T) -> Self {
-        Self::after(Duration::from_secs_f32(days * 86400.0), value)
-    }
-
-    #[inline]
-    pub fn after_days_f64(days: f64, value: T) -> Self {
-        Self::after(Duration::from_secs_f64(days * 86400.0), value)
-    }
-
-    #[inline]
-    pub fn is_ready(&self) -> bool {
-        Instant::now() <= self.time
-    }
-}
-
-impl<T> PartialEq<TimeKey<T>> for TimeKey<T> {
-    fn eq(&self, other: &TimeKey<T>) -> bool {
-        self.time == other.time
-    }
-}
-
-impl<T> Eq for TimeKey<T> {}
-
-impl<T> Ord for TimeKey<T> {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        other.time.cmp(&self.time)
-    }
-}
-
-impl<T> PartialOrd<TimeKey<T>> for TimeKey<T> {
-    fn partial_cmp(&self, other: &TimeKey<T>) -> Option<std::cmp::Ordering> {
-        other.time.partial_cmp(&self.time)
-    }
-}
-
-impl<T> PartialEq<Instant> for TimeKey<T> {
-    fn eq(&self, other: &Instant) -> bool {
-        self.time.eq(other)
-    }
-}
-
-impl<T> PartialOrd<Instant> for TimeKey<T> {
-    fn partial_cmp(&self, other: &Instant) -> Option<std::cmp::Ordering> {
-        other.partial_cmp(&self.time)
-    }
-}
-
 #[cfg(test)]
 mod testing_sandbox {
 
@@ -401,17 +321,21 @@ mod testing_sandbox {
     #[test]
     fn sandbox() {
         let mut context = InvokeContext::new();
+        context.insert(vec![
+            String::from("Hello, world!"),
+            String::from("The quick brown fox jumps over the lazy dog."),
+            String::from("This is a test."),
+        ]);
         let mut n = 0i32;
-        let mut injector = inject(|| {
+        let mut injector = ContextInjector::from(|strings: Arc<Vec<String>>| {
             println!("Basic scheduled event.");
-            SchedulerResponse::Finish
+            Duration::from_secs(3)
         });
         let mut scheduler = Scheduler::new();
-        scheduler.after_secs(3, || {
+        scheduler.after_secs(3, inject_with((0i32, ), |num: &mut i32, string: Arc<Vec<String>>| {
             println!("Basic scheduled event.");
-            // Duration::from_secs(32)
-            SchedulerResponse::Finish
-        });
+            Duration::from_secs(32)
+        }));
         // scheduler.after_secs(3, inject(|| {
 
         // }));
