@@ -3,6 +3,8 @@
 mod shared_state;
 mod scheduler;
 mod any_map;
+mod invoke;
+mod arg_injection;
 
 use hexahedron::prelude::Increment;
 
@@ -12,9 +14,30 @@ fn main() {
         A sparse struct using manual memory management
         and unsafe code.
     */
-    scheduler::experiment();
-    // any_map::any_map_test();
+    // scheduler::experiment();
+    any_map::any_map_test();
 }
+
+mod extract_ref {
+    use std::{borrow::BorrowMut, sync::{Arc, Mutex, MutexGuard}};
+
+    fn experiment() {
+        let arc = Arc::new(Mutex::new(String::from("Hello, world!")));
+        let arc_clone = arc.clone();
+        let mut lock = lock_mutex(&arc_clone);
+        let reft = extract_ref(&mut lock);
+        println!("");
+    }
+
+    fn lock_mutex<'a, T>(arc: &'a Arc<Mutex<T>>) -> MutexGuard<'a, T> {
+        arc.lock().unwrap()
+    }
+
+    fn extract_ref<'a, 'b: 'a, T>(guard: &'a mut MutexGuard<'b, T>) -> &'a mut T {
+        guard.borrow_mut()
+    }
+}
+
 
 // Code Graveyard beyond this point.
 
