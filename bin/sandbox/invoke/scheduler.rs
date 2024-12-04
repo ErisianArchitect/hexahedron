@@ -205,6 +205,8 @@ pub struct Scheduler {
     schedule_heap: BinaryHeap<TimeKey<Box<dyn Callback>>>,
 }
 
+// refactor
+
 impl Scheduler {
     pub fn new() -> Self {
         Self {
