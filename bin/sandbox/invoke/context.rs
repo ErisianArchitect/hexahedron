@@ -6,11 +6,11 @@ pub trait Mappable: Any + Send + Sync + 'static {}
 
 impl<T: Any + Send + Sync + 'static> Mappable for T {}
 
-pub struct Context {
+pub struct SharedState {
     map: HashMap<TypeId, Arc<dyn Any + Send + Sync + 'static>>,
 }
 
-impl Context {
+impl SharedState {
     pub fn new() -> Self {
         Self {
             map: HashMap::new(),
@@ -108,7 +108,7 @@ mod tests {
     use super::*;
     #[test]
     fn invoke_context_test() {
-        let mut ctx = Context::new();
+        let mut ctx = SharedState::new();
         let strings = vec![
             "Hello, world!",
             "This is a test.",

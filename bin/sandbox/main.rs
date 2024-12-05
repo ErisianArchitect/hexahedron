@@ -34,10 +34,10 @@ mod sched_experiment {
     use chrono::Timelike;
     use hexahedron::prelude::Increment;
 
-    use crate::invoke::{context::Context, task_context::TaskContext, scheduler::{inject, inject_with, Callback, Scheduler, SchedulerResponse}};
+    use crate::invoke::{context::SharedState, task_context::TaskContext, scheduler::{inject, inject_with, Callback, Scheduler, SchedulerResponse}};
 
     pub fn experiment() {
-        let mut context = Context::new();
+        let mut context = SharedState::new();
         context.insert(Mutex::new(vec![
             String::from("Hello, world!"),
             String::from("The quick brown fox jumps over the lazy dog."),

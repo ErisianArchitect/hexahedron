@@ -1,6 +1,6 @@
 use std::{collections::{BTreeMap, BinaryHeap}, io::Write, marker::PhantomData, sync::Arc, time::{Duration, Instant}};
 use paste::paste;
-use super::context::Context;
+use super::context::SharedState;
 use super::time_key::*;
 use super::task_context::TaskContext;
 
@@ -187,7 +187,7 @@ macro_rules! context_injector_impls {
                             [<_ $data_type>],
                         )*
                         $(
-                            context.context.get::<$arg_type>().expect(concat!("Failed to get ", stringify!($arg_type), " field.")),
+                            context.shared.get::<$arg_type>().expect(concat!("Failed to get ", stringify!($arg_type), " field.")),
                         )*
                         $(
                             context_injector_impls!(@ctx_arg; $ctx, context),
@@ -330,13 +330,13 @@ impl Scheduler {
         self.after(Duration::from_secs_f64(days * 86400.0), callback);
     }
 
-    fn process_next(&mut self, context: &mut Context) {
+    fn process_next(&mut self, shared: &mut SharedState) {
         let Some(TimeKey { time, mut value }) = self.schedule_heap.pop() else {
             panic!("No task in heap.");
         };
         let task_context = TaskContext {
             time,
-            context,
+            shared,
             scheduler: self,
         };
         match value.invoke(task_context) {
@@ -353,27 +353,27 @@ impl Scheduler {
         }
     }
 
-    pub fn process_until(&mut self, instant: Instant, context: &mut Context) {
+    pub fn process_until(&mut self, instant: Instant, shared: &mut SharedState) {
         while let Some(TimeKey { time, value }) = self.schedule_heap.peek() {
             if instant < *time {
                 break;
             }
-            self.process_next(context);
+            self.process_next(shared);
         }
     }
 
     /// Process until current time.  
     /// Current time is not updated after each task is processed, so it may be late. Use `process_current()` for more precise timing.
     #[inline]
-    pub fn process_until_now(&mut self, context: &mut Context) {
-        self.process_until(Instant::now(), context);
+    pub fn process_until_now(&mut self, shared: &mut SharedState) {
+        self.process_until(Instant::now(), shared);
     }
 
     /// Similar to `process_until_now()`, except this method uses the current
     /// time for each processing chunk rather than the same time for each chunk.  
     /// With `process_until_now()`, you may end up processing nodes late.
     #[inline]
-    pub fn process_current(&mut self, context: &mut Context) {
+    pub fn process_current(&mut self, context: &mut SharedState) {
         while let Some(TimeKey { time, value }) = self.schedule_heap.peek() {
             if Instant::now() < *time {
                 break;
@@ -391,7 +391,7 @@ impl Scheduler {
     }
 
     /// Process tasks until there are no tasks remaining.
-    pub fn process_blocking(&mut self, context: &mut Context) {
+    pub fn process_blocking(&mut self, context: &mut SharedState) {
         const ONE_MS: Duration = Duration::from_millis(1);
         while let Some(time) = self.next_task_time() {
             if Instant::now() < time {

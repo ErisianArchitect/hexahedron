@@ -1,10 +1,10 @@
 use std::time::{Duration, Instant};
 
-use super::{context::Context, scheduler::{Callback, Scheduler}};
+use super::{context::SharedState, scheduler::{Callback, Scheduler}};
 
 pub struct TaskContext<'a> {
     pub time: Instant,
-    pub context: &'a mut Context,
+    pub shared: &'a mut SharedState,
     pub scheduler: &'a mut Scheduler,
 }
 
