@@ -192,38 +192,36 @@ impl<'a> TaskContext<'a> {
 pub trait Callback: 'static {
     fn invoke(
         &mut self,
-        // context: &mut SchedulerContext,
-        // scheduler: &mut Scheduler,
         task_ctx: TaskContext<'_>,
     ) -> SchedulerResponse;
 }
 
-pub struct ContextInjector<Data, Args, Output, Context, F>
+pub struct ContextInjector<DataArgs, Args, Output, ContextArg, F>
 where
-Data: 'static,
-Context: 'static,
+DataArgs: 'static,
+ContextArg: 'static,
 Args: 'static,
 Output: 'static,
 F: 'static,
 Self: Callback {
-    phantom: PhantomData<(Args, Output, Context)>,
-    data: Data,
+    phantom: PhantomData<(Args, Output, ContextArg)>,
+    data: DataArgs,
     callback: F,
 }
 
-impl<Data, Args, Output, Context, F> ContextInjector<Data, Args, Output, Context, F>
+impl<DataArgs, Args, Output, ContextArg, F> ContextInjector<DataArgs, Args, Output, ContextArg, F>
 where
-Data: 'static,
+DataArgs: 'static,
 Args: 'static,
 Output: 'static,
-Context: 'static,
+ContextArg: 'static,
 F: 'static,
 Self: Callback {
-    pub fn new<NArgs, NOutput, NContext, NF>(callback: NF) -> ContextInjector<(), NArgs, NOutput, NContext, NF>
+    pub fn new<NArgs, NOutput, NContextArg, NF>(callback: NF) -> ContextInjector<(), NArgs, NOutput, NContextArg, NF>
     where
     // NArgs: 'static,
     // NOutput: 'static,
-    ContextInjector<(), NArgs, NOutput, NContext, NF>: Callback {
+    ContextInjector<(), NArgs, NOutput, NContextArg, NF>: Callback {
         ContextInjector {
             phantom: PhantomData,
             data: (),
@@ -231,10 +229,10 @@ Self: Callback {
         }
     }
 
-    pub fn with_data<NData, NArgs, NOutput, NContext, NF>(data: NData, callback: NF) -> ContextInjector<NData, NArgs, NOutput, NContext, NF>
+    pub fn with_data<NDataArgs, NArgs, NOutput, NContextArg, NF>(data: NDataArgs, callback: NF) -> ContextInjector<NDataArgs, NArgs, NOutput, NContextArg, NF>
     where
     NF: Fn() -> NOutput + 'static,
-    ContextInjector<NData, NArgs, NOutput, NContext, NF>: Callback {
+    ContextInjector<NDataArgs, NArgs, NOutput, NContextArg, NF>: Callback {
         ContextInjector {
             phantom: PhantomData,
             data,
@@ -256,9 +254,9 @@ Self: Callback {
 }
 
 /// Creates a [ContextInjector] callback suitable for passing into a [Scheduler].
-pub fn inject<Args, Output, Context, F>(callback: F) -> ContextInjector<(), Args, Output, Context, F>
+pub fn inject<Args, Output, ContextArg, F>(callback: F) -> ContextInjector<(), Args, Output, ContextArg, F>
 where
-ContextInjector<(), Args, Output, Context, F>: Callback {
+ContextInjector<(), Args, Output, ContextArg, F>: Callback {
     ContextInjector {
         phantom: PhantomData,
         data: (),
@@ -267,9 +265,9 @@ ContextInjector<(), Args, Output, Context, F>: Callback {
 }
 
 /// Creates a [ContextInjector] callback with a data attachment suitable for passing into a [Scheduler].
-pub fn inject_with<Data, Args, Output, Context, F>(data: Data, callback: F) -> ContextInjector<Data, Args, Output, Context, F>
+pub fn inject_with<DataArgs, Args, Output, ContextArg, F>(data: DataArgs, callback: F) -> ContextInjector<DataArgs, Args, Output, ContextArg, F>
 where
-ContextInjector<Data, Args, Output, Context, F>: Callback {
+ContextInjector<DataArgs, Args, Output, ContextArg, F>: Callback {
     ContextInjector {
         phantom: PhantomData,
         data,
