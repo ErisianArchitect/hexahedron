@@ -15,7 +15,8 @@ fn main() {
         and unsafe code.
     */
     // scheduler::experiment();
-    any_map::any_map_test();
+    // any_map::any_map_test();
+    invoke::scheduler::experiment();
 }
 
 mod extract_ref {
