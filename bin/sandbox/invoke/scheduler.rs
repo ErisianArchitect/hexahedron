@@ -8,10 +8,14 @@ use super::task_context::TaskContext;
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum SchedulerResponse {
+    /// Finish task, do nothing.
     #[default]
     Finish,
+    /// Reschedule task immediately.
     Immediate,
+    /// Reschedule task after [Duration] (relative to task time).
     After(Duration),
+    /// Reschedule task at [Instant].
     At(Instant),
 }
 
@@ -27,6 +31,12 @@ impl From<Duration> for SchedulerResponse {
     }
 }
 
+impl From<Instant> for SchedulerResponse {
+    fn from(value: Instant) -> Self {
+        SchedulerResponse::At(value)
+    }
+}
+
 impl<T: Into<SchedulerResponse>> From<Option<T>> for SchedulerResponse {
     fn from(value: Option<T>) -> Self {
         if let Some(value) = value {
@@ -34,12 +44,6 @@ impl<T: Into<SchedulerResponse>> From<Option<T>> for SchedulerResponse {
         } else {
             SchedulerResponse::Finish
         }
-    }
-}
-
-impl From<Instant> for SchedulerResponse {
-    fn from(value: Instant) -> Self {
-        SchedulerResponse::At(value)
     }
 }
 
@@ -140,21 +144,9 @@ where F: Fn() -> R + 'static {
 }
 
 macro_rules! context_injector_impls {
-    // (@ctx_arg; Scheduler, $context:ident) => {
-    //     $context.scheduler
-    // };
-    // (@ctx_arg; SchedulerContext, $context:ident) => {
-    //     $context.context
-    // };
     (@ctx_arg; TaskContext, $context:ident) => {
         $context
     };
-    // (@ctx_type; Scheduler) => {
-    //     &mut Scheduler
-    // };
-    // (@ctx_type; SchedulerContext) => {
-    //     &mut SchedulerContext
-    // };
     (@ctx_type; TaskContext) => {
         TaskContext<'_>
     };
