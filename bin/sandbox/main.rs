@@ -34,7 +34,7 @@ mod sched_experiment {
     use chrono::Timelike;
     use hexahedron::prelude::Increment;
 
-    use crate::invoke::{context::SchedulerContext, scheduler::{inject, inject_with, Scheduler, TaskContext}};
+    use crate::invoke::{context::SchedulerContext, scheduler::{inject, inject_with, Callback, Scheduler, SchedulerResponse, TaskContext}};
 
     pub fn experiment() {
         let mut context = SchedulerContext::new();
@@ -49,7 +49,7 @@ mod sched_experiment {
             println!("Starting...");
             context.after_secs(3, inject_with((0i32, ), |num: &mut i32, string: Arc<Mutex<Vec<String>>>, mut context: TaskContext<'_>| {
                 let chron = chrono::Local::now();
-                println!("Frame {:>2} {:>2} {:>25}", num.increment(), chron.second(), chron.timestamp_millis());
+                println!("Frame {:>2} {:>2} {:>13}", num.increment(), chron.second(), chron.timestamp_millis());
                 if *num < 61 {
                     Some(Duration::from_secs(1) / 60)
                 } else {
@@ -60,7 +60,7 @@ mod sched_experiment {
                     }
                     println!("Sleeping for a second.");
                     spin_sleep::sleep(Duration::from_secs(1));
-                    context.after_secs(3, inject(|strings: Arc<Mutex<Vec<String>>>| {
+                    context.after_secs(3, inject(|strings: Arc<Mutex<Vec<String>>>, mut context: TaskContext<'_>| {
                         let chron = chrono::Local::now();
                         println!("***");
                         let before = Instant::now();
@@ -70,7 +70,13 @@ mod sched_experiment {
                         for s in lock.iter() {
                             println!("{s}");
                         }
-                        println!("Finished! {}", chron.timestamp_millis());
+                        // println!("Finished! {}", chron.timestamp_millis());
+                        for i in 0..10 {
+                            context.after_millis(i * 100 + 100, move || {
+                                let chron = chrono::Local::now();
+                                println!("Hello, world! {i:>2} {:>13}", chron.timestamp_millis());
+                            });
+                        }
                     }));
                     None
                 }

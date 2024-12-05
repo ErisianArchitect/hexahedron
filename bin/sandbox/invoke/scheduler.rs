@@ -255,6 +255,7 @@ Self: Callback {
     }
 }
 
+/// Creates a [ContextInjector] callback suitable for passing into a [Scheduler].
 pub fn inject<Args, Output, Context, F>(callback: F) -> ContextInjector<(), Args, Output, Context, F>
 where
 ContextInjector<(), Args, Output, Context, F>: Callback {
@@ -265,6 +266,7 @@ ContextInjector<(), Args, Output, Context, F>: Callback {
     }
 }
 
+/// Creates a [ContextInjector] callback with a data attachment suitable for passing into a [Scheduler].
 pub fn inject_with<Data, Args, Output, Context, F>(data: Data, callback: F) -> ContextInjector<Data, Args, Output, Context, F>
 where
 ContextInjector<Data, Args, Output, Context, F>: Callback {
