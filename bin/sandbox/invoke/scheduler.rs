@@ -516,6 +516,8 @@ impl Scheduler {
         }
     }
 
+    /// Process until current time.  
+    /// Current time is not updated after each task is processed, so it may be late. Use `process_current()` for more precise timing.
     #[inline]
     pub fn process_until_now(&mut self, context: &mut SchedulerContext) {
         self.process_until(Instant::now(), context);
@@ -544,66 +546,20 @@ impl Scheduler {
 
     /// Process tasks until there are no tasks remaining.
     pub fn process_blocking(&mut self, context: &mut SchedulerContext) {
+        const ONE_MS: Duration = Duration::from_millis(1);
         while let Some(time) = self.next_task_time() {
-            let now = Instant::now();
-            if now < time {
-                let diff = time - now;
+            if Instant::now() < time {
+                let diff = time - Instant::now();
                 spin_sleep::sleep(diff);
+                // if diff > ONE_MS {
+                //     spin_sleep::sleep(diff - ONE_MS);
+                // }
+                // while Instant::now() < time {
+                //     std::hint::spin_loop();
+                // }
             }
             self.process_current(context);
         }
     }
     
 }
-
-// pub use experiment::experiment;
-
-// mod experiment {
-//     use super::*;
-//     use chrono::Timelike;
-//     use hexahedron::prelude::Increment;
-//     pub fn experiment() {
-//         let mut context = SchedulerContext::new();
-//         context.insert(vec![
-//             String::from("Hello, world!"),
-//             String::from("The quick brown fox jumps over the lazy dog."),
-//             String::from("This is a test."),
-//         ]);
-//         let mut scheduler = Scheduler::new();
-//         println!("Before schedule.");
-//         scheduler.now(inject(|mut context: TaskContext<'_>| {
-//             println!("Starting...");
-//             context.after_secs(5, inject_with((0i32, ), |num: &mut i32, string: Arc<Vec<String>>, mut context: TaskContext<'_>| {
-//                 let chron = chrono::Local::now();
-//                 println!("Frame {:>2} {:>2} {:>25}", num.increment(), chron.second(), chron.timestamp_millis());
-//                 std::io::stdout().flush().unwrap();
-//                 if *num < 61 {
-//                     Some(Duration::from_secs(1) / 60)
-//                 } else {
-//                     context.after_secs(3, || {
-//                         let chron = chrono::Local::now();
-//                         println!("Finished! {}", chron.timestamp_millis());
-//                     });
-//                     None
-//                 }
-//             }));
-//         }));
-//         scheduler.process_blocking(&mut context);
-//     }
-// }
-
-/*
-00: (data,)*, (args,)*
-01: S, (data,)*, (args,)*
-02: C, (data,)*, (args,)*
-03: SC, (data,)*, (args,)*
-04: CS, (data,)*, (args,)*
-05: (data,)*, S, (args,)*
-06: (data,)*, C, (args,)*
-07: (data,)*, SC, (args,)*
-08: (data,)*, CS, (args,)*
-09: (data,)*, (args,)*, S
-10: (data,)*, (args,)*, C
-11: (data,)*, (args,)*, SC
-12: (data,)*, (args,)*, CS
-*/

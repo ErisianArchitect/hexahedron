@@ -21,7 +21,15 @@ async fn main() {
     
 }
 mod sched_experiment {
-    use std::{io::Write, sync::Arc, time::Duration};
+    use std::{
+        io::Write,
+        sync::{
+            Arc,
+            // Mutex,
+        },
+        time::{Duration, Instant}
+    };
+    use parking_lot::Mutex;
 
     use chrono::Timelike;
     use hexahedron::prelude::Increment;
@@ -30,27 +38,40 @@ mod sched_experiment {
 
     pub fn experiment() {
         let mut context = SchedulerContext::new();
-        context.insert(vec![
+        context.insert(Mutex::new(vec![
             String::from("Hello, world!"),
             String::from("The quick brown fox jumps over the lazy dog."),
             String::from("This is a test."),
-        ]);
+        ]));
         let mut scheduler = Scheduler::new();
         println!("Before schedule.");
         scheduler.now(inject(|mut context: TaskContext<'_>| {
             println!("Starting...");
-            context.after_secs(3, inject_with((0i32, ), |num: &mut i32, string: Arc<Vec<String>>, mut context: TaskContext<'_>| {
+            context.after_secs(3, inject_with((0i32, ), |num: &mut i32, string: Arc<Mutex<Vec<String>>>, mut context: TaskContext<'_>| {
                 let chron = chrono::Local::now();
                 println!("Frame {:>2} {:>2} {:>25}", num.increment(), chron.second(), chron.timestamp_millis());
                 if *num < 61 {
                     Some(Duration::from_secs(1) / 60)
                 } else {
+                    let mut lock = string.lock();
+                    for s in lock.iter_mut() {
+                        println!("{s}");
+                        *s = format!("Frames: {num}");
+                    }
                     println!("Sleeping for a second.");
                     spin_sleep::sleep(Duration::from_secs(1));
-                    context.after_secs(3, || {
+                    context.after_secs(3, inject(|strings: Arc<Mutex<Vec<String>>>| {
                         let chron = chrono::Local::now();
+                        println!("***");
+                        let before = Instant::now();
+                        let lock = strings.lock();
+                        let elapsed = before.elapsed();
+                        println!("Locked in: {} ns", elapsed.as_nanos());
+                        for s in lock.iter() {
+                            println!("{s}");
+                        }
                         println!("Finished! {}", chron.timestamp_millis());
-                    });
+                    }));
                     None
                 }
             }));

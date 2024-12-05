@@ -549,6 +549,7 @@ dependencies = [
  "image",
  "itertools 0.13.0",
  "noise",
+ "parking_lot",
  "paste",
  "rand",
  "rollgrid",
