@@ -37,11 +37,137 @@ impl From<Instant> for SchedulerResponse {
     }
 }
 
+pub struct TaskContext<'a> {
+    time: Instant,
+    context: &'a mut SchedulerContext,
+    scheduler: &'a mut Scheduler,
+}
+
+impl<'a> TaskContext<'a> {
+    pub fn time(&self) -> Instant {
+        self.time
+    }
+
+    pub fn elapsed(&self) -> Duration {
+        self.time.elapsed()
+    }
+
+    pub fn scheduler(&'a mut self) -> &'a mut Scheduler {
+        self.scheduler
+    }
+
+    pub fn context(&'a mut self) -> &'a mut SchedulerContext {
+        self.context
+    }
+
+    pub fn after<F>(&mut self, duration: Duration, callback: F)
+    where F: Callback {
+        self.scheduler.schedule_heap.push(TimeKey::new(self.time + duration, Box::new(callback)));
+    }
+
+    #[inline]
+    pub fn now<F>(&mut self, callback: F)
+    where F: Callback {
+        self.scheduler.schedule_heap.push(TimeKey::now(Box::new(callback)));
+    }
+
+    #[inline]
+    pub fn after_micros<F>(&mut self, micros: u64, callback: F)
+    where F: Callback {
+        self.after(Duration::from_micros(micros), callback);
+    }
+
+    #[inline]
+    pub fn after_millis<F>(&mut self, millis: u64, callback: F)
+    where F: Callback {
+        self.after(Duration::from_millis(millis), callback);
+    }
+
+    #[inline]
+    pub fn after_nanos<F>(&mut self, nanos: u64, callback: F)
+    where F: Callback {
+        self.after(Duration::from_nanos(nanos), callback);
+    }
+
+    #[inline]
+    pub fn after_secs<F>(&mut self, secs: u64, callback: F)
+    where F: Callback {
+        self.after(Duration::from_secs(secs), callback)
+    }
+
+    #[inline]
+    pub fn after_secs_f32<F>(&mut self, secs: f32, callback: F)
+    where F: Callback {
+        self.after(Duration::from_secs_f32(secs), callback);
+    }
+
+    #[inline]
+    pub fn after_secs_f64<F>(&mut self, secs: f64, callback: F)
+    where F: Callback {
+        self.after(Duration::from_secs_f64(secs), callback);
+    }
+
+    #[inline]
+    pub fn after_mins<F>(&mut self, mins: u64, callback: F)
+    where F: Callback {
+        self.after(Duration::from_secs(mins * 60), callback);
+    }
+
+    #[inline]
+    pub fn after_mins_f32<F>(&mut self, mins: f32, callback: F)
+    where F: Callback {
+        self.after(Duration::from_secs_f32(mins * 60.0), callback);
+    }
+
+    #[inline]
+    pub fn after_mins_f64<F>(&mut self, mins: f64, callback: F)
+    where F: Callback {
+        self.after(Duration::from_secs_f64(mins * 60.0), callback);
+    }
+
+    #[inline]
+    pub fn after_hours<F>(&mut self, hours: u64, callback: F)
+    where F: Callback {
+        self.after(Duration::from_secs(hours * 3600), callback);
+    }
+
+    #[inline]
+    pub fn after_hours_f32<F>(&mut self, hours: f32, callback: F)
+    where F: Callback {
+        self.after(Duration::from_secs_f32(hours * 3600.0), callback);
+    }
+
+    #[inline]
+    pub fn after_hours_f64<F>(&mut self, hours: f64, callback: F)
+    where F: Callback {
+        self.after(Duration::from_secs_f64(hours * 3600.0), callback);
+    }
+
+    #[inline]
+    pub fn after_days<F>(&mut self, days: u64, callback: F)
+    where F: Callback {
+        self.after(Duration::from_secs(days * 86400), callback);
+    }
+
+    #[inline]
+    pub fn after_days_f32<F>(&mut self, days: f32, callback: F)
+    where F: Callback {
+        self.after(Duration::from_secs_f32(days * 86400.0), callback);
+    }
+
+    #[inline]
+    pub fn after_days_f64<F>(&mut self, days: f64, callback: F)
+    where F: Callback {
+        self.after(Duration::from_secs_f64(days * 86400.0), callback);
+    }
+}
+
 pub trait Callback: 'static {
     fn invoke(
         &mut self,
-        context: &mut SchedulerContext,
-        scheduler: &mut Scheduler
+        // context: &mut SchedulerContext,
+        // scheduler: &mut Scheduler,
+        task_ctx: TaskContext<'_>,
     ) -> SchedulerResponse;
 }
 
@@ -126,8 +252,7 @@ impl<R: Into<SchedulerResponse>, F> Callback for F
 where F: Fn() -> R + 'static {
     fn invoke(
             &mut self,
-            context: &mut SchedulerContext,
-            scheduler: &mut Scheduler
+            context: TaskContext<'_>,
         ) -> SchedulerResponse {
         (self)().into()
     }
@@ -171,10 +296,13 @@ where F: Fn() -> R + 'static {
 // }
 
 macro_rules! context_injector_impls {
-    (@ctx_arg; Scheduler, $scheduler:ident, $_:ident) => {
-        $scheduler
+    (@ctx_arg; Scheduler, $context:ident) => {
+        $context.scheduler
     };
-    (@ctx_arg; SchedulerContext, $_:ident, $context:ident) => {
+    (@ctx_arg; SchedulerContext, $context:ident) => {
+        $context.context
+    };
+    (@ctx_arg; TaskContext, $context:ident) => {
         $context
     };
     (@ctx_type; Scheduler) => {
@@ -182,6 +310,9 @@ macro_rules! context_injector_impls {
     };
     (@ctx_type; SchedulerContext) => {
         &mut SchedulerContext
+    };
+    (@ctx_type; TaskContext) => {
+        TaskContext<'_>
     };
     (@right_context; ( $($data_type:ident),* ), ( $($arg_type:ident),* ), ($($ctx:ident),*)) => {
         paste!{
@@ -194,7 +325,7 @@ macro_rules! context_injector_impls {
             $(
                 $arg_type: Send + Sync + 'static,
             )*
-            F: Fn(
+            F: FnMut(
                 $(
                     &mut $data_type,
                 )*
@@ -208,8 +339,7 @@ macro_rules! context_injector_impls {
                 #[allow(non_snake_case)]
                 fn invoke(
                     &mut self,
-                    context: &mut SchedulerContext,
-                    scheduler: &mut Scheduler,
+                    context: TaskContext<'_>,
                 ) -> SchedulerResponse {
                     let (
                         $(
@@ -221,10 +351,10 @@ macro_rules! context_injector_impls {
                             [<_ $data_type>],
                         )*
                         $(
-                            context.get::<$arg_type>().expect(concat!("Failed to get ", stringify!($arg_type), " field.")),
+                            context.context.get::<$arg_type>().expect(concat!("Failed to get ", stringify!($arg_type), " field.")),
                         )*
                         $(
-                            context_injector_impls!(@ctx_arg; $ctx, scheduler, context),
+                            context_injector_impls!(@ctx_arg; $ctx, context),
                         )*
                     ).into()
                 }
@@ -233,10 +363,7 @@ macro_rules! context_injector_impls {
     };
     (($($data_type:ident),*), ($($arg_type:ident),*)) => {
         context_injector_impls!{@right_context; ( $($data_type),* ), ( $($arg_type),* ), ()}
-        context_injector_impls!{@right_context; ( $($data_type),* ), ( $($arg_type),* ), (Scheduler)}
-        context_injector_impls!{@right_context; ( $($data_type),* ), ( $($arg_type),* ), (SchedulerContext)}
-        context_injector_impls!{@right_context; ( $($data_type),* ), ( $($arg_type),* ), (Scheduler, SchedulerContext)}
-        context_injector_impls!{@right_context; ( $($data_type),* ), ( $($arg_type),* ), (SchedulerContext, Scheduler)}
+        context_injector_impls!{@right_context; ( $($data_type),* ), ( $($arg_type),* ), (TaskContext)}
     };
     ($([($($data_type:ident),*), ($($arg_type:ident),*)])+) => {
         $(
@@ -448,7 +575,12 @@ impl Scheduler {
         let Some(TimeKey { time, mut value }) = self.schedule_heap.pop() else {
             panic!("No task in heap.");
         };
-        match value.invoke(context, self) {
+        let task_context = TaskContext {
+            time,
+            context,
+            scheduler: self,
+        };
+        match value.invoke(task_context) {
             SchedulerResponse::Finish => (),
             SchedulerResponse::RescheduleAfter(duration) => {
                 self.schedule_heap.push(TimeKey::new(time + duration, value));
@@ -483,13 +615,13 @@ impl Scheduler {
 
     #[inline]
     pub fn process_blocking(&mut self, context: &mut SchedulerContext) {
-        const TEN_MS: Duration = Duration::from_millis(10);
+        const ONE_MS: Duration = Duration::from_millis(1);
         while let Some(time) = self.next_task_time() {
             let now = Instant::now();
             if now < time {
                 let diff = time - now;
-                if diff.as_millis() > TEN_MS.as_millis() {
-                    std::thread::sleep(diff - TEN_MS);
+                if diff.as_millis() > ONE_MS.as_millis() {
+                    std::thread::sleep(diff - ONE_MS);
                 }
                 while Instant::now() < time {
                     std::hint::spin_loop();
@@ -502,6 +634,10 @@ impl Scheduler {
 }
 
 pub use experiment::experiment;
+
+pub trait SchedulerContextArg {
+
+}
 
 mod experiment {
     use super::*;
@@ -516,16 +652,16 @@ mod experiment {
         ]);
         let mut scheduler = Scheduler::new();
         println!("Before schedule.");
-        scheduler.now(inject(|scheduler: &mut Scheduler| {
+        scheduler.now(inject(|context: TaskContext<'_>| {
             println!("Starting...");
-            scheduler.after_secs(5, inject_with((0i32, ), |num: &mut i32, string: Arc<Vec<String>>, context: &mut SchedulerContext, scheduler: &mut Scheduler| {
+            context.scheduler.after_secs(5, inject_with((0i32, ), |num: &mut i32, string: Arc<Vec<String>>, context: TaskContext<'_>| {
                 let chron = chrono::Local::now();
-                println!("Frame {:>2} {} {:>25}", num.increment(), chron.second(), chron.timestamp_millis());
+                println!("Frame {:>2} {:>2} {:>25}", num.increment(), chron.second(), chron.timestamp_millis());
                 std::io::stdout().flush().unwrap();
                 if *num < 61 {
                     Some(Duration::from_secs(1) / 60)
                 } else {
-                    scheduler.after_secs(3, || {
+                    context.scheduler.after_secs(3, || {
                         let chron = chrono::Local::now();
                         println!("Finished! {}", chron.timestamp_millis());
                     });

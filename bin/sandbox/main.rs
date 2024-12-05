@@ -8,7 +8,8 @@ mod arg_injection;
 
 use hexahedron::prelude::Increment;
 
-fn main() {
+#[tokio::main]
+async fn main() {
     /*
     Next experiment:
         A sparse struct using manual memory management
