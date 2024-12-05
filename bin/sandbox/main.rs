@@ -26,7 +26,7 @@ mod sched_experiment {
     use chrono::Timelike;
     use hexahedron::prelude::Increment;
 
-    use crate::invoke::{context::SchedulerContext, scheduler::{inject, inject_with, Scheduler}};
+    use crate::invoke::{context::SchedulerContext, scheduler::{inject, inject_with, Scheduler, TaskContext}};
 
     pub fn experiment() {
         let mut context = SchedulerContext::new();
@@ -37,15 +37,17 @@ mod sched_experiment {
         ]);
         let mut scheduler = Scheduler::new();
         println!("Before schedule.");
-        scheduler.now(inject(|scheduler: &mut Scheduler| {
+        scheduler.now(inject(|mut context: TaskContext<'_>| {
             println!("Starting...");
-            scheduler.after_secs(5, inject_with((0i32, ), |num: &mut i32, string: Arc<Vec<String>>, context: &mut SchedulerContext, scheduler: &mut Scheduler| {
+            context.after_secs(3, inject_with((0i32, ), |num: &mut i32, string: Arc<Vec<String>>, mut context: TaskContext<'_>| {
                 let chron = chrono::Local::now();
-                println!("Frame {:>2} {} {:>25}", num.increment(), chron.second(), chron.timestamp_millis());
+                println!("Frame {:>2} {:>2} {:>25}", num.increment(), chron.second(), chron.timestamp_millis());
                 if *num < 61 {
                     Some(Duration::from_secs(1) / 60)
                 } else {
-                    scheduler.after_secs(3, || {
+                    println!("Sleeping for a second.");
+                    spin_sleep::sleep(Duration::from_secs(1));
+                    context.after_secs(3, || {
                         let chron = chrono::Local::now();
                         println!("Finished! {}", chron.timestamp_millis());
                     });

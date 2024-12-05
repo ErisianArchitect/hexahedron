@@ -3,10 +3,13 @@ use paste::paste;
 use super::context::SchedulerContext;
 use super::time_key::*;
 
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum SchedulerResponse {
+    #[default]
     Finish,
-    RescheduleAfter(Duration),
-    RescheduleAt(Instant),
+    Immediate,
+    After(Duration),
+    At(Instant),
 }
 
 impl From<()> for SchedulerResponse {
@@ -17,7 +20,7 @@ impl From<()> for SchedulerResponse {
 
 impl From<Duration> for SchedulerResponse {
     fn from(value: Duration) -> Self {
-        SchedulerResponse::RescheduleAfter(value)
+        SchedulerResponse::After(value)
     }
 }
 
@@ -33,128 +36,152 @@ impl<T: Into<SchedulerResponse>> From<Option<T>> for SchedulerResponse {
 
 impl From<Instant> for SchedulerResponse {
     fn from(value: Instant) -> Self {
-        SchedulerResponse::RescheduleAt(value)
+        SchedulerResponse::At(value)
     }
 }
 
 pub struct TaskContext<'a> {
-    time: Instant,
-    context: &'a mut SchedulerContext,
-    scheduler: &'a mut Scheduler,
+    pub time: Instant,
+    pub context: &'a mut SchedulerContext,
+    pub scheduler: &'a mut Scheduler,
 }
 
 impl<'a> TaskContext<'a> {
-    pub fn time(&self) -> Instant {
-        self.time
-    }
 
-    pub fn elapsed(&self) -> Duration {
-        self.time.elapsed()
-    }
-
-    pub fn scheduler(&'a mut self) -> &'a mut Scheduler {
-        self.scheduler
-    }
-
-    pub fn context(&'a mut self) -> &'a mut SchedulerContext {
-        self.context
-    }
-
-    pub fn after<F>(&mut self, duration: Duration, callback: F)
+    pub fn at<F>(&mut self, time: Instant, callback: F)
     where F: Callback {
-        self.scheduler.schedule_heap.push(TimeKey::new(self.time + duration, Box::new(callback)));
+        self.scheduler.at(time, callback);
     }
 
+    /// Schedules callback to be invoked immediately.
     #[inline]
     pub fn now<F>(&mut self, callback: F)
     where F: Callback {
         self.scheduler.schedule_heap.push(TimeKey::now(Box::new(callback)));
     }
 
+    /// Schedules callback to be invoked after current task's scheduled time.  
+    /// For more precise timing, schedule it with the scheduler directly.
+    #[inline]
+    pub fn after<F>(&mut self, duration: Duration, callback: F)
+    where F: Callback {
+        self.scheduler.schedule_heap.push(TimeKey::new(self.time + duration, Box::new(callback)));
+    }
+
+    /// Schedules callback to be invoked `micros` microseconds after current task's scheduled time.  
+    /// For more precise timing, schedule it with the scheduler directly.
     #[inline]
     pub fn after_micros<F>(&mut self, micros: u64, callback: F)
     where F: Callback {
         self.after(Duration::from_micros(micros), callback);
     }
 
+    /// Schedules callback to be invoked `millis` milliseconds after current task's scheduled time.  
+    /// For more precise timing, schedule it with the scheduler directly.
     #[inline]
     pub fn after_millis<F>(&mut self, millis: u64, callback: F)
     where F: Callback {
         self.after(Duration::from_millis(millis), callback);
     }
 
+    /// Schedules callback to be invoked `nanos` nanoseconds after current task's scheduled time.  
+    /// For more precise timing, schedule it with the scheduler directly.
     #[inline]
     pub fn after_nanos<F>(&mut self, nanos: u64, callback: F)
     where F: Callback {
         self.after(Duration::from_nanos(nanos), callback);
     }
 
+    /// Schedules callback to be invoked `secs` seconds after current task's scheduled time.  
+    /// For more precise timing, schedule it with the scheduler directly.
     #[inline]
     pub fn after_secs<F>(&mut self, secs: u64, callback: F)
     where F: Callback {
         self.after(Duration::from_secs(secs), callback)
     }
 
+    /// Schedules callback to be invoked `secs` seconds after current task's scheduled time.  
+    /// For more precise timing, schedule it with the scheduler directly.
     #[inline]
     pub fn after_secs_f32<F>(&mut self, secs: f32, callback: F)
     where F: Callback {
         self.after(Duration::from_secs_f32(secs), callback);
     }
 
+    /// Schedules callback to be invoked `secs` seconds after current task's scheduled time.  
+    /// For more precise timing, schedule it with the scheduler directly.
     #[inline]
     pub fn after_secs_f64<F>(&mut self, secs: f64, callback: F)
     where F: Callback {
         self.after(Duration::from_secs_f64(secs), callback);
     }
 
+    /// Schedules callback to be invoked `mins` minutes after current task's scheduled time.  
+    /// For more precise timing, schedule it with the scheduler directly.
     #[inline]
     pub fn after_mins<F>(&mut self, mins: u64, callback: F)
     where F: Callback {
         self.after(Duration::from_secs(mins * 60), callback);
     }
 
+    /// Schedules callback to be invoked `mins` minuntes after current task's scheduled time.  
+    /// For more precise timing, schedule it with the scheduler directly.
     #[inline]
     pub fn after_mins_f32<F>(&mut self, mins: f32, callback: F)
     where F: Callback {
         self.after(Duration::from_secs_f32(mins * 60.0), callback);
     }
 
+    /// Schedules callback to be invoked `mins` minutes after current task's scheduled time.  
+    /// For more precise timing, schedule it with the scheduler directly.
     #[inline]
     pub fn after_mins_f64<F>(&mut self, mins: f64, callback: F)
     where F: Callback {
         self.after(Duration::from_secs_f64(mins * 60.0), callback);
     }
 
+    /// Schedules callback to be invoked `hours` after current task's scheduled time.  
+    /// For more precise timing, schedule it with the scheduler directly.
     #[inline]
     pub fn after_hours<F>(&mut self, hours: u64, callback: F)
     where F: Callback {
         self.after(Duration::from_secs(hours * 3600), callback);
     }
 
+    /// Schedules callback to be invoked `hours` after current task's scheduled time.  
+    /// For more precise timing, schedule it with the scheduler directly.
     #[inline]
     pub fn after_hours_f32<F>(&mut self, hours: f32, callback: F)
     where F: Callback {
         self.after(Duration::from_secs_f32(hours * 3600.0), callback);
     }
 
+    /// Schedules callback to be invoked `hours` after current task's scheduled time.  
+    /// For more precise timing, schedule it with the scheduler directly.
     #[inline]
     pub fn after_hours_f64<F>(&mut self, hours: f64, callback: F)
     where F: Callback {
         self.after(Duration::from_secs_f64(hours * 3600.0), callback);
     }
 
+    /// Schedules callback to be invoked `days` after current task's scheduled time.  
+    /// For more precise timing, schedule it with the scheduler directly.
     #[inline]
     pub fn after_days<F>(&mut self, days: u64, callback: F)
     where F: Callback {
         self.after(Duration::from_secs(days * 86400), callback);
     }
 
+    /// Schedules callback to be invoked `days` after current task's scheduled time.  
+    /// For more precise timing, schedule it with the scheduler directly.
     #[inline]
     pub fn after_days_f32<F>(&mut self, days: f32, callback: F)
     where F: Callback {
         self.after(Duration::from_secs_f32(days * 86400.0), callback);
     }
 
+    /// Schedules callback to be invoked `days` after current task's scheduled time.  
+    /// For more precise timing, schedule it with the scheduler directly.
     #[inline]
     pub fn after_days_f64<F>(&mut self, days: f64, callback: F)
     where F: Callback {
@@ -258,43 +285,6 @@ where F: Fn() -> R + 'static {
     }
 }
 
-// impl<F> Callback for ContextInjector<(), (), (), F>
-// where
-// F: Fn() + 'static {
-//     fn invoke(
-//             &mut self,
-//             context: &SchedulerContext,
-//             scheduler: &mut Scheduler
-//         ) -> SchedulerResponse {
-//         (self.callback)();
-//         SchedulerResponse::Finish
-//     }
-// }
-
-// impl<Data0, Arg0, R, F> Callback for ContextInjector<(Data0,), (Arg0,), R, F>
-// where
-// R: Into<SchedulerResponse>,
-// Data0: Send + Sync + 'static,
-// Arg0: Send + Sync + 'static,
-// F: Fn(
-//     &mut Data0,
-//     Arc<Arg0>
-// ) -> R + 'static {
-//     fn invoke(
-//             &mut self,
-//             context: &SchedulerContext,
-//             scheduler: &mut Scheduler
-//         ) -> SchedulerResponse {
-//         let (
-//             data0,
-//         ) = &mut self.data;
-//         (self.callback)(
-//             data0,
-//             context.get::<Arg0>().expect("Failed to get field from context."),
-//         ).into()
-//     }
-// }
-
 macro_rules! context_injector_impls {
     (@ctx_arg; Scheduler, $context:ident) => {
         $context.scheduler
@@ -374,89 +364,6 @@ macro_rules! context_injector_impls {
 
 include!("injector_impls.rs");
 
-// context_injector_impls!(
-//     [(), ()]
-//     [(), (T0)]
-//     [(), (T0, T1)]
-//     [(), (T0, T1, T2)]
-//     [(), (T0, T1, T2, T3)]
-//     [(), (T0, T1, T2, T3, T4)]
-//     [(D0), ()]
-//     [(D0), (T0)]
-//     [(D0), (T0, T1)]
-//     [(D0), (T0, T1, T2)]
-//     [(D0), (T0, T1, T2, T3)]
-//     [(D0), (T0, T1, T2, T3, T4)]
-//     [(D0, D1), ()]
-//     [(D0, D1), (T0)]
-//     [(D0, D1), (T0, T1)]
-//     [(D0, D1), (T0, T1, T2)]
-//     [(D0, D1), (T0, T1, T2, T3)]
-//     [(D0, D1), (T0, T1, T2, T3, T4)]
-//     [(D0, D1), (T0, T1, T2, T3, T4, T5)]
-//     [(D0, D1), (T0, T1, T2, T3, T4, T5, T6)]
-//     [(D0, D1), (T0, T1, T2, T3, T4, T5, T6, T7)]
-// );
-
-#[cfg(test)]
-mod testing_sandbox {
-    // TODO: Remove this sandbox when it is no longer in use.
-    use super::*;
-    #[test]
-    fn sandbox() {
-        
-    }
-}
-
-// impl<Data0, F> Callback for ContextInjector<(Data0,), (), (), F>
-// where
-// Data0: Send + Sync + 'static,
-// F: Fn(
-//     &mut Data0,
-// ) + 'static {
-//     fn invoke(
-//             &mut self,
-//             context: &SchedulerContext,
-//             scheduler: &mut Scheduler
-//         ) -> SchedulerResponse {
-//         let (
-//             data0,
-//         ) = &mut self.data;
-//         (self.callback)(
-//             data0,
-//         );
-//         SchedulerResponse::Finish
-//     }
-// }
-
-// impl<Arg0, R, F> Callback for ContextInjector<(), (Arg0,), R, F>
-// where
-// R: Into<SchedulerResponse>,
-// Arg0: Send + Sync + 'static,
-// F: Fn(Arc<Arg0>) -> R + 'static {
-//     fn invoke(
-//             &mut self,
-//             context: &SchedulerContext,
-//             scheduler: &mut Scheduler
-//         ) -> SchedulerResponse {
-//         (self.callback)(
-//             context.get::<Arg0>().expect("Failed to get field from context."),
-//         ).into()
-//     }
-// }
-
-// impl<F> Callback for ContextInjector<(), (), SchedulerResponse, F>
-// where
-// F: Fn() -> SchedulerResponse + 'static {
-//     fn invoke(
-//             &mut self,
-//             context: &SchedulerContext,
-//             scheduler: &mut Scheduler
-//         ) -> SchedulerResponse {
-//         (self.callback)()
-//     }
-// }
-
 #[derive(Default)]
 pub struct Scheduler {
     schedule_heap: BinaryHeap<TimeKey<Box<dyn Callback>>>,
@@ -467,6 +374,12 @@ impl Scheduler {
         Self {
             schedule_heap: BinaryHeap::new(),
         }
+    }
+
+    #[inline]
+    pub fn at<F>(&mut self, time: Instant, callback: F)
+    where F: Callback {
+        self.schedule_heap.push(TimeKey::new(time, Box::new(callback)));
     }
 
     #[inline]
@@ -582,12 +495,15 @@ impl Scheduler {
         };
         match value.invoke(task_context) {
             SchedulerResponse::Finish => (),
-            SchedulerResponse::RescheduleAfter(duration) => {
+            SchedulerResponse::After(duration) => {
                 self.schedule_heap.push(TimeKey::new(time + duration, value));
             },
-            SchedulerResponse::RescheduleAt(instant) => {
+            SchedulerResponse::At(instant) => {
                 self.schedule_heap.push(TimeKey::new(instant, value));
             },
+            SchedulerResponse::Immediate => {
+                self.schedule_heap.push(TimeKey::now(value));
+            }
         }
     }
 
@@ -605,73 +521,76 @@ impl Scheduler {
         self.process_until(Instant::now(), context);
     }
 
+    /// Similar to `process_until_now()`, except this method uses the current
+    /// time for each processing chunk rather than the same time for each chunk.  
+    /// With `process_until_now()`, you may end up processing nodes late.
     #[inline]
-    fn next_task_time(&self) -> Option<Instant> {
+    pub fn process_current(&mut self, context: &mut SchedulerContext) {
+        while let Some(TimeKey { time, value }) = self.schedule_heap.peek() {
+            if Instant::now() < *time {
+                break;
+            }
+            self.process_next(context);
+        }
+    }
+
+    #[inline]
+    pub fn next_task_time(&self) -> Option<Instant> {
         let Some(TimeKey { time, .. }) = self.schedule_heap.peek() else {
             return None;
         };
         Some(*time)
     }
 
-    #[inline]
+    /// Process tasks until there are no tasks remaining.
     pub fn process_blocking(&mut self, context: &mut SchedulerContext) {
-        const ONE_MS: Duration = Duration::from_millis(1);
         while let Some(time) = self.next_task_time() {
             let now = Instant::now();
             if now < time {
                 let diff = time - now;
-                if diff.as_millis() > ONE_MS.as_millis() {
-                    std::thread::sleep(diff - ONE_MS);
-                }
-                while Instant::now() < time {
-                    std::hint::spin_loop();
-                }
+                spin_sleep::sleep(diff);
             }
-            self.process_until_now(context);
+            self.process_current(context);
         }
     }
     
 }
 
-pub use experiment::experiment;
+// pub use experiment::experiment;
 
-pub trait SchedulerContextArg {
-
-}
-
-mod experiment {
-    use super::*;
-    use chrono::Timelike;
-    use hexahedron::prelude::Increment;
-    pub fn experiment() {
-        let mut context = SchedulerContext::new();
-        context.insert(vec![
-            String::from("Hello, world!"),
-            String::from("The quick brown fox jumps over the lazy dog."),
-            String::from("This is a test."),
-        ]);
-        let mut scheduler = Scheduler::new();
-        println!("Before schedule.");
-        scheduler.now(inject(|context: TaskContext<'_>| {
-            println!("Starting...");
-            context.scheduler.after_secs(5, inject_with((0i32, ), |num: &mut i32, string: Arc<Vec<String>>, context: TaskContext<'_>| {
-                let chron = chrono::Local::now();
-                println!("Frame {:>2} {:>2} {:>25}", num.increment(), chron.second(), chron.timestamp_millis());
-                std::io::stdout().flush().unwrap();
-                if *num < 61 {
-                    Some(Duration::from_secs(1) / 60)
-                } else {
-                    context.scheduler.after_secs(3, || {
-                        let chron = chrono::Local::now();
-                        println!("Finished! {}", chron.timestamp_millis());
-                    });
-                    None
-                }
-            }));
-        }));
-        scheduler.process_blocking(&mut context);
-    }
-}
+// mod experiment {
+//     use super::*;
+//     use chrono::Timelike;
+//     use hexahedron::prelude::Increment;
+//     pub fn experiment() {
+//         let mut context = SchedulerContext::new();
+//         context.insert(vec![
+//             String::from("Hello, world!"),
+//             String::from("The quick brown fox jumps over the lazy dog."),
+//             String::from("This is a test."),
+//         ]);
+//         let mut scheduler = Scheduler::new();
+//         println!("Before schedule.");
+//         scheduler.now(inject(|mut context: TaskContext<'_>| {
+//             println!("Starting...");
+//             context.after_secs(5, inject_with((0i32, ), |num: &mut i32, string: Arc<Vec<String>>, mut context: TaskContext<'_>| {
+//                 let chron = chrono::Local::now();
+//                 println!("Frame {:>2} {:>2} {:>25}", num.increment(), chron.second(), chron.timestamp_millis());
+//                 std::io::stdout().flush().unwrap();
+//                 if *num < 61 {
+//                     Some(Duration::from_secs(1) / 60)
+//                 } else {
+//                     context.after_secs(3, || {
+//                         let chron = chrono::Local::now();
+//                         println!("Finished! {}", chron.timestamp_millis());
+//                     });
+//                     None
+//                 }
+//             }));
+//         }));
+//         scheduler.process_blocking(&mut context);
+//     }
+// }
 
 /*
 00: (data,)*, (args,)*

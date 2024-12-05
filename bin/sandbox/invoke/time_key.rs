@@ -13,6 +13,7 @@ impl<T> TimeKey<T> {
             value,
         }
     }
+
     #[inline]
     pub fn now(value: T) -> Self {
         Self::new(Instant::now(), value)
