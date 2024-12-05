@@ -16,7 +16,44 @@ fn main() {
     */
     // scheduler::experiment();
     // any_map::any_map_test();
-    invoke::scheduler::experiment();
+    sched_experiment::experiment();
+    
+}
+mod sched_experiment {
+    use std::{io::Write, sync::Arc, time::Duration};
+
+    use chrono::Timelike;
+    use hexahedron::prelude::Increment;
+
+    use crate::invoke::{context::SchedulerContext, scheduler::{inject, inject_with, Scheduler}};
+
+    pub fn experiment() {
+        let mut context = SchedulerContext::new();
+        context.insert(vec![
+            String::from("Hello, world!"),
+            String::from("The quick brown fox jumps over the lazy dog."),
+            String::from("This is a test."),
+        ]);
+        let mut scheduler = Scheduler::new();
+        println!("Before schedule.");
+        scheduler.now(inject(|scheduler: &mut Scheduler| {
+            println!("Starting...");
+            scheduler.after_secs(5, inject_with((0i32, ), |num: &mut i32, string: Arc<Vec<String>>, context: &mut SchedulerContext, scheduler: &mut Scheduler| {
+                let chron = chrono::Local::now();
+                println!("Frame {:>2} {} {:>25}", num.increment(), chron.second(), chron.timestamp_millis());
+                if *num < 61 {
+                    Some(Duration::from_secs(1) / 60)
+                } else {
+                    scheduler.after_secs(3, || {
+                        let chron = chrono::Local::now();
+                        println!("Finished! {}", chron.timestamp_millis());
+                    });
+                    None
+                }
+            }));
+        }));
+        scheduler.process_blocking(&mut context);
+    }
 }
 
 mod extract_ref {

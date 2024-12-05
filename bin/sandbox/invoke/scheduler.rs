@@ -1,6 +1,6 @@
 use std::{collections::{BTreeMap, BinaryHeap}, io::Write, marker::PhantomData, sync::Arc, time::{Duration, Instant}};
 use paste::paste;
-use super::context::InvokeContext;
+use super::context::SchedulerContext;
 use super::time_key::*;
 
 pub enum SchedulerResponse {
@@ -40,35 +40,37 @@ impl From<Instant> for SchedulerResponse {
 pub trait Callback: 'static {
     fn invoke(
         &mut self,
-        context: &InvokeContext,
+        context: &mut SchedulerContext,
         scheduler: &mut Scheduler
     ) -> SchedulerResponse;
 }
 
-pub struct ContextInjector<Data, Args, Output, const NEEDS_SCHEDULER: bool, F>
+pub struct ContextInjector<Data, Args, Output, Context, F>
 where
 Data: 'static,
+Context: 'static,
 Args: 'static,
 Output: 'static,
 F: 'static,
 Self: Callback {
-    phantom: PhantomData<(Args, Output)>,
+    phantom: PhantomData<(Args, Output, Context)>,
     data: Data,
     callback: F,
 }
 
-impl<Data, Args, Output, const NEEDS_SCHEDULER: bool, F> ContextInjector<Data, Args, Output, NEEDS_SCHEDULER, F>
+impl<Data, Args, Output, Context, F> ContextInjector<Data, Args, Output, Context, F>
 where
 Data: 'static,
 Args: 'static,
 Output: 'static,
+Context: 'static,
 F: 'static,
 Self: Callback {
-    pub fn new<NArgs, NOutput, const SCHED: bool, NF>(callback: NF) -> ContextInjector<(), NArgs, NOutput, SCHED, NF>
+    pub fn new<NArgs, NOutput, NContext, NF>(callback: NF) -> ContextInjector<(), NArgs, NOutput, NContext, NF>
     where
-    NArgs: 'static,
-    NOutput: 'static,
-    ContextInjector<(), NArgs, NOutput, SCHED, NF>: Callback {
+    // NArgs: 'static,
+    // NOutput: 'static,
+    ContextInjector<(), NArgs, NOutput, NContext, NF>: Callback {
         ContextInjector {
             phantom: PhantomData,
             data: (),
@@ -76,10 +78,10 @@ Self: Callback {
         }
     }
 
-    pub fn with_data<NData, NArgs, NOutput, const SCHED: bool, NF>(data: NData, callback: NF) -> ContextInjector<NData, NArgs, NOutput, SCHED, NF>
+    pub fn with_data<NData, NArgs, NOutput, NContext, NF>(data: NData, callback: NF) -> ContextInjector<NData, NArgs, NOutput, NContext, NF>
     where
     NF: Fn() -> NOutput + 'static,
-    ContextInjector<NData, NArgs, NOutput, SCHED, NF>: Callback {
+    ContextInjector<NData, NArgs, NOutput, NContext, NF>: Callback {
         ContextInjector {
             phantom: PhantomData,
             data,
@@ -88,7 +90,7 @@ Self: Callback {
     }
 }
 
-impl<Args, R, const SCHED: bool, F> From<F> for ContextInjector<(), Args, R, SCHED, F>
+impl<Args, R, Context, F> From<F> for ContextInjector<(), Args, R, Context, F>
 where
 Self: Callback {
     fn from(value: F) -> Self {
@@ -100,9 +102,9 @@ Self: Callback {
     }
 }
 
-pub fn inject<Args, Output, const SCHED: bool, F>(callback: F) -> ContextInjector<(), Args, Output, SCHED, F>
+pub fn inject<Args, Output, Context, F>(callback: F) -> ContextInjector<(), Args, Output, Context, F>
 where
-ContextInjector<(), Args, Output, SCHED, F>: Callback {
+ContextInjector<(), Args, Output, Context, F>: Callback {
     ContextInjector {
         phantom: PhantomData,
         data: (),
@@ -110,9 +112,9 @@ ContextInjector<(), Args, Output, SCHED, F>: Callback {
     }
 }
 
-pub fn inject_with<Data, Args, Output, const SCHED: bool, F>(data: Data, callback: F) -> ContextInjector<Data, Args, Output, SCHED, F>
+pub fn inject_with<Data, Args, Output, Context, F>(data: Data, callback: F) -> ContextInjector<Data, Args, Output, Context, F>
 where
-ContextInjector<Data, Args, Output, SCHED, F>: Callback {
+ContextInjector<Data, Args, Output, Context, F>: Callback {
     ContextInjector {
         phantom: PhantomData,
         data,
@@ -124,7 +126,7 @@ impl<R: Into<SchedulerResponse>, F> Callback for F
 where F: Fn() -> R + 'static {
     fn invoke(
             &mut self,
-            context: &InvokeContext,
+            context: &mut SchedulerContext,
             scheduler: &mut Scheduler
         ) -> SchedulerResponse {
         (self)().into()
@@ -136,7 +138,7 @@ where F: Fn() -> R + 'static {
 // F: Fn() + 'static {
 //     fn invoke(
 //             &mut self,
-//             context: &InvokeContext,
+//             context: &SchedulerContext,
 //             scheduler: &mut Scheduler
 //         ) -> SchedulerResponse {
 //         (self.callback)();
@@ -155,7 +157,7 @@ where F: Fn() -> R + 'static {
 // ) -> R + 'static {
 //     fn invoke(
 //             &mut self,
-//             context: &InvokeContext,
+//             context: &SchedulerContext,
 //             scheduler: &mut Scheduler
 //         ) -> SchedulerResponse {
 //         let (
@@ -169,89 +171,72 @@ where F: Fn() -> R + 'static {
 // }
 
 macro_rules! context_injector_impls {
+    (@ctx_arg; Scheduler, $scheduler:ident, $_:ident) => {
+        $scheduler
+    };
+    (@ctx_arg; SchedulerContext, $_:ident, $context:ident) => {
+        $context
+    };
+    (@ctx_type; Scheduler) => {
+        &mut Scheduler
+    };
+    (@ctx_type; SchedulerContext) => {
+        &mut SchedulerContext
+    };
+    (@right_context; ( $($data_type:ident),* ), ( $($arg_type:ident),* ), ($($ctx:ident),*)) => {
+        paste!{
+            impl<$($data_type,)* $($arg_type,)* R, F> Callback for ContextInjector<($($data_type,)*), ($($arg_type,)*), R, ( ($($data_type,)*), ($($arg_type,)*), ($(context_injector_impls!(@ctx_type; $ctx),)*) ), F>
+            where
+            R: Into<SchedulerResponse>,
+            $(
+                $data_type: 'static,
+            )*
+            $(
+                $arg_type: Send + Sync + 'static,
+            )*
+            F: Fn(
+                $(
+                    &mut $data_type,
+                )*
+                $(
+                    Arc<$arg_type>,
+                )*
+                $(
+                    context_injector_impls!(@ctx_type; $ctx),
+                )*
+            ) -> R + 'static {
+                #[allow(non_snake_case)]
+                fn invoke(
+                    &mut self,
+                    context: &mut SchedulerContext,
+                    scheduler: &mut Scheduler,
+                ) -> SchedulerResponse {
+                    let (
+                        $(
+                            [<_ $data_type>],
+                        )*
+                    ) = &mut self.data;
+                    (self.callback)(
+                        $(
+                            [<_ $data_type>],
+                        )*
+                        $(
+                            context.get::<$arg_type>().expect(concat!("Failed to get ", stringify!($arg_type), " field.")),
+                        )*
+                        $(
+                            context_injector_impls!(@ctx_arg; $ctx, scheduler, context),
+                        )*
+                    ).into()
+                }
+            }
+        }
+    };
     (($($data_type:ident),*), ($($arg_type:ident),*)) => {
-        paste!{
-            impl<$($data_type,)* $($arg_type,)* R, F> Callback for ContextInjector<($($data_type,)*), ($($arg_type,)*), R, true, F>
-            where
-            R: Into<SchedulerResponse>,
-            $(
-                $data_type: 'static,
-            )*
-            $(
-                $arg_type: Send + Sync + 'static,
-            )*
-            F: Fn(
-                $(
-                    &mut $data_type,
-                )*
-                $(
-                    Arc<$arg_type>,
-                )*
-                &mut Scheduler,
-            ) -> R + 'static {
-                #[allow(non_snake_case)]
-                fn invoke(
-                    &mut self,
-                    context: &InvokeContext,
-                    scheduler: &mut Scheduler,
-                ) -> SchedulerResponse {
-                    let (
-                        $(
-                            [<_ $data_type>],
-                        )*
-                    ) = &mut self.data;
-                    (self.callback)(
-                        $(
-                            [<_ $data_type>],
-                        )*
-                        $(
-                            context.get::<$arg_type>().expect(concat!("Failed to get ", stringify!($arg_type), " field.")),
-                        )*
-                        scheduler,
-                    ).into()
-                }
-            }
-        }
-        paste!{
-            impl<$($data_type,)* $($arg_type,)* R, F> Callback for ContextInjector<($($data_type,)*), ($($arg_type,)*), R, false, F>
-            where
-            R: Into<SchedulerResponse>,
-            $(
-                $data_type: 'static,
-            )*
-            $(
-                $arg_type: Send + Sync + 'static,
-            )*
-            F: Fn(
-                $(
-                    &mut $data_type,
-                )*
-                $(
-                    Arc<$arg_type>,
-                )*
-            ) -> R + 'static {
-                #[allow(non_snake_case)]
-                fn invoke(
-                    &mut self,
-                    context: &InvokeContext,
-                    scheduler: &mut Scheduler,
-                ) -> SchedulerResponse {
-                    let (
-                        $(
-                            [<_ $data_type>],
-                        )*
-                    ) = &mut self.data;
-                    (self.callback)(
-                        $(
-                            [<_ $data_type>],
-                        )*
-                        $(
-                            context.get::<$arg_type>().expect(concat!("Failed to get ", stringify!($arg_type), " field.")),
-                        )*
-                    ).into()
-                }
-            }
-        }
+        context_injector_impls!{@right_context; ( $($data_type),* ), ( $($arg_type),* ), ()}
+        context_injector_impls!{@right_context; ( $($data_type),* ), ( $($arg_type),* ), (Scheduler)}
+        context_injector_impls!{@right_context; ( $($data_type),* ), ( $($arg_type),* ), (SchedulerContext)}
+        context_injector_impls!{@right_context; ( $($data_type),* ), ( $($arg_type),* ), (Scheduler, SchedulerContext)}
+        context_injector_impls!{@right_context; ( $($data_type),* ), ( $($arg_type),* ), (SchedulerContext, Scheduler)}
     };
     ($([($($data_type:ident),*), ($($arg_type:ident),*)])+) => {
         $(
@@ -260,23 +245,41 @@ macro_rules! context_injector_impls {
     };
 }
 
-context_injector_impls!(
-    [(), ()]
-    [(), (T0)]
-    [(), (T0, T1)]
-    [(), (T0, T1, T2)]
-    [(), (T0, T1, T2, T3)]
-    [(), (T0, T1, T2, T3, T4)]
-    [(D0), ()]
-    [(D0), (T0)]
-    [(D0), (T0, T1)]
-    [(D0), (T0, T1, T2)]
-    [(D0), (T0, T1, T2, T3)]
-    [(D0), (T0, T1, T2, T3, T4)]
-    [(D0, D1), ()]
-    [(D0, D1), (T0)]
-    [(D0, D1), (T0, T1)]
-);
+include!("injector_impls.rs");
+
+// context_injector_impls!(
+//     [(), ()]
+//     [(), (T0)]
+//     [(), (T0, T1)]
+//     [(), (T0, T1, T2)]
+//     [(), (T0, T1, T2, T3)]
+//     [(), (T0, T1, T2, T3, T4)]
+//     [(D0), ()]
+//     [(D0), (T0)]
+//     [(D0), (T0, T1)]
+//     [(D0), (T0, T1, T2)]
+//     [(D0), (T0, T1, T2, T3)]
+//     [(D0), (T0, T1, T2, T3, T4)]
+//     [(D0, D1), ()]
+//     [(D0, D1), (T0)]
+//     [(D0, D1), (T0, T1)]
+//     [(D0, D1), (T0, T1, T2)]
+//     [(D0, D1), (T0, T1, T2, T3)]
+//     [(D0, D1), (T0, T1, T2, T3, T4)]
+//     [(D0, D1), (T0, T1, T2, T3, T4, T5)]
+//     [(D0, D1), (T0, T1, T2, T3, T4, T5, T6)]
+//     [(D0, D1), (T0, T1, T2, T3, T4, T5, T6, T7)]
+// );
+
+#[cfg(test)]
+mod testing_sandbox {
+    // TODO: Remove this sandbox when it is no longer in use.
+    use super::*;
+    #[test]
+    fn sandbox() {
+        
+    }
+}
 
 // impl<Data0, F> Callback for ContextInjector<(Data0,), (), (), F>
 // where
@@ -286,7 +289,7 @@ context_injector_impls!(
 // ) + 'static {
 //     fn invoke(
 //             &mut self,
-//             context: &InvokeContext,
+//             context: &SchedulerContext,
 //             scheduler: &mut Scheduler
 //         ) -> SchedulerResponse {
 //         let (
@@ -306,7 +309,7 @@ context_injector_impls!(
 // F: Fn(Arc<Arg0>) -> R + 'static {
 //     fn invoke(
 //             &mut self,
-//             context: &InvokeContext,
+//             context: &SchedulerContext,
 //             scheduler: &mut Scheduler
 //         ) -> SchedulerResponse {
 //         (self.callback)(
@@ -320,7 +323,7 @@ context_injector_impls!(
 // F: Fn() -> SchedulerResponse + 'static {
 //     fn invoke(
 //             &mut self,
-//             context: &InvokeContext,
+//             context: &SchedulerContext,
 //             scheduler: &mut Scheduler
 //         ) -> SchedulerResponse {
 //         (self.callback)()
@@ -343,6 +346,12 @@ impl Scheduler {
     pub fn after<F>(&mut self, duration: Duration, callback: F)
     where F: Callback {
         self.schedule_heap.push(TimeKey::after(duration, Box::new(callback)));
+    }
+
+    #[inline]
+    pub fn now<F>(&mut self, callback: F)
+    where F: Callback {
+        self.schedule_heap.push(TimeKey::now(Box::new(callback)));
     }
 
     #[inline]
@@ -435,7 +444,7 @@ impl Scheduler {
         self.after(Duration::from_secs_f64(days * 86400.0), callback);
     }
 
-    fn process_next(&mut self, context: &InvokeContext) {
+    fn process_next(&mut self, context: &mut SchedulerContext) {
         let Some(TimeKey { time, mut value }) = self.schedule_heap.pop() else {
             panic!("No task in heap.");
         };
@@ -450,7 +459,7 @@ impl Scheduler {
         }
     }
 
-    pub fn process_until(&mut self, instant: Instant, context: &InvokeContext) {
+    pub fn process_until(&mut self, instant: Instant, context: &mut SchedulerContext) {
         while let Some(TimeKey { time, value }) = self.schedule_heap.peek() {
             if instant < *time {
                 break;
@@ -460,7 +469,7 @@ impl Scheduler {
     }
 
     #[inline]
-    pub fn process_until_now(&mut self, context: &InvokeContext) {
+    pub fn process_until_now(&mut self, context: &mut SchedulerContext) {
         self.process_until(Instant::now(), context);
     }
 
@@ -473,7 +482,7 @@ impl Scheduler {
     }
 
     #[inline]
-    pub fn process_blocking(&mut self, context: &InvokeContext) {
+    pub fn process_blocking(&mut self, context: &mut SchedulerContext) {
         const TEN_MS: Duration = Duration::from_millis(10);
         while let Some(time) = self.next_task_time() {
             let now = Instant::now();
@@ -499,26 +508,47 @@ mod experiment {
     use chrono::Timelike;
     use hexahedron::prelude::Increment;
     pub fn experiment() {
-        let mut context = InvokeContext::new();
+        let mut context = SchedulerContext::new();
         context.insert(vec![
             String::from("Hello, world!"),
             String::from("The quick brown fox jumps over the lazy dog."),
             String::from("This is a test."),
         ]);
         let mut scheduler = Scheduler::new();
-        scheduler.after_secs(3, inject_with((0i32, ), |num: &mut i32, string: Arc<Vec<String>>, scheduler: &mut Scheduler| {
-            let chron = chrono::Local::now();
-            println!("Frame {:>2} {} {:>25}", num.increment(), chron.second(), chron.timestamp_millis());
-            std::io::stdout().flush().unwrap();
-            if *num < 61 {
-                Some(Duration::from_secs(1) / 60)
-            } else {
-                scheduler.after_secs(5, || {
-                    println!("Finished!");
-                });
-                None
-            }
+        println!("Before schedule.");
+        scheduler.now(inject(|scheduler: &mut Scheduler| {
+            println!("Starting...");
+            scheduler.after_secs(5, inject_with((0i32, ), |num: &mut i32, string: Arc<Vec<String>>, context: &mut SchedulerContext, scheduler: &mut Scheduler| {
+                let chron = chrono::Local::now();
+                println!("Frame {:>2} {} {:>25}", num.increment(), chron.second(), chron.timestamp_millis());
+                std::io::stdout().flush().unwrap();
+                if *num < 61 {
+                    Some(Duration::from_secs(1) / 60)
+                } else {
+                    scheduler.after_secs(3, || {
+                        let chron = chrono::Local::now();
+                        println!("Finished! {}", chron.timestamp_millis());
+                    });
+                    None
+                }
+            }));
         }));
-        scheduler.process_blocking(&context);
+        scheduler.process_blocking(&mut context);
     }
 }
+
+/*
+00: (data,)*, (args,)*
+01: S, (data,)*, (args,)*
+02: C, (data,)*, (args,)*
+03: SC, (data,)*, (args,)*
+04: CS, (data,)*, (args,)*
+05: (data,)*, S, (args,)*
+06: (data,)*, C, (args,)*
+07: (data,)*, SC, (args,)*
+08: (data,)*, CS, (args,)*
+09: (data,)*, (args,)*, S
+10: (data,)*, (args,)*, C
+11: (data,)*, (args,)*, SC
+12: (data,)*, (args,)*, CS
+*/
