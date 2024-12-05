@@ -1,6 +1,6 @@
 use std::{collections::{BTreeMap, BinaryHeap}, io::Write, marker::PhantomData, sync::Arc, time::{Duration, Instant}};
 use paste::paste;
-use super::context::SchedulerContext;
+use super::context::Context;
 use super::time_key::*;
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -42,7 +42,7 @@ impl From<Instant> for SchedulerResponse {
 
 pub struct TaskContext<'a> {
     pub time: Instant,
-    pub context: &'a mut SchedulerContext,
+    pub context: &'a mut Context,
     pub scheduler: &'a mut Scheduler,
 }
 
@@ -484,7 +484,7 @@ impl Scheduler {
         self.after(Duration::from_secs_f64(days * 86400.0), callback);
     }
 
-    fn process_next(&mut self, context: &mut SchedulerContext) {
+    fn process_next(&mut self, context: &mut Context) {
         let Some(TimeKey { time, mut value }) = self.schedule_heap.pop() else {
             panic!("No task in heap.");
         };
@@ -507,7 +507,7 @@ impl Scheduler {
         }
     }
 
-    pub fn process_until(&mut self, instant: Instant, context: &mut SchedulerContext) {
+    pub fn process_until(&mut self, instant: Instant, context: &mut Context) {
         while let Some(TimeKey { time, value }) = self.schedule_heap.peek() {
             if instant < *time {
                 break;
@@ -519,7 +519,7 @@ impl Scheduler {
     /// Process until current time.  
     /// Current time is not updated after each task is processed, so it may be late. Use `process_current()` for more precise timing.
     #[inline]
-    pub fn process_until_now(&mut self, context: &mut SchedulerContext) {
+    pub fn process_until_now(&mut self, context: &mut Context) {
         self.process_until(Instant::now(), context);
     }
 
@@ -527,7 +527,7 @@ impl Scheduler {
     /// time for each processing chunk rather than the same time for each chunk.  
     /// With `process_until_now()`, you may end up processing nodes late.
     #[inline]
-    pub fn process_current(&mut self, context: &mut SchedulerContext) {
+    pub fn process_current(&mut self, context: &mut Context) {
         while let Some(TimeKey { time, value }) = self.schedule_heap.peek() {
             if Instant::now() < *time {
                 break;
@@ -545,7 +545,7 @@ impl Scheduler {
     }
 
     /// Process tasks until there are no tasks remaining.
-    pub fn process_blocking(&mut self, context: &mut SchedulerContext) {
+    pub fn process_blocking(&mut self, context: &mut Context) {
         const ONE_MS: Duration = Duration::from_millis(1);
         while let Some(time) = self.next_task_time() {
             if Instant::now() < time {

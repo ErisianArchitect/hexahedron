@@ -6,11 +6,11 @@ pub trait Mappable: Any + Send + Sync + 'static {}
 
 impl<T: Any + Send + Sync + 'static> Mappable for T {}
 
-pub struct SchedulerContext {
+pub struct Context {
     map: HashMap<TypeId, Arc<dyn Any + Send + Sync + 'static>>,
 }
 
-impl SchedulerContext {
+impl Context {
     pub fn new() -> Self {
         Self {
             map: HashMap::new(),
@@ -108,7 +108,7 @@ mod tests {
     use super::*;
     #[test]
     fn invoke_context_test() {
-        let mut ctx = SchedulerContext::new();
+        let mut ctx = Context::new();
         let strings = vec![
             "Hello, world!",
             "This is a test.",
