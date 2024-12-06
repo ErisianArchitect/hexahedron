@@ -1,4 +1,4 @@
-use std::{collections::{BTreeMap, BinaryHeap}, io::Write, marker::PhantomData, sync::Arc, time::{Duration, Instant}};
+use std::{any::TypeId, collections::{BTreeMap, BinaryHeap}, io::Write, marker::PhantomData, sync::Arc, time::{Duration, Instant}};
 use paste::paste;
 use super::context::SharedState;
 use super::time_key::*;
@@ -52,6 +52,24 @@ pub trait Callback: 'static {
         &mut self,
         task_ctx: TaskContext<'_>,
     ) -> SchedulerResponse;
+}
+
+pub trait ContextArg {
+    fn resolve(context: &SharedState) -> Self;
+}
+
+impl<T> ContextArg for Option<Arc<T>>
+where T: Send + Sync + 'static {
+    fn resolve(context: &SharedState) -> Self {
+        context.get()
+    }
+}
+
+impl<T> ContextArg for Arc<T>
+where T: Send + Sync + 'static {
+    fn resolve(context: &SharedState) -> Self {
+        context.get().expect("Failed to resolve argument")
+    }
 }
 
 pub struct ContextInjector<DataArgs, Args, Output, ContextArg, F>
@@ -159,14 +177,14 @@ macro_rules! context_injector_impls {
                 $data_type: 'static,
             )*
             $(
-                $arg_type: Send + Sync + 'static,
+                $arg_type: ContextArg,
             )*
             F: FnMut(
                 $(
                     &mut $data_type,
                 )*
                 $(
-                    Arc<$arg_type>,
+                    $arg_type,
                 )*
                 $(
                     context_injector_impls!(@ctx_type; $ctx),
@@ -187,7 +205,7 @@ macro_rules! context_injector_impls {
                             [<_ $data_type>],
                         )*
                         $(
-                            context.shared.get::<$arg_type>().expect(concat!("Failed to get ", stringify!($arg_type), " field.")),
+                            $arg_type::resolve(context.shared),
                         )*
                         $(
                             context_injector_impls!(@ctx_arg; $ctx, context),
@@ -392,18 +410,8 @@ impl Scheduler {
 
     /// Process tasks until there are no tasks remaining.
     pub fn process_blocking(&mut self, context: &mut SharedState) {
-        const ONE_MS: Duration = Duration::from_millis(1);
         while let Some(time) = self.next_task_time() {
-            if Instant::now() < time {
-                let diff = time - Instant::now();
-                spin_sleep::sleep(diff);
-                // if diff > ONE_MS {
-                //     spin_sleep::sleep(diff - ONE_MS);
-                // }
-                // while Instant::now() < time {
-                //     std::hint::spin_loop();
-                // }
-            }
+            spin_sleep::sleep_until(time);
             self.process_current(context);
         }
     }

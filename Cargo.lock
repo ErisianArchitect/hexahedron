@@ -1282,8 +1282,7 @@ dependencies = [
 [[package]]
 name = "spin_sleep"
 version = "1.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "64bd7227d85bfd1b8df51e0d83da36d9baaee85eb75730386ef8e3ab6f2a2ea3"
+source = "git+https://github.com/ErisianArchitect/spin-sleep.git#e4cb583d59ca4f66617cf3bdfbc70f83ec010d9a"
 dependencies = [
  "windows-sys 0.59.0",
 ]

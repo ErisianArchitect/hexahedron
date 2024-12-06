@@ -35,6 +35,9 @@ mod sched_experiment {
     use hexahedron::prelude::Increment;
 
     use crate::invoke::{context::SharedState, task_context::TaskContext, scheduler::{inject, inject_with, Callback, Scheduler, SchedulerResponse}};
+    use SchedulerResponse::*;
+
+
 
     pub fn experiment() {
         let mut context = SharedState::new();
@@ -44,12 +47,25 @@ mod sched_experiment {
             String::from("This is a test."),
         ]));
         let mut scheduler = Scheduler::new();
-        println!("Before schedule.");
         scheduler.now(inject(|mut context: TaskContext<'_>| {
+            let start_time = Instant::now();
+            let end_time = start_time + Duration::from_secs(20);
+            let final_time = end_time + Duration::from_secs(5);
+            context.now(move || {
+                println!("Every 2 Seconds...");
+                if Instant::now() < end_time {
+                    After(Duration::from_secs(2))
+                } else if Instant::now() < final_time {
+                    At(final_time)
+                } else {
+                    Finish
+                }
+            });
             println!("Starting...");
-            context.after_secs(3, inject_with((0i32, ), |num: &mut i32, string: Arc<Mutex<Vec<String>>>, mut context: TaskContext<'_>| {
+            context.after_secs(3, inject_with((0i32, ), |num: &mut i32, string: Arc<Mutex<Vec<String>>>, not_here: Option<Arc<i32>>, mut context: TaskContext<'_>| {
                 let chron = chrono::Local::now();
-                println!("Frame {:>2} {:>2} {:>13}", num.increment(), chron.second(), chron.timestamp_millis());
+                assert!(not_here.is_none());
+                println!("Frame {:>2} {:>2} {:>16}", num.increment(), chron.second(), chron.timestamp_micros());
                 if *num < 61 {
                     Some(Duration::from_secs(1) / 60)
                 } else {
@@ -62,7 +78,7 @@ mod sched_experiment {
                     spin_sleep::sleep(Duration::from_secs(1));
                     context.after_secs(3, inject(|strings: Arc<Mutex<Vec<String>>>, mut context: TaskContext<'_>| {
                         let chron = chrono::Local::now();
-                        println!("***");
+                        println!("*** {:>16}", chron.timestamp_micros());
                         let before = Instant::now();
                         let lock = strings.lock();
                         let elapsed = before.elapsed();
@@ -74,7 +90,7 @@ mod sched_experiment {
                         for i in 0..10 {
                             context.after_millis(i * 100 + 100, move || {
                                 let chron = chrono::Local::now();
-                                println!("Hello, world! {i:>2} {:>13}", chron.timestamp_millis());
+                                println!("Hello, world! {i:>2} {:>13}", chron.timestamp_micros());
                             });
                         }
                     }));
