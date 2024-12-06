@@ -4,8 +4,6 @@ use super::context::SharedState;
 use super::time_key::*;
 use super::task_context::TaskContext;
 
-
-
 #[derive(Default)]
 pub struct Scheduler {
     schedule_heap: BinaryHeap<TimeKey>,
@@ -285,7 +283,7 @@ where Self::Output: Callback {
     fn into_box(self) -> Box<Self::Output>;
 }
 
-impl<Args, ContextArg, F, Output> BoxableCallback<(Args, ContextArg, Output)> for F
+impl<Args, ContextArg, F, Output> BoxableCallback<(Args, ContextArg, F, Output)> for F
 where
 ContextInjector<(), Args, ContextArg, F, Output>: Callback {
     type Output = ContextInjector<(), Args, ContextArg, F, Output>;
@@ -413,7 +411,7 @@ impl Callback for Clear {
 }
 
 macro_rules! context_injector_impls {
-    (@ctx_arg; TaskContext, $context:ident) => {
+    (@ctx_arg; TaskContext; $context:ident) => {
         $context
     };
     (@ctx_type; TaskContext) => {
@@ -459,7 +457,7 @@ macro_rules! context_injector_impls {
                             $arg_type::resolve(context.shared),
                         )*
                         $(
-                            context_injector_impls!(@ctx_arg; $ctx, context),
+                            context_injector_impls!(@ctx_arg; $ctx; context),
                         )*
                     ).into()
                 }
@@ -478,3 +476,12 @@ macro_rules! context_injector_impls {
 }
 
 include!("injector_impls.rs");
+
+#[cfg(test)]
+mod testing_sandbox {
+    // TODO: Remove this sandbox when it is no longer in use.
+    use super::*;
+    #[test]
+    fn sandbox() {
+    }
+}
