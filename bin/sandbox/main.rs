@@ -47,7 +47,6 @@ mod sched_experiment {
             String::from("This is a test."),
         ]));
         let mut scheduler = Scheduler::new();
-        scheduler.after_secs(3, Clear);
         scheduler.now(|mut context: TaskContext<'_>| {
             let start_time = Instant::now();
             let end_time = start_time + Duration::from_secs(20);
