@@ -17,9 +17,55 @@ async fn main() {
     */
     // scheduler::experiment();
     // any_map::any_map_test();
+    // unsafe_experiment::experiment();
     sched_experiment::experiment();
     
 }
+
+mod unsafe_experiment {
+
+    struct ShareMe {
+        i32: i32,
+        bool: bool,
+    }
+
+    struct HoldsShareMe<'a> {
+        share: &'a mut ShareMe,
+    }
+
+    impl<'a> HoldsShareMe<'a> {
+        pub fn new(share: &'a mut ShareMe) -> Self {
+            Self { share }
+        }
+    }
+
+    fn take_shareme(mut ctx: HoldsShareMe<'_>) {
+        ctx.share.i32 += 1;
+        ctx.share.bool = !ctx.share.bool;
+    }
+
+    pub fn experiment() {
+
+        let mut share_me = ShareMe {
+            i32: 0,
+            bool: false,
+        };
+
+        let shared = &mut share_me;
+        println!("{}", std::any::type_name::<&mut ShareMe>());
+
+        take_shareme(HoldsShareMe::new(shared));
+        take_shareme(HoldsShareMe::new(shared));
+        take_shareme(HoldsShareMe::new(shared));
+        take_shareme(HoldsShareMe::new(shared));
+
+        println!("i32: {}", shared.i32);
+        println!("bool: {}", shared.bool);
+
+    }
+
+}
+
 mod sched_experiment {
     use std::{
         io::Write,
@@ -64,7 +110,7 @@ mod sched_experiment {
             println!("Starting...");
             context.after_secs(3, with((0i32,), |num: &mut i32, string: Arc<Mutex<Vec<String>>>, not_here: Option<Arc<i32>>, mut context: TaskContext<'_>| {
                 let chron = chrono::Local::now();
-                assert!(not_here.is_none());
+                // assert!(not_here.is_none());
                 println!("Frame {:>2} {:>2} {:>16}", num.increment(), chron.second(), chron.timestamp_micros());
                 if *num < 61 {
                     Some(Duration::from_secs(1) / 60)
