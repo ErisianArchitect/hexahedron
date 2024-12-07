@@ -80,7 +80,7 @@ mod sched_experiment {
     use chrono::Timelike;
     use hexahedron::prelude::Increment;
 
-    use crate::invoke::{context::SharedState, scheduler::{with, Callback, Clear, Scheduler, TaskResponse}, task_context::TaskContext};
+    use crate::invoke::{context::SharedState, callback::Callback, scheduler::{with, Clear, Scheduler}, task_response::TaskResponse, task_context::TaskContext};
     use TaskResponse::*;
 
 

@@ -3,6 +3,8 @@ use paste::paste;
 use super::context::SharedState;
 use super::time_key::*;
 use super::task_context::TaskContext;
+use super::task_response::TaskResponse;
+use super::callback::Callback;
 
 // context_type
 
@@ -207,148 +209,24 @@ impl Scheduler {
     }
 }
 
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum TaskResponse {
-    /// Finish task, do nothing.
-    #[default]
-    Finish,
-    /// Reschedule task immediately.
-    Immediate,
-    /// Reschedule task after [Duration] (relative to task time).
-    After(Duration),
-    /// Reschedule task at [Instant].
-    At(Instant),
-}
-
-impl TaskResponse {
-    /// Returns `default` if `self` == `TaskResponse::Finish`.
-    #[inline]
-    pub fn unfinished_or<D: Into<TaskResponse>>(self, default: D) -> Self {
-        match self {
-            TaskResponse::Finish => default.into(),
-            unfinished => unfinished,
-        }
-    }
-
-    /// Returns the result `default` if `self` == `TaskResponse::Finish`.
-    #[inline]
-    pub fn unfinished_or_else<R: Into<TaskResponse>, F: FnOnce() -> R>(self, default: F) -> Self {
-        match self {
-            TaskResponse::Finish => default().into(),
-            unfinished => unfinished,
-        }
-    }
-
-    #[inline]
-    pub const fn finished(self) -> bool {
-        matches!(self, Self::Finish)
-    }
-}
-
-impl From<()> for TaskResponse {
-    #[inline]
-    fn from(value: ()) -> Self {
-        TaskResponse::Finish
-    }
-}
-
-impl From<Duration> for TaskResponse {
-    #[inline]
-    fn from(value: Duration) -> Self {
-        TaskResponse::After(value)
-    }
-}
-
-impl From<Instant> for TaskResponse {
-    #[inline]
-    fn from(value: Instant) -> Self {
-        TaskResponse::At(value)
-    }
-}
-
-impl<T: Into<TaskResponse>> From<Option<T>> for TaskResponse {
-    #[inline]
-    fn from(value: Option<T>) -> Self {
-        if let Some(value) = value {
-            value.into()
-        } else {
-            TaskResponse::Finish
-        }
-    }
-}
-
-pub trait Callback: 'static {
-    #[inline]
-    fn invoke(
-        &mut self,
-        task_ctx: TaskContext<'_>,
-    ) -> TaskResponse;
-}
-
-pub trait TaskContextType {}
-
-impl<'a> TaskContextType for TaskContext<'a> {}
-
-pub trait VariadicCallbackContext<Ctx> {
-    #[inline]
-    fn resolve(ctx: Ctx) -> Self;
-}
-
-impl<T> VariadicCallbackContext<T> for T
-where T: TaskContextType {
-    #[inline]
-    fn resolve(ctx: T) -> Self {
-        ctx
-    }
-}
-
-impl<T> VariadicCallbackContext<T> for () {
-    fn resolve(ctx: T) -> Self {}
-}
-
-pub trait VariadicCallback<DataArgs, Args, CtxT, CtxArg, R>
-where
-CtxArg: VariadicCallbackContext<CtxT> {
-    #[inline]
-    fn invoke(
-        &mut self,
-        data: &mut DataArgs,
-        task_ctx: CtxArg,
-    ) -> R;
-}
-
-impl<DataArgs, Args, CtxT, CtxArg, R, C> VariadicCallback<(), Args, CtxT, CtxArg, R> for (DataArgs, C)
-where 
-CtxArg: VariadicCallbackContext<CtxT>,
-C: VariadicCallback<DataArgs, Args, CtxT, CtxArg, R> {
-    #[inline]
-    fn invoke(
-            &mut self,
-            data: &mut (),
-            task_ctx: CtxArg,
-        ) -> R {
-        self.1.invoke(&mut self.0, task_ctx)
-    }
-}
-
-pub fn group<
-    TaskCtx,
-    Args0, Ctx0, F0, R0,
-    Args1, Ctx1, F1, R1,
->((f0, f1): (F0, F1))
-where
-TaskCtx: TaskContextType,
-R0: Into<TaskResponse>,
-Ctx0: VariadicCallbackContext<TaskCtx>,
-F0: VariadicCallback<(), Args0, TaskCtx, Ctx0, R0>,
-R1: Into<TaskResponse>,
-Ctx1: VariadicCallbackContext<TaskCtx>,
-F0: VariadicCallback<(), Args1, TaskCtx, Ctx1, R1>,
-{
+// pub fn group<
+//     TaskCtx,
+//     Args0, Ctx0, F0, R0,
+//     Args1, Ctx1, F1, R1,
+// >((f0, f1): (F0, F1))
+// where
+// TaskCtx: TaskContextType,
+// R0: Into<TaskResponse>,
+// Ctx0: VariadicCallbackContext<TaskCtx>,
+// F0: VariadicCallback<(), Args0, TaskCtx, Ctx0, R0>,
+// R1: Into<TaskResponse>,
+// Ctx1: VariadicCallbackContext<TaskCtx>,
+// F0: VariadicCallback<(), Args1, TaskCtx, Ctx1, R1>,
+// {
     
-}
+// }
 
-pub trait BoxableCallback<T>
+pub trait BoxableCallback<T>: 'static
 where Self::Output: Callback {
     type Output;
     fn into_box(self) -> Box<Self::Output>;

@@ -1,6 +1,9 @@
 use std::time::{Duration, Instant};
 
-use super::scheduler::{BoxableCallback, Callback};
+use super::{
+    scheduler::{BoxableCallback},
+    callback::Callback,
+};
 
 pub struct TimeKey {
     pub(crate) time: Instant,
