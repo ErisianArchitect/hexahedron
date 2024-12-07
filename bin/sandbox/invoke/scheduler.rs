@@ -137,9 +137,16 @@ impl Scheduler {
             shared,
             scheduler: self,
         };
+        let start_time = Instant::now();
         match value.invoke(task_context) {
             TaskResponse::Finish => (),
-            TaskResponse::After(duration) => {
+            TaskResponse::AfterTaskBegan(duration) => {
+                self.schedule_heap.push(TimeKey::new(start_time + duration, value));
+            },
+            TaskResponse::AfterTaskEnds(duration) => {
+                self.schedule_heap.push(TimeKey::new(Instant::now() + duration, value));
+            },
+            TaskResponse::AfterScheduled(duration) => {
                 self.schedule_heap.push(TimeKey::new(time + duration, value));
             },
             TaskResponse::At(instant) => {
@@ -151,9 +158,11 @@ impl Scheduler {
         }
     }
 
-    pub fn process_until(&mut self, instant: Instant, shared: &mut SharedState) {
-        while let Some(TimeKey { time, callback: value }) = self.schedule_heap.peek() {
-            if instant < *time {
+    /// Processes tasks that come before `deadline`.
+    #[inline]
+    pub fn process_until(&mut self, deadline: Instant, shared: &mut SharedState) {
+        while let Some(TimeKey { time, .. }) = self.schedule_heap.peek() {
+            if deadline < *time {
                 break;
             }
             self.process_next(shared);
@@ -172,7 +181,7 @@ impl Scheduler {
     /// With `process_until_now()`, you may end up processing nodes late.
     #[inline]
     pub fn process_current(&mut self, context: &mut SharedState) {
-        while let Some(TimeKey { time, callback: value }) = self.schedule_heap.peek() {
+        while let Some(TimeKey { time, .. }) = self.schedule_heap.peek() {
             if Instant::now() < *time {
                 break;
             }
@@ -189,7 +198,7 @@ impl Scheduler {
     }
 
     #[inline]
-    pub fn time_until_next_task(&self) -> Option<Duration> {
+    pub fn duration_until_next_task(&self) -> Option<Duration> {
         let Some(TimeKey { time, .. }) = self.schedule_heap.peek() else {
             return None;
         };
@@ -197,9 +206,28 @@ impl Scheduler {
     }
 
     /// Process tasks until there are no tasks remaining, blocking the current thread in the process.
+    #[inline]
     pub fn process_blocking(&mut self, context: &mut SharedState) {
-        while let Some(time) = self.next_task_time() {
-            spin_sleep::sleep_until(time);
+        while let Some(next_task_time) = self.next_task_time() {
+            spin_sleep::sleep_until(next_task_time);
+            self.process_current(context);
+        }
+    }
+
+    #[inline]
+    pub fn process_blocking_for(&mut self, duration: Duration, wait_until_deadline: bool, context: &mut SharedState) {
+        self.process_blocking_until(Instant::now() + duration, wait_until_deadline, context);
+    }
+
+    pub fn process_blocking_until(&mut self, deadline: Instant, wait_until_deadline: bool, context: &mut SharedState) {
+        while let Some(next_task_time) = self.next_task_time() {
+            if next_task_time > deadline {
+                if wait_until_deadline {
+                    spin_sleep::sleep_until(deadline);
+                }
+                return;
+            }
+            spin_sleep::sleep_until(next_task_time);
             self.process_current(context);
         }
     }

@@ -20,7 +20,6 @@ name = "netbox"
 path = "./bin/netbox/main.rs"
 
 [dependencies]
-bincode = "1.3.3"
 bytemuck = { version = "1.18.0", features = ["derive"] }
 chrono = "0.4.38"
 flate2 = "1.0.33"

@@ -66,11 +66,35 @@ mod unsafe_experiment {
 
 }
 
+mod combine_tuple_experiment {
+    use std::marker::PhantomData;
+
+    pub trait CombineTuple {
+        type Combined;
+
+        fn combine(self) -> Self::Combined;
+    }
+
+    impl<A0, B0> CombineTuple for ((A0,), (B0,)) {
+        type Combined = (A0, B0);
+
+        fn combine(self) -> Self::Combined {
+            let ((a0,), (b0,)) = self;
+            (a0, b0)
+        }
+        
+    }
+
+    fn experiment() {
+        let v = ((1i32,), (3u32,)).combine();
+    }
+}
+
 mod sched_experiment {
     use std::{
         io::Write,
         sync::{
-            Arc,
+            atomic::{AtomicBool, AtomicU32}, Arc
             // Mutex,
         },
         time::{Duration, Instant}
@@ -78,9 +102,9 @@ mod sched_experiment {
     use parking_lot::Mutex;
 
     use chrono::Timelike;
-    use hexahedron::prelude::Increment;
+    use hexahedron::{math::minmax, prelude::Increment};
 
-    use crate::invoke::{context::SharedState, callback::Callback, scheduler::{with, Clear, Scheduler}, task_response::TaskResponse, task_context::TaskContext};
+    use crate::invoke::{callback::Callback, context::SharedState, scheduler::{with, Clear, ContextInjector, Scheduler}, task_context::TaskContext, task_response::TaskResponse};
     use TaskResponse::*;
 
 
@@ -92,58 +116,102 @@ mod sched_experiment {
             String::from("The quick brown fox jumps over the lazy dog."),
             String::from("This is a test."),
         ]));
+        context.insert(AtomicU32::new(0));
         let mut scheduler = Scheduler::new();
-        scheduler.now(|mut context: TaskContext<'_>| {
-            let start_time = Instant::now();
-            let end_time = start_time + Duration::from_secs(20);
-            let final_time = end_time + Duration::from_secs(5);
-            context.after_secs(2, move || {
-                println!("Every 2 Seconds...");
-                if Instant::now() < end_time {
-                    After(Duration::from_secs(2))
-                } else if Instant::now() < final_time {
-                    At(final_time)
-                } else {
-                    Finish
+        // scheduler.now();
+        // scheduler.after_secs(10, Clear);
+        let mut counter = 0u32;
+        scheduler.now({
+            #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+            struct Timer(Instant);
+            impl Timer {
+                fn time(&mut self) -> Duration {
+                    let duration = self.0.elapsed();
+                    self.0 = Instant::now();
+                    duration
                 }
-            });
-            println!("Starting...");
-            context.after_secs(3, with((0i32,), |num: &mut i32, string: Arc<Mutex<Vec<String>>>, not_here: Option<Arc<i32>>, mut context: TaskContext<'_>| {
-                let chron = chrono::Local::now();
-                // assert!(not_here.is_none());
-                println!("Frame {:>2} {:>2} {:>16}", num.increment(), chron.second(), chron.timestamp_micros());
-                if *num < 61 {
-                    Some(Duration::from_secs(1) / 60)
-                } else {
-                    let mut lock = string.lock();
-                    for s in lock.iter_mut() {
-                        println!("{s}");
-                        *s = format!("Frames: {num}");
-                    }
-                    println!("Sleeping for a second.");
-                    spin_sleep::sleep(Duration::from_secs(1));
-                    context.after_secs(3, |strings: Arc<Mutex<Vec<String>>>, mut context: TaskContext<'_>| {
-                        let chron = chrono::Local::now();
-                        println!("*** {:>16}", chron.timestamp_micros());
-                        let before = Instant::now();
-                        let lock = strings.lock();
-                        let elapsed = before.elapsed();
-                        println!("Locked in: {} ns", elapsed.as_nanos());
-                        for s in lock.iter() {
-                            println!("{s}");
-                        }
-                        // println!("Finished! {}", chron.timestamp_millis());
-                        for i in 0..10 {
-                            context.after_millis(i * 100 + 100, move || {
-                                let chron = chrono::Local::now();
-                                println!("Hello, world! {i:>2} {:>13}", chron.timestamp_micros());
-                            });
+
+                fn framerate(self) -> f64 {
+                    1.0 / self.0.elapsed().as_secs_f64()
+                }
+            }
+            let mut timer = Timer(Instant::now());
+            let mut times = Some(vec![]);
+            move |atomic: Arc<AtomicU32>, mut context: TaskContext<'_>| {
+                let old_time = timer;
+                let time = timer.time();
+                if atomic.fetch_add(1, std::sync::atomic::Ordering::Relaxed) > 600 {
+                    let times = times.take().unwrap();
+                    context.now(move || {
+                        for (fps, frametime_diff, fps_diff) in times.iter() {
+                            println!("{fps:2.8}  |  {frametime_diff:.8}  |  {fps_diff:.8}");
                         }
                     });
-                    None
+                    return None;
                 }
-            }));
+                let Some(times) = &mut times else {
+                    return None;
+                };
+                let (min, max) = minmax(old_time.0.elapsed().as_secs_f64(), 1.0 / 60.0);
+                let frametime_diff = max - min;
+                let (min, max) = minmax(old_time.framerate(), 60.0);
+                let fps_diff = max - min;
+                times.push((old_time.framerate(), frametime_diff, fps_diff));
+                // println!("FPS: {:2.8}  |  {frametime_diff:.8}  |  {fps_diff:.8}", old_time.framerate());
+                Some(AfterTaskBegan(Duration::from_secs_f64(1.0 / 59.0)))
+            }
         });
+        // scheduler.now(|mut context: TaskContext<'_>| {
+        //     let start_time = Instant::now();
+        //     let end_time = start_time + Duration::from_secs(20);
+        //     let final_time = end_time + Duration::from_secs(5);
+        //     context.after_secs(2, move || {
+        //         println!("Every 2 Seconds...");
+        //         if Instant::now() < end_time {
+        //             After(Duration::from_secs(2))
+        //         } else if Instant::now() < final_time {
+        //             At(final_time)
+        //         } else {
+        //             Finish
+        //         }
+        //     });
+        //     println!("Starting...");
+        //     context.after_secs(3, with((0i32,), |num: &mut i32, string: Arc<Mutex<Vec<String>>>, not_here: Option<Arc<i32>>, mut context: TaskContext<'_>| {
+        //         let chron = chrono::Local::now();
+        //         // assert!(not_here.is_none());
+        //         println!("Frame {:>2} {:>2} {:>16}", num.increment(), chron.second(), chron.timestamp_micros());
+        //         if *num < 61 {
+        //             Some(Duration::from_secs(1) / 60)
+        //         } else {
+        //             let mut lock = string.lock();
+        //             for s in lock.iter_mut() {
+        //                 println!("{s}");
+        //                 *s = format!("Frames: {num}");
+        //             }
+        //             println!("Sleeping for a second.");
+        //             spin_sleep::sleep(Duration::from_secs(1));
+        //             context.after_secs(3, |strings: Arc<Mutex<Vec<String>>>, mut context: TaskContext<'_>| {
+        //                 let chron = chrono::Local::now();
+        //                 println!("*** {:>16}", chron.timestamp_micros());
+        //                 let before = Instant::now();
+        //                 let lock = strings.lock();
+        //                 let elapsed = before.elapsed();
+        //                 println!("Locked in: {} ns", elapsed.as_nanos());
+        //                 for s in lock.iter() {
+        //                     println!("{s}");
+        //                 }
+        //                 // println!("Finished! {}", chron.timestamp_millis());
+        //                 for i in 0..10 {
+        //                     context.after_millis(i * 100 + 100, move || {
+        //                         let chron = chrono::Local::now();
+        //                         println!("Hello, world! {i:>2} {:>13}", chron.timestamp_micros());
+        //                     });
+        //                 }
+        //             });
+        //             None
+        //         }
+        //     }));
+        // });
         scheduler.process_blocking(&mut context);
     }
 }

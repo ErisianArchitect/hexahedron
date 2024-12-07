@@ -15,3 +15,4 @@ pub mod task_context;
 pub mod task_response;
 pub mod callback;
 pub mod variadic_callback;
+pub mod shared_type;

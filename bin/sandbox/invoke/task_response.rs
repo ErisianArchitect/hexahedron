@@ -7,8 +7,12 @@ pub enum TaskResponse {
     Finish,
     /// Reschedule task immediately.
     Immediate,
-    /// Reschedule task after [Duration] (relative to task time).
-    After(Duration),
+    /// Reschedule task after [Duration] relative to the instant before the task 
+    AfterTaskBegan(Duration),
+    /// Reschedule task after [Duration] relative to the instant after the task returns.
+    AfterTaskEnds(Duration),
+    /// Reschedule task after [Duration] relative to the task's scheduled time.
+    AfterScheduled(Duration),
     /// Reschedule task at [Instant].
     At(Instant),
 }
@@ -48,7 +52,7 @@ impl From<()> for TaskResponse {
 impl From<Duration> for TaskResponse {
     #[inline]
     fn from(value: Duration) -> Self {
-        TaskResponse::After(value)
+        TaskResponse::AfterTaskEnds(value)
     }
 }
 
