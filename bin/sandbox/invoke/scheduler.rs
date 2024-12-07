@@ -360,10 +360,10 @@ impl Callback for Clear {
 }
 
 macro_rules! context_injector_impls {
-    (@ctx_arg; TaskContext; $context:ident) => {
+    (@ctx_arg; WithContext; $context:ident) => {
         $context
     };
-    (@ctx_type; TaskContext) => {
+    (@ctx_type; WithContext) => {
         TaskContext<'_>
     };
     (@right_context; ( $($data_type:ident),* ), ( $($arg_type:ident),* ), ($($ctx:ident),*)) => {
@@ -415,7 +415,7 @@ macro_rules! context_injector_impls {
     };
     (($($data_type:ident),*), ($($arg_type:ident),*)) => {
         context_injector_impls!{@right_context; ( $($data_type),* ), ( $($arg_type),* ), ()}
-        context_injector_impls!{@right_context; ( $($data_type),* ), ( $($arg_type),* ), (TaskContext)}
+        context_injector_impls!{@right_context; ( $($data_type),* ), ( $($arg_type),* ), (WithContext)}
     };
     ($([($($data_type:ident),*), ($($arg_type:ident),*)])+) => {
         $(
