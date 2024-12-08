@@ -15,79 +15,10 @@ async fn main() {
         A sparse struct using manual memory management
         and unsafe code.
     */
-    // scheduler::experiment();
+    sched_experiment::experiment();
     // any_map::any_map_test();
     // unsafe_experiment::experiment();
-    sched_experiment::experiment();
-    
-}
-
-mod unsafe_experiment {
-
-    struct ShareMe {
-        i32: i32,
-        bool: bool,
-    }
-
-    struct HoldsShareMe<'a> {
-        share: &'a mut ShareMe,
-    }
-
-    impl<'a> HoldsShareMe<'a> {
-        pub fn new(share: &'a mut ShareMe) -> Self {
-            Self { share }
-        }
-    }
-
-    fn take_shareme(mut ctx: HoldsShareMe<'_>) {
-        ctx.share.i32 += 1;
-        ctx.share.bool = !ctx.share.bool;
-    }
-
-    pub fn experiment() {
-
-        let mut share_me = ShareMe {
-            i32: 0,
-            bool: false,
-        };
-
-        let shared = &mut share_me;
-        println!("{}", std::any::type_name::<&mut ShareMe>());
-
-        take_shareme(HoldsShareMe::new(shared));
-        take_shareme(HoldsShareMe::new(shared));
-        take_shareme(HoldsShareMe::new(shared));
-        take_shareme(HoldsShareMe::new(shared));
-
-        println!("i32: {}", shared.i32);
-        println!("bool: {}", shared.bool);
-
-    }
-
-}
-
-mod combine_tuple_experiment {
-    use std::marker::PhantomData;
-
-    pub trait CombineTuple {
-        type Combined;
-
-        fn combine(self) -> Self::Combined;
-    }
-
-    impl<A0, B0> CombineTuple for ((A0,), (B0,)) {
-        type Combined = (A0, B0);
-
-        fn combine(self) -> Self::Combined {
-            let ((a0,), (b0,)) = self;
-            (a0, b0)
-        }
-        
-    }
-
-    fn experiment() {
-        let v = ((1i32,), (3u32,)).combine();
-    }
+    // sched_experiment::experiment();
 }
 
 mod sched_experiment {
@@ -104,7 +35,7 @@ mod sched_experiment {
     use chrono::Timelike;
     use hexahedron::{math::minmax, prelude::Increment};
 
-    use crate::invoke::{callback::Callback, context::SharedState, scheduler::{with, Clear, ContextInjector, Scheduler}, task_context::TaskContext, task_response::TaskResponse};
+    use crate::invoke::{callback::Callback, context::SharedState, optional::Optional, scheduler::{with, Clear, ContextInjector, Scheduler}, scheduler_context::Skip, task_context::TaskContext, task_response::TaskResponse, tuple_combine::TupleJoin, tuple_flatten::TupleFlatten};
     use TaskResponse::*;
 
 
@@ -117,10 +48,13 @@ mod sched_experiment {
             String::from("This is a test."),
         ]));
         context.insert(AtomicU32::new(0));
-        let mut scheduler = Scheduler::new();
+        let mut scheduler = Scheduler::<SharedState>::new();
         // scheduler.now();
         // scheduler.after_secs(10, Clear);
         let mut counter = 0u32;
+        scheduler.now(|| {
+            println!("Hello, world!");
+        });
         scheduler.now({
             #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
             struct Timer(Instant);
@@ -137,7 +71,7 @@ mod sched_experiment {
             }
             let mut timer = Timer(Instant::now());
             let mut times = Some(vec![]);
-            move |atomic: Arc<AtomicU32>, mut context: TaskContext<'_>| {
+            move |atomic: Arc<AtomicU32>, skip: Skip<Arc<bool>>, mut context: TaskContext<'_, _>| {
                 let old_time = timer;
                 let time = timer.time();
                 if atomic.fetch_add(1, std::sync::atomic::Ordering::Relaxed) > 600 {

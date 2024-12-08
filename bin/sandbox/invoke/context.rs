@@ -2,6 +2,8 @@ use std::{any::{Any, TypeId}, sync::{Arc, Mutex, RwLock}};
 
 use hashbrown::HashMap;
 
+use super::scheduler_context::*;
+
 pub trait Mappable: Any + Send + Sync + 'static {}
 
 impl<T: Any + Send + Sync + 'static> Mappable for T {}
@@ -100,6 +102,15 @@ impl SharedState {
 
     pub fn clear(&mut self) {
         self.map.clear();
+    }
+}
+
+impl SchedulerContext for SharedState {}
+
+impl<T> ContextResolvable<SharedState> for Arc<T>
+where T: Send + Sync + 'static {
+    fn resolve(context: &mut SharedState) -> super::scheduler_context::ResolveResult<Self> {
+        context.get::<T>().ok_or_else(|| ResolveError::NotFound(std::any::type_name::<Arc<T>>()))
     }
 }
 

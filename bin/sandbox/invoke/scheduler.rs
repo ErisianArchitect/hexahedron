@@ -1,6 +1,6 @@
 use std::{any::TypeId, collections::{BTreeMap, BinaryHeap}, io::Write, marker::PhantomData, sync::Arc, time::{Duration, Instant}};
 use paste::paste;
-use super::context::SharedState;
+use super::{context::SharedState, scheduler_context::*};
 use super::time_key::*;
 use super::task_context::TaskContext;
 use super::task_response::TaskResponse;
@@ -8,127 +8,162 @@ use super::callback::Callback;
 
 // context_type
 
-#[derive(Default)]
-pub struct Scheduler {
-    pub(crate) schedule_heap: BinaryHeap<TimeKey>,
+
+
+// pub trait BoxableCallback<T>: 'static
+// where Self::Output: Callback {
+//     type Output;
+//     fn into_box(self) -> Box<Self::Output>;
+// }
+
+pub trait IntoCallback<Ctx: SchedulerContext, T>: 'static
+where Self::Output: Callback<Ctx> {
+    type Output;
+    fn into_callback(self) -> Self::Output;
 }
 
-impl Scheduler {
+pub struct ContextInjectableMarker<Args, Ctx: SchedulerContext = ()>(PhantomData<(Args, Ctx)>);
+
+impl<Args, ContextArg, F, Output, Ctx> IntoCallback<Ctx, ContextInjectableMarker<((), Args, ContextArg, F, Output), Ctx>> for F
+where
+Ctx: SchedulerContext,
+ContextInjector<(), Args, ContextArg, F, Output, Ctx>: Callback<Ctx> {
+    type Output = ContextInjector<(), Args, ContextArg, F, Output, Ctx>;
+    fn into_callback(self) -> Self::Output {
+        ContextInjector::<(), Args, ContextArg, F, Output, Ctx>::new(self)
+    }
+}
+
+impl<Ctx: SchedulerContext, C: Callback<Ctx>> IntoCallback<Ctx, C> for C {
+    type Output = C;
+    fn into_callback(self) -> Self::Output {
+        self
+    }
+}
+
+#[derive(Default)]
+pub struct Scheduler<Ctx: SchedulerContext> {
+    phantom: PhantomData<(Ctx)>,
+    pub(crate) schedule_heap: BinaryHeap<TimeKey<Ctx>>,
+}
+
+impl<Ctx: SchedulerContext> Scheduler<Ctx> {
     pub fn new() -> Self {
         Self {
+            phantom: PhantomData,
             schedule_heap: BinaryHeap::new(),
         }
     }
 
     #[inline]
     pub fn at<I, F>(&mut self, time: Instant, callback: F)
-    where F: BoxableCallback<I> {
-        self.schedule_heap.push(TimeKey::new(time, callback.into_box()));
+    where F: IntoCallback<Ctx, I> {
+        self.schedule_heap.push(TimeKey::new(time, Box::new(callback.into_callback())));
     }
 
     #[inline]
     pub fn after<I, F>(&mut self, duration: Duration, callback: F)
-    where F: BoxableCallback<I> {
+    where F: IntoCallback<Ctx, I> {
         self.at(Instant::now() + duration, callback);
     }
 
     #[inline]
     pub fn now<I, F>(&mut self, callback: F)
-    where F: BoxableCallback<I> {
+    where F: IntoCallback<Ctx, I> {
         self.at(Instant::now(), callback);
     }
 
     #[inline]
     pub fn after_micros<I, F>(&mut self, micros: u64, callback: F)
-    where F: BoxableCallback<I> {
+    where F: IntoCallback<Ctx, I> {
         self.after(Duration::from_micros(micros), callback);
     }
 
     #[inline]
     pub fn after_millis<I, F>(&mut self, millis: u64, callback: F)
-    where F: BoxableCallback<I> {
+    where F: IntoCallback<Ctx, I> {
         self.after(Duration::from_millis(millis), callback);
     }
 
     #[inline]
     pub fn after_nanos<I, F>(&mut self, nanos: u64, callback: F)
-    where F: BoxableCallback<I> {
+    where F: IntoCallback<Ctx, I> {
         self.after(Duration::from_nanos(nanos), callback);
     }
 
     #[inline]
     pub fn after_secs<I, F>(&mut self, secs: u64, callback: F)
-    where F: BoxableCallback<I> {
+    where F: IntoCallback<Ctx, I> {
         self.after(Duration::from_secs(secs), callback)
     }
 
     #[inline]
     pub fn after_secs_f32<I, F>(&mut self, secs: f32, callback: F)
-    where F: BoxableCallback<I> {
+    where F: IntoCallback<Ctx, I> {
         self.after(Duration::from_secs_f32(secs), callback);
     }
 
     #[inline]
     pub fn after_secs_f64<I, F>(&mut self, secs: f64, callback: F)
-    where F: BoxableCallback<I> {
+    where F: IntoCallback<Ctx, I> {
         self.after(Duration::from_secs_f64(secs), callback);
     }
 
     #[inline]
     pub fn after_mins<I, F>(&mut self, mins: u64, callback: F)
-    where F: BoxableCallback<I> {
+    where F: IntoCallback<Ctx, I> {
         self.after(Duration::from_secs(mins * 60), callback);
     }
 
     #[inline]
     pub fn after_mins_f32<I, F>(&mut self, mins: f32, callback: F)
-    where F: BoxableCallback<I> {
+    where F: IntoCallback<Ctx, I> {
         self.after(Duration::from_secs_f32(mins * 60.0), callback);
     }
 
     #[inline]
     pub fn after_mins_f64<I, F>(&mut self, mins: f64, callback: F)
-    where F: BoxableCallback<I> {
+    where F: IntoCallback<Ctx, I> {
         self.after(Duration::from_secs_f64(mins * 60.0), callback);
     }
 
     #[inline]
     pub fn after_hours<I, F>(&mut self, hours: u64, callback: F)
-    where F: BoxableCallback<I> {
+    where F: IntoCallback<Ctx, I> {
         self.after(Duration::from_secs(hours * 3600), callback);
     }
 
     #[inline]
     pub fn after_hours_f32<I, F>(&mut self, hours: f32, callback: F)
-    where F: BoxableCallback<I> {
+    where F: IntoCallback<Ctx, I> {
         self.after(Duration::from_secs_f32(hours * 3600.0), callback);
     }
 
     #[inline]
     pub fn after_hours_f64<I, F>(&mut self, hours: f64, callback: F)
-    where F: BoxableCallback<I> {
+    where F: IntoCallback<Ctx, I> {
         self.after(Duration::from_secs_f64(hours * 3600.0), callback);
     }
 
     #[inline]
     pub fn after_days<I, F>(&mut self, days: u64, callback: F)
-    where F: BoxableCallback<I> {
+    where F: IntoCallback<Ctx, I> {
         self.after(Duration::from_secs(days * 86400), callback);
     }
 
     #[inline]
     pub fn after_days_f32<I, F>(&mut self, days: f32, callback: F)
-    where F: BoxableCallback<I> {
+    where F: IntoCallback<Ctx, I> {
         self.after(Duration::from_secs_f32(days * 86400.0), callback);
     }
 
     #[inline]
     pub fn after_days_f64<I, F>(&mut self, days: f64, callback: F)
-    where F: BoxableCallback<I> {
+    where F: IntoCallback<Ctx, I> {
         self.after(Duration::from_secs_f64(days * 86400.0), callback);
     }
 
-    pub(crate) fn process_next(&mut self, shared: &mut SharedState) {
+    pub(crate) fn process_next(&mut self, shared: &mut Ctx) {
         let Some(TimeKey { time, callback: mut value }) = self.schedule_heap.pop() else {
             panic!("No task in heap.");
         };
@@ -160,7 +195,7 @@ impl Scheduler {
 
     /// Processes tasks that come before `deadline`.
     #[inline]
-    pub fn process_until(&mut self, deadline: Instant, shared: &mut SharedState) {
+    pub fn process_until(&mut self, deadline: Instant, shared: &mut Ctx) {
         while let Some(TimeKey { time, .. }) = self.schedule_heap.peek() {
             if deadline < *time {
                 break;
@@ -172,7 +207,7 @@ impl Scheduler {
     /// Process until current time.  
     /// Current time is not updated after each task is processed, so it may be late. Use `process_current()` for more precise timing.
     #[inline]
-    pub fn process_until_now(&mut self, shared: &mut SharedState) {
+    pub fn process_until_now(&mut self, shared: &mut Ctx) {
         self.process_until(Instant::now(), shared);
     }
 
@@ -180,7 +215,7 @@ impl Scheduler {
     /// time for each processing chunk rather than the same time for each chunk.  
     /// With `process_until_now()`, you may end up processing nodes late.
     #[inline]
-    pub fn process_current(&mut self, context: &mut SharedState) {
+    pub fn process_current(&mut self, context: &mut Ctx) {
         while let Some(TimeKey { time, .. }) = self.schedule_heap.peek() {
             if Instant::now() < *time {
                 break;
@@ -207,7 +242,7 @@ impl Scheduler {
 
     /// Process tasks until there are no tasks remaining, blocking the current thread in the process.
     #[inline]
-    pub fn process_blocking(&mut self, context: &mut SharedState) {
+    pub fn process_blocking(&mut self, context: &mut Ctx) {
         while let Some(next_task_time) = self.next_task_time() {
             spin_sleep::sleep_until(next_task_time);
             self.process_current(context);
@@ -215,13 +250,15 @@ impl Scheduler {
     }
 
     #[inline]
-    pub fn process_blocking_for(&mut self, duration: Duration, wait_until_deadline: bool, context: &mut SharedState) {
+    pub fn process_blocking_for(&mut self, duration: Duration, wait_until_deadline: bool, context: &mut Ctx) {
         self.process_blocking_until(Instant::now() + duration, wait_until_deadline, context);
     }
 
-    pub fn process_blocking_until(&mut self, deadline: Instant, wait_until_deadline: bool, context: &mut SharedState) {
+    pub fn process_blocking_until(&mut self, deadline: Instant, wait_until_deadline: bool, context: &mut Ctx) {
         while let Some(next_task_time) = self.next_task_time() {
+            // If the next task time is after the deadline, return.
             if next_task_time > deadline {
+                // If requested, wait until the deadline before returning.
                 if wait_until_deadline {
                     spin_sleep::sleep_until(deadline);
                 }
@@ -254,28 +291,6 @@ impl Scheduler {
     
 // }
 
-pub trait BoxableCallback<T>: 'static
-where Self::Output: Callback {
-    type Output;
-    fn into_box(self) -> Box<Self::Output>;
-}
-
-impl<Args, ContextArg, F, Output> BoxableCallback<(Args, ContextArg, F, Output)> for F
-where
-ContextInjector<(), Args, ContextArg, F, Output>: Callback {
-    type Output = ContextInjector<(), Args, ContextArg, F, Output>;
-    fn into_box(self) -> Box<Self::Output> {
-        Box::new(ContextInjector::<(), Args, ContextArg, F, Output>::new(self))
-    }
-}
-
-impl<C: Callback> BoxableCallback<C> for C {
-    type Output = Self;
-    fn into_box(self) -> Box<Self::Output> {
-        Box::new(self)
-    }
-}
-
 // It might look like this isn't being used, but it is. It's in the conject_injector_impls macro.
 pub trait ContextArg {
     fn resolve(context: &SharedState) -> Self;
@@ -295,32 +310,35 @@ where T: Send + Sync + 'static {
     }
 }
 
-pub struct ContextInjector<DataArgs, Args, ContextArg, F, Output>
+pub struct ContextInjector<DataArgs, Args, ContextArg, F, Output, Ctx>
 where
 DataArgs: 'static,
 ContextArg: 'static,
 Args: 'static,
 Output: 'static,
 F: 'static,
-Self: Callback {
-    phantom: PhantomData<(Args, Output, ContextArg)>,
+Ctx: SchedulerContext,
+Self: Callback<Ctx> {
+    phantom: PhantomData<(Args, Output, ContextArg, Ctx)>,
     data: DataArgs,
     callback: F,
 }
 
-impl<DataArgs, Args, ContextArg, F, Output> ContextInjector<DataArgs, Args, ContextArg, F, Output>
+impl<DataArgs, Args, ContextArg, F, Output, Ctx> ContextInjector<DataArgs, Args, ContextArg, F, Output, Ctx>
 where
 DataArgs: 'static,
 Args: 'static,
 Output: 'static,
 ContextArg: 'static,
+Ctx: SchedulerContext,
 F: 'static,
-Self: Callback {
-    pub fn new<NArgs, NContextArg, NF, NOutput>(callback: NF) -> ContextInjector<(), NArgs, NContextArg, NF, NOutput>
+Self: Callback<Ctx> {
+    pub fn new<NArgs, NContextArg, NF, NOutput, NCtx>(callback: NF) -> ContextInjector<(), NArgs, NContextArg, NF, NOutput, NCtx>
     where
     // NArgs: 'static,
     // NOutput: 'static,
-    ContextInjector<(), NArgs, NContextArg, NF, NOutput>: Callback {
+    NCtx: SchedulerContext,
+    ContextInjector<(), NArgs, NContextArg, NF, NOutput, NCtx>: Callback<NCtx> {
         ContextInjector {
             phantom: PhantomData,
             data: (),
@@ -328,10 +346,11 @@ Self: Callback {
         }
     }
 
-    pub fn with_data<NDataArgs, NArgs, NContextArg, NF, NOutput>(data: NDataArgs, callback: NF) -> ContextInjector<NDataArgs, NArgs, NContextArg, NF, NOutput>
+    pub fn with_data<NDataArgs, NArgs, NContextArg, NF, NOutput, NCtx>(data: NDataArgs, callback: NF) -> ContextInjector<NDataArgs, NArgs, NContextArg, NF, NOutput, NCtx>
     where
     NF: Fn() -> NOutput + 'static,
-    ContextInjector<NDataArgs, NArgs, NContextArg, NF, NOutput>: Callback {
+    NCtx: SchedulerContext,
+    ContextInjector<NDataArgs, NArgs, NContextArg, NF, NOutput, NCtx>: Callback<NCtx> {
         ContextInjector {
             phantom: PhantomData,
             data,
@@ -340,17 +359,17 @@ Self: Callback {
     }
 }
 
-impl<Args, Context, F, R> From<F> for ContextInjector<(), Args, Context, F, R>
-where
-Self: Callback {
-    fn from(value: F) -> Self {
-        ContextInjector {
-            phantom: PhantomData,
-            data: (),
-            callback: value,
-        }
-    }
-}
+// impl<Args, Context, F, R> From<F> for ContextInjector<(), Args, Context, F, R>
+// where
+// Self: Callback {
+//     fn from(value: F) -> Self {
+//         ContextInjector {
+//             phantom: PhantomData,
+//             data: (),
+//             callback: value,
+//         }
+//     }
+// }
 
 // /// Creates a [ContextInjector] callback suitable for passing into a [Scheduler].
 // pub fn inject<Args, ContextArg, F, Output>(callback: F) -> ContextInjector<(), Args, ContextArg, F, Output>
@@ -364,9 +383,10 @@ Self: Callback {
 // }
 
 /// Creates a [ContextInjector] callback with a data attachment suitable for passing into a [Scheduler].
-pub fn with<DataArgs, Args, ContextArg, F, Output>(data: DataArgs, callback: F) -> ContextInjector<DataArgs, Args, ContextArg, F, Output>
+pub fn with<DataArgs, Args, ContextArg, F, Output, Ctx>(data: DataArgs, callback: F) -> ContextInjector<DataArgs, Args, ContextArg, F, Output, Ctx>
 where
-ContextInjector<DataArgs, Args, ContextArg, F, Output>: Callback {
+Ctx: SchedulerContext,
+ContextInjector<DataArgs, Args, ContextArg, F, Output, Ctx>: Callback<Ctx> {
     ContextInjector {
         phantom: PhantomData,
         data,
@@ -377,10 +397,10 @@ ContextInjector<DataArgs, Args, ContextArg, F, Output>: Callback {
 /// Used to clear the [Scheduler] of all tasks.
 pub struct Clear;
 
-impl Callback for Clear {
+impl<Ctx: SchedulerContext> Callback<Ctx> for Clear {
     fn invoke(
             &mut self,
-            task_ctx: TaskContext<'_>,
+            task_ctx: TaskContext<'_, Ctx>,
         ) -> TaskResponse {
         task_ctx.scheduler.clear();
         TaskResponse::Finish
@@ -391,19 +411,19 @@ macro_rules! context_injector_impls {
     (@ctx_arg; WithContext; $context:ident) => {
         $context
     };
-    (@ctx_type; WithContext) => {
-        TaskContext<'_>
+    (@ctx_type; WithContext($ctx_ident: ident)) => {
+        TaskContext<'_, $ctx_ident>
     };
     (@right_context; ( $($data_type:ident),* ), ( $($arg_type:ident),* ), ($($ctx:ident),*)) => {
         paste!{
-            impl<$($data_type,)* $($arg_type,)* R, F> Callback for ContextInjector<($($data_type,)*), ($($arg_type,)*), ( ($($data_type,)*), ($($arg_type,)*), ($(context_injector_impls!(@ctx_type; $ctx),)*) ), F, R>
+            impl<$($data_type,)* $($arg_type,)* R, F, Ctx: SchedulerContext> Callback<Ctx> for ContextInjector<($($data_type,)*), ($($arg_type,)*), ( ($($data_type,)*), ($($arg_type,)*), ($(context_injector_impls!(@ctx_type; $ctx(Ctx)),)*) ), F, R, Ctx>
             where
             R: Into<TaskResponse>,
             $(
                 $data_type: 'static,
             )*
             $(
-                $arg_type: ContextArg,
+                $arg_type: ContextResolvable<Ctx>,
             )*
             F: FnMut(
                 $(
@@ -413,13 +433,13 @@ macro_rules! context_injector_impls {
                     $arg_type,
                 )*
                 $(
-                    context_injector_impls!(@ctx_type; $ctx),
+                    context_injector_impls!(@ctx_type; $ctx(Ctx)),
                 )*
             ) -> R + 'static {
                 #[allow(non_snake_case)]
                 fn invoke(
                     &mut self,
-                    context: TaskContext<'_>,
+                    context: TaskContext<'_, Ctx>,
                 ) -> TaskResponse {
                     let (
                         $(
@@ -431,7 +451,13 @@ macro_rules! context_injector_impls {
                             [<_ $data_type>],
                         )*
                         $(
-                            $arg_type::resolve(context.shared),
+                            match $arg_type::resolve(context.shared) {
+                                Ok(resolved) => resolved,
+                                Err(ResolveError::Skip) => return TaskResponse::Finish,
+                                Err(ResolveError::NotFound(type_name)) => {
+                                    panic!("{type_name} not found in context");
+                                }
+                            },
                         )*
                         $(
                             context_injector_impls!(@ctx_arg; $ctx; context),

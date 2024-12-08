@@ -1,9 +1,16 @@
-use super::{task_context::TaskContext, task_response::TaskResponse};
+use super::{
+    task_context::TaskContext,
+    task_response::TaskResponse,
+    scheduler_context::*,
+};
 
-pub trait Callback: 'static {
+pub trait Callback<Ctx>
+where
+Self: 'static,
+Ctx: SchedulerContext {
     #[inline]
     fn invoke(
         &mut self,
-        task_ctx: TaskContext<'_>,
+        task_ctx: TaskContext<'_, Ctx>,
     ) -> TaskResponse;
 }
