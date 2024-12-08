@@ -1,7 +1,7 @@
 use std::time::{Duration, Instant};
 
 use super::{
-    callback::Callback, scheduler::IntoCallback, scheduler_context::SchedulerContext
+    callback::{Callback, IntoCallback}, scheduler_context::SchedulerContext
 };
 
 pub struct TimeKey<Ctx: SchedulerContext> {

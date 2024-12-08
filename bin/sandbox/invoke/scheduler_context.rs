@@ -11,19 +11,19 @@ impl SchedulerContext for () {
     // }
 }
 
-pub trait ResolveContext<'ctx, Ctx: SchedulerContext> {
-    fn resolve(ctx: &'ctx mut Ctx) -> Self;
-}
+// pub trait ResolveContext<'ctx, Ctx: SchedulerContext> {
+//     fn resolve(ctx: &'ctx mut Ctx) -> Self;
+// }
 
-impl<'ctx, Ctx: SchedulerContext> ResolveContext<'ctx, Ctx> for () {
-    fn resolve(ctx: &'ctx mut Ctx) -> Self {}
-}
+// impl<'ctx, Ctx: SchedulerContext> ResolveContext<'ctx, Ctx> for () {
+//     fn resolve(ctx: &'ctx mut Ctx) -> Self {}
+// }
 
-impl<'ctx, Ctx: SchedulerContext> ResolveContext<'ctx, Ctx> for &'ctx mut Ctx {
-    fn resolve(ctx: &'ctx mut Ctx) -> Self {
-        ctx
-    }
-}
+// impl<'ctx, Ctx: SchedulerContext> ResolveContext<'ctx, Ctx> for &'ctx mut Ctx {
+//     fn resolve(ctx: &'ctx mut Ctx) -> Self {
+//         ctx
+//     }
+// }
 
 // pub enum ResolveResult<T: Sized + 'static> {
 //     /// For when the type can't be resolved and this indicates an error.
@@ -38,6 +38,29 @@ impl<'ctx, Ctx: SchedulerContext> ResolveContext<'ctx, Ctx> for &'ctx mut Ctx {
 pub enum ResolveError {
     NotFound(&'static str),
     Skip,
+}
+
+impl ResolveError {
+    #[inline]
+    pub const fn err<T>(self) -> ResolveResult<T> {
+        Err(self)
+    }
+
+    #[inline]
+    pub fn not_found<T>() -> ResolveResult<T> {
+        Err(Self::NotFound(std::any::type_name::<T>()))
+    }
+
+    #[inline]
+    pub const fn skip<T>() -> ResolveResult<T> {
+        Err(Self::Skip)
+    }
+}
+
+impl<T> Into<ResolveResult<T>> for ResolveError {
+    fn into(self) -> ResolveResult<T> {
+        Err(self)
+    }
 }
 
 pub type ResolveResult<T> = std::result::Result<T, ResolveError>;
@@ -59,7 +82,19 @@ T: ContextResolvable<Ctx> {
     }
 }
 
-pub struct Skip<T: Sized + 'static>(T);
+pub struct Skip<T>(pub T);
+
+impl<T: Clone> Clone for Skip<T> {
+    fn clone(&self) -> Self {
+        Skip(self.0.clone())
+    }
+
+    fn clone_from(&mut self, source: &Self) {
+        self.0 = source.0.clone()
+    }
+}
+
+impl<T: Copy> Copy for Skip<T> {}
 
 impl<Ctx, T> ContextResolvable<Ctx> for Skip<T>
 where
@@ -67,20 +102,20 @@ Ctx: SchedulerContext,
 T: ContextResolvable<Ctx> {
     fn resolve(context: &mut Ctx) -> ResolveResult<Self> {
         Ok(match T::resolve(context) {
-            Err(_) => return Err(ResolveError::Skip),
+            Err(_) => return ResolveError::skip(),
             Ok(inner) => Skip(inner),
         })
     }
 }
 
-pub trait GroupResolver<Ctx>: Sized + 'static
+pub trait ResolvableGroup<Ctx>: Sized + 'static
 where Ctx: SchedulerContext {
     fn group_resolve(context: &mut Ctx) -> ResolveResult<Self>;
 }
 
 macro_rules! group_resolver_impls {
     ($($tn:ident),*) => {
-        impl<$($tn,)* Ctx> GroupResolver<Ctx> for ($($tn,)*)
+        impl<$($tn,)* Ctx> ResolvableGroup<Ctx> for ($($tn,)*)
         where
         Ctx: SchedulerContext,
         $(

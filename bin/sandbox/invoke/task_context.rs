@@ -1,14 +1,12 @@
 use std::time::{Duration, Instant};
 
-use super::{callback::Callback, context::SharedState, scheduler::{IntoCallback, Scheduler}, scheduler_context::SchedulerContext, variadic_callback::TaskContextType};
+use super::{callback::{Callback, IntoCallback}, context::SharedState, scheduler::Scheduler, scheduler_context::SchedulerContext};
 
 pub struct TaskContext<'a, Ctx: SchedulerContext> {
     pub time: Instant,
     pub shared: &'a mut Ctx,
     pub scheduler: &'a mut Scheduler<Ctx>,
 }
-
-impl<'a, Ctx: SchedulerContext> TaskContextType for TaskContext<'a, Ctx> {}
 
 impl<'a, Ctx: SchedulerContext> TaskContext<'a, Ctx> {
 

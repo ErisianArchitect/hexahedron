@@ -35,7 +35,20 @@ mod sched_experiment {
     use chrono::Timelike;
     use hexahedron::{math::minmax, prelude::Increment};
 
-    use crate::invoke::{callback::Callback, context::SharedState, optional::Optional, scheduler::{with, Clear, ContextInjector, Scheduler}, scheduler_context::Skip, task_context::TaskContext, task_response::TaskResponse, tuple_combine::TupleJoin, tuple_flatten::TupleFlatten};
+    use crate::invoke::{
+        callback::*,
+        context::SharedState,
+        context_injector::*,
+        optional::Optional,
+        scheduler::Scheduler,
+        scheduler_context::*,
+        task_context::TaskContext,
+        task_response::TaskResponse,
+        tuple_combine::TupleJoin,
+        tuple_flatten::TupleFlatten,
+        variadic_callback::*,
+        scheduler_context::*,
+    };
     use TaskResponse::*;
 
 
@@ -52,49 +65,53 @@ mod sched_experiment {
         // scheduler.now();
         // scheduler.after_secs(10, Clear);
         let mut counter = 0u32;
-        scheduler.now(|| {
+        scheduler.now(every(Duration::from_secs(1) / 60, EveryTimeAnchor::Schedule, |num: Optional<Arc<i32>>, mut context: TaskContext<'_, SharedState>| {
             println!("Hello, world!");
-        });
-        scheduler.now({
-            #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-            struct Timer(Instant);
-            impl Timer {
-                fn time(&mut self) -> Duration {
-                    let duration = self.0.elapsed();
-                    self.0 = Instant::now();
-                    duration
-                }
+        }));
+        
+        // (|mut context: Arc<i32>| {}).into_callback();
+        // let mut task_ctx: TaskContext<'static, SharedState>;
+        // (|mut context: TaskContext<'static, SharedState>| {}).call_mutable((task_ctx,));
+        // scheduler.now({
+        //     #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+        //     struct Timer(Instant);
+        //     impl Timer {
+        //         fn time(&mut self) -> Duration {
+        //             let duration = self.0.elapsed();
+        //             self.0 = Instant::now();
+        //             duration
+        //         }
 
-                fn framerate(self) -> f64 {
-                    1.0 / self.0.elapsed().as_secs_f64()
-                }
-            }
-            let mut timer = Timer(Instant::now());
-            let mut times = Some(vec![]);
-            move |atomic: Arc<AtomicU32>, skip: Skip<Arc<bool>>, mut context: TaskContext<'_, _>| {
-                let old_time = timer;
-                let time = timer.time();
-                if atomic.fetch_add(1, std::sync::atomic::Ordering::Relaxed) > 600 {
-                    let times = times.take().unwrap();
-                    context.now(move || {
-                        for (fps, frametime_diff, fps_diff) in times.iter() {
-                            println!("{fps:2.8}  |  {frametime_diff:.8}  |  {fps_diff:.8}");
-                        }
-                    });
-                    return None;
-                }
-                let Some(times) = &mut times else {
-                    return None;
-                };
-                let (min, max) = minmax(old_time.0.elapsed().as_secs_f64(), 1.0 / 60.0);
-                let frametime_diff = max - min;
-                let (min, max) = minmax(old_time.framerate(), 60.0);
-                let fps_diff = max - min;
-                times.push((old_time.framerate(), frametime_diff, fps_diff));
-                // println!("FPS: {:2.8}  |  {frametime_diff:.8}  |  {fps_diff:.8}", old_time.framerate());
-                Some(AfterTaskBegan(Duration::from_secs_f64(1.0 / 59.0)))
-            }
-        });
+        //         fn framerate(self) -> f64 {
+        //             1.0 / self.0.elapsed().as_secs_f64()
+        //         }
+        //     }
+        //     let mut timer = Timer(Instant::now());
+        //     let mut times = Some(vec![]);
+        //     move |atomic: Arc<AtomicU32>, Skip(skip): Skip<Arc<bool>>, mut context: TaskContext<'_, SharedState>| {
+        //         let old_time = timer;
+        //         let time = timer.time();
+        //         if atomic.fetch_add(1, std::sync::atomic::Ordering::Relaxed) > 600 {
+        //             let times = times.take().unwrap();
+        //             // context.now(move || {
+        //             //     for (fps, frametime_diff, fps_diff) in times.iter() {
+        //             //         println!("{fps:2.8}  |  {frametime_diff:.8}  |  {fps_diff:.8}");
+        //             //     }
+        //             // });
+        //             return None;
+        //         }
+        //         let Some(times) = &mut times else {
+        //             return None;
+        //         };
+        //         let (min, max) = minmax(old_time.0.elapsed().as_secs_f64(), 1.0 / 60.0);
+        //         let frametime_diff = max - min;
+        //         let (min, max) = minmax(old_time.framerate(), 60.0);
+        //         let fps_diff = max - min;
+        //         times.push((old_time.framerate(), frametime_diff, fps_diff));
+        //         // println!("FPS: {:2.8}  |  {frametime_diff:.8}  |  {fps_diff:.8}", old_time.framerate());
+        //         Some(AfterTaskBegan(Duration::from_secs_f64(1.0 / 59.0)))
+        //     }
+        // });
         // scheduler.now(|mut context: TaskContext<'_>| {
         //     let start_time = Instant::now();
         //     let end_time = start_time + Duration::from_secs(20);
