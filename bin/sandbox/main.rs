@@ -65,9 +65,21 @@ mod sched_experiment {
         // scheduler.now();
         // scheduler.after_secs(10, Clear);
         let mut counter = 0u32;
-        scheduler.now(every(Duration::from_secs(1) / 60, EveryTimeAnchor::Schedule, |num: Optional<Arc<i32>>, mut context: TaskContext<'_, SharedState>| {
-            println!("Hello, world!");
-        }));
+        let trigger = Trigger::new(false);
+        scheduler.now(every(Duration::from_secs(1), EveryTimeAnchor::After, conditional(trigger.clone(), || {
+            println!("The condition is active!");
+        })));
+        let trig2 = trigger.clone();
+        scheduler.after_secs(3, move || {
+            trig2.activate();
+        });
+        scheduler.after_secs(10, move || {
+            trigger.deactivate();
+        });
+        scheduler.process_blocking(&mut context);
+        // scheduler.now(every(Duration::from_secs(1) / 60, EveryTimeAnchor::Schedule, |num: Optional<Arc<i32>>, mut context: TaskContext<'_, SharedState>| {
+        //     println!("Hello, world!");
+        // }));
         
         // (|mut context: Arc<i32>| {}).into_callback();
         // let mut task_ctx: TaskContext<'static, SharedState>;
@@ -163,7 +175,7 @@ mod sched_experiment {
         //         }
         //     }));
         // });
-        scheduler.process_blocking(&mut context);
+        
     }
 }
 
