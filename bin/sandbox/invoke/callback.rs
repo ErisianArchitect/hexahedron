@@ -115,10 +115,79 @@ F: VariadicCallbackMut<Args, bool> {
 }
 
 #[derive(Debug, Clone)]
-pub struct Trigger{
+pub struct Trigger {
     trigger: Arc<AtomicBool>,
     eval_ordering: Ordering,
     update_ordering: Ordering,
+}
+
+#[derive(Clone, Copy)]
+pub struct TriggerBuilder<E: Clone + Copy, U: Clone + Copy>(bool, E, U);
+
+impl TriggerBuilder<(), ()> {
+    #[inline]
+    pub const fn new(active: bool) -> Self {
+        Self(active, (), ())
+    }
+
+    #[inline]
+    pub const fn active() -> Self {
+        Self(true, (), ())
+    }
+
+    #[inline]
+    pub const fn inactive() -> Self {
+        Self(false, (), ())
+    }
+
+    #[inline]
+    pub const fn eval_ordering(self, ordering: Ordering) -> TriggerBuilder<Ordering, ()> {
+        TriggerBuilder(self.0, ordering, ())
+    }
+
+    #[inline]
+    pub const fn update_ordering(self, ordering: Ordering) -> TriggerBuilder<(), Ordering> {
+        TriggerBuilder(self.0, (), ordering)
+    }
+
+    #[inline]
+    pub const fn total_ordering(self, ordering: Ordering) -> TriggerBuilder<Ordering, Ordering> {
+        TriggerBuilder(self.0, ordering, ordering)
+    }
+}
+
+impl TriggerBuilder<Ordering, ()> {
+    #[inline]
+    pub const fn update_ordering(self, ordering: Ordering) -> TriggerBuilder<Ordering, Ordering> {
+        TriggerBuilder(self.0, self.1, ordering)
+    }
+}
+
+impl TriggerBuilder<(), Ordering> {
+    #[inline]
+    pub const fn eval_ordering(self, ordering: Ordering) -> TriggerBuilder<Ordering, Ordering> {
+        TriggerBuilder(self.0, ordering, self.2)
+    }
+}
+
+impl TriggerBuilder<Ordering, Ordering> {
+    #[inline]
+    pub fn build(self) -> Trigger {
+        Trigger::with_ordering(self.0, self.1, self.2)
+    }
+}
+
+#[cfg(test)]
+mod testing_sandbox {
+    // TODO: Remove this sandbox when it is no longer in use.
+    use super::*;
+    #[test]
+    fn sandbox() {
+        let trigger = TriggerBuilder::new(true)
+            .eval_ordering(Ordering::Relaxed)
+            .update_ordering(Ordering::Relaxed)
+            .build();
+    }
 }
 
 impl Trigger {
@@ -150,6 +219,12 @@ impl Trigger {
     #[inline]
     pub fn swap(&self, active: bool) -> bool {
         self.trigger.swap(active, self.update_ordering)
+    }
+
+    /// Clones the inner `Arc<AtomicBool>`.
+    #[inline]
+    pub fn clone_inner(&self) -> Arc<AtomicBool> {
+        self.trigger.clone()
     }
 }
 

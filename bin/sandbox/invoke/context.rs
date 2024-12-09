@@ -4,10 +4,6 @@ use hashbrown::HashMap;
 
 use super::scheduler_context::*;
 
-pub trait Mappable: Any + Send + Sync + 'static {}
-
-impl<T: Any + Send + Sync + 'static> Mappable for T {}
-
 pub struct SharedState {
     map: HashMap<TypeId, Arc<dyn Any + Send + Sync + 'static>>,
 }
@@ -30,6 +26,7 @@ impl SharedState {
         self.map.insert(TypeId::of::<T>(), value)?.downcast().ok()
     }
 
+    /// Do not use this method to insert `Arc<T>`, use `insert_arc` instead.
     pub fn insert<T>(&mut self, value: T) -> Option<Arc<T>>
     where T: Any + Send + Sync + 'static {
         self.insert_arc(Arc::new(value))

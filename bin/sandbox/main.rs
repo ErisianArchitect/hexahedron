@@ -30,30 +30,21 @@ mod sched_experiment {
         },
         time::{Duration, Instant}
     };
+    use hashbrown::HashMap;
     use parking_lot::Mutex;
 
     use chrono::Timelike;
     use hexahedron::{math::minmax, prelude::Increment};
 
     use crate::invoke::{
-        callback::*,
-        context::SharedState,
-        context_injector::*,
-        optional::Optional,
-        scheduler::Scheduler,
-        scheduler_context::*,
-        task_context::TaskContext,
-        task_response::TaskResponse,
-        tuple_combine::TupleJoin,
-        tuple_flatten::TupleFlatten,
-        variadic_callback::*,
-        scheduler_context::*,
+        callback::*, context::SharedState, context_injector::*, optional::Optional, scheduler::Scheduler, scheduler_context::{*}, scheduler_context::{*}, task_context::{self, TaskContext}, task_response::TaskResponse, tuple_combine::TupleJoin, tuple_flatten::TupleFlatten, variadic_callback::*
     };
     use TaskResponse::*;
 
 
 
     pub fn experiment() {
+
         let mut context = SharedState::new();
         context.insert(Mutex::new(vec![
             String::from("Hello, world!"),
@@ -66,16 +57,23 @@ mod sched_experiment {
         // scheduler.after_secs(10, Clear);
         let mut counter = 0u32;
         let trigger = Trigger::new(false);
+        context.insert_arc(trigger.clone_inner());
         scheduler.now(every(Duration::from_secs(1), EveryTimeAnchor::After, conditional(trigger.clone(), || {
             println!("The condition is active!");
         })));
+
+
         let trig2 = trigger.clone();
-        scheduler.after_secs(3, move || {
-            trig2.activate();
+        // scheduler.after_secs(3, move || {
+        //     trig2.activate();
+        // });
+        scheduler.after_secs(3, |trigger: Arc<AtomicBool>, mut task_context: TaskContext<'_, SharedState>| {
+            trigger.store(true, std::sync::atomic::Ordering::Relaxed);
         });
         scheduler.after_secs(10, move || {
             trigger.deactivate();
         });
+        scheduler.after_secs(13, Clear);
         scheduler.process_blocking(&mut context);
         // scheduler.now(every(Duration::from_secs(1) / 60, EveryTimeAnchor::Schedule, |num: Optional<Arc<i32>>, mut context: TaskContext<'_, SharedState>| {
         //     println!("Hello, world!");
