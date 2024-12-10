@@ -38,22 +38,83 @@ pub fn rotate_coord<T: Copy + std::ops::Neg<Output = T>, C: Into<(T, T, T)> + Fr
     })
 }
 
+// (0, PosY) => (x, y, z), // Default rotation, no change.
+// (0, PosX) => (y, -z, -x),
+// (0, PosZ) => (x, -z, y),
+// (0, NegY) => (x, -y, -z),
+// (0, NegX) => (-y, -z, x),
+// (0, NegZ) => (-x, -z, -y),
+// (1, PosY) => (-z, y, x),
+// (1, PosX) => (y, -x, z),
+// (1, PosZ) => (-z, -x, y),
+// (1, NegY) => (-z, -y, -x),
+// (1, NegX) => (-y, -x, -z),
+// (1, NegZ) => (z, -x, -y),
+// (2, PosY) => (-x, y, -z),
+// (2, PosX) => (y, z, x),
+// (2, PosZ) => (-x, z, y),
+// (2, NegY) => (-x, -y, z),
+// (2, NegX) => (-y, z, -x),
+// (2, NegZ) => (x, z, -y),
+// (3, PosY) => (z, y, -x),
+// (3, PosX) => (y, x, -z),
+// (3, PosZ) => (z, x, y),
+// (3, NegY) => (z, -y, x),
+// (3, NegX) => (-y, x, z),
+// (3, NegZ) => (-z, x, -y),
+
+//  0 /* (0, PosY) */ => (x, y, z), // Default rotation, no change.
+//  4 /* (0, PosX) */ => (y, -z, -x),
+//  8 /* (0, PosZ) */ => (x, -z, y),
+// 16 /* (0, NegY) */ => (x, -y, -z),
+// 12 /* (0, NegX) */ => (-y, -z, x),
+// 20 /* (0, NegZ) */ => (-x, -z, -y),
+//  1 /* (1, PosY) */ => (-z, y, x),
+//  5 /* (1, PosX) */ => (y, -x, z),
+//  9 /* (1, PosZ) */ => (-z, -x, y),
+// 17 /* (1, NegY) */ => (-z, -y, -x),
+// 13 /* (1, NegX) */ => (-y, -x, -z),
+// 21 /* (1, NegZ) */ => (z, -x, -y),
+//  2 /* (2, PosY) */ => (-x, y, -z),
+//  6 /* (2, PosX) */ => (y, z, x),
+// 10 /* (2, PosZ) */ => (-x, z, y),
+// 18 /* (2, NegY) */ => (-x, -y, z),
+// 14 /* (2, NegX) */ => (-y, z, -x),
+// 22 /* (2, NegZ) */ => (x, z, -y),
+//  3 /* (3, PosY) */ => (z, y, -x),
+//  7 /* (3, PosX) */ => (y, x, -z),
+// 11 /* (3, PosZ) */ => (z, x, y),
+// 19 /* (3, NegY) */ => (z, -y, x),
+// 15 /* (3, NegX) */ => (-y, x, z),
+// 23 /* (3, NegZ) */ => (-z, x, -y),
+
 fn main() -> std::fmt::Result {
-    let mut code = String::new();
-    writeln!(code, "match ((self.angle(), self.up()), face) {{")?;
+    // let mut code = String::new();
+    // writeln!(code, "match ((self.angle(), self.up()), face) {{")?;
     for angle in iter_angle() {
         for up in Direction::iter_discriminant_order() {
-            for face in Direction::iter_discriminant_order() {
-                
-                writeln!(code, "    ({up}, {face}) => {angle},")?;
-            }
+            let rot = Rotation::new(up, angle);
+            let index = rot.0;
+            println!("{index}");
         }
     }
-    writeln!(code, "    _ => return None,")?;
-    write!(code, "}}")?;
-    std::fs::write("./codegen.rs", code).expect("Failed to write to file.");
+    // writeln!(code, "    _ => return None,")?;
+    // write!(code, "}}")?;
+    // std::fs::write("./codegen.rs", code).expect("Failed to write to file.");
     Ok(())
 }
+
+/* 
+def rot_index(face, angle):
+    return (face << 2) | (angle & 0b11)
+
+def codeswap(src):
+    for angle in range(4):
+            for face in range(6):
+                    index = rot_index(face, angle)
+                    src = src.replace(f'({angle}, {dirs[face]})', f'{index:>2} /* ({angle}, {dirs[face]}) */')
+    return src
+*/
 
 fn up_and_forward_angle(up: Direction, forward: Direction) -> Option<i32> {
     Some(match up {
