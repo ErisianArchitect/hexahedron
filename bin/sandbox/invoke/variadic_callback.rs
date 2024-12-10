@@ -5,16 +5,16 @@ use super::task_context::{
 use super::callback::Callback;
 use super::task_response::TaskResponse;
 
-pub trait VariadicCallbackOnce<Args, Result>: 'static {
-    fn call_consume(self, args: Args) -> Result;
-}
+// pub trait VariadicCallbackOnce<Args, Result>: 'static {
+//     fn call_consume(self, args: Args) -> Result;
+// }
 
-pub trait VariadicCallbackRef<Args, Result>: 'static {
-    fn call_immutable(&self, args: Args) -> Result;
-}
+// pub trait VariadicCallbackRef<Args, Result>: 'static {
+//     fn call_immutable(&self, args: Args) -> Result;
+// }
 
-pub trait VariadicCallbackMut<Args, Result>: 'static {
-    fn call_mutable(&mut self, args: Args) -> Result;
+pub trait VariadicCallback<Args, Result>: 'static {
+    fn invoke(&mut self, args: Args) -> Result;
 }
 
 macro_rules! variadic_callback_impls {
@@ -24,51 +24,51 @@ macro_rules! variadic_callback_impls {
         )+
     };
     ($($arg_t:ident),*$(,)?) => {
-        paste!{
-            impl<$($arg_t,)* R, F> VariadicCallbackOnce<($($arg_t,)*), R> for F
-            where
-            F: FnOnce($($arg_t),*) -> R + 'static {
-                #[allow(non_snake_case)]
-                fn call_consume(self, args: ($($arg_t,)*)) -> R {
-                    let (
-                        $(
-                            [<_ $arg_t>],
-                        )*
-                    ) = args;
-                    (self)(
-                        $(
-                            [<_ $arg_t>],
-                        )*
-                    )
-                }
-            }
-        }
-        paste!{
-            impl<$($arg_t,)* R, F> VariadicCallbackRef<($($arg_t,)*), R> for F
-            where
-            F: Fn($($arg_t),*) -> R + 'static {
-                #[allow(non_snake_case)]
-                fn call_immutable(&self, args: ($($arg_t,)*)) -> R {
-                    let (
-                        $(
-                            [<_ $arg_t>],
-                        )*
-                    ) = args;
-                    (self)(
-                        $(
-                            [<_ $arg_t>],
-                        )*
-                    )
-                }
-            }
-        }
+        // paste!{
+        //     impl<$($arg_t,)* R, F> VariadicCallbackOnce<($($arg_t,)*), R> for F
+        //     where
+        //     F: FnOnce($($arg_t),*) -> R + 'static {
+        //         #[allow(non_snake_case)]
+        //         fn call_consume(self, args: ($($arg_t,)*)) -> R {
+        //             let (
+        //                 $(
+        //                     [<_ $arg_t>],
+        //                 )*
+        //             ) = args;
+        //             (self)(
+        //                 $(
+        //                     [<_ $arg_t>],
+        //                 )*
+        //             )
+        //         }
+        //     }
+        // }
+        // paste!{
+        //     impl<$($arg_t,)* R, F> VariadicCallbackRef<($($arg_t,)*), R> for F
+        //     where
+        //     F: Fn($($arg_t),*) -> R + 'static {
+        //         #[allow(non_snake_case)]
+        //         fn call_immutable(&self, args: ($($arg_t,)*)) -> R {
+        //             let (
+        //                 $(
+        //                     [<_ $arg_t>],
+        //                 )*
+        //             ) = args;
+        //             (self)(
+        //                 $(
+        //                     [<_ $arg_t>],
+        //                 )*
+        //             )
+        //         }
+        //     }
+        // }
 
         paste!{
-            impl<$($arg_t,)* R, F> VariadicCallbackMut<($($arg_t,)*), R> for F
+            impl<$($arg_t,)* R, F> VariadicCallback<($($arg_t,)*), R> for F
             where
             F: FnMut($($arg_t),*) -> R + 'static {
                 #[allow(non_snake_case)]
-                fn call_mutable(&mut self, args: ($($arg_t,)*)) -> R {
+                fn invoke(&mut self, args: ($($arg_t,)*)) -> R {
                     let (
                         $(
                             [<_ $arg_t>],
@@ -128,12 +128,12 @@ mod testing_sandbox {
     fn sandbox() {
         struct Consumable(String);
         let mut cons = Consumable(String::from("Hello, world!"));
-        let mut cb = move |num: i32| {
+        let mut cb = move |num: i32, text: String| {
             println!("{num}, {}", cons.0);
             cons.0 = String::from("The quick brown fox jumps over the lazy dog.");
             num
         };
-        cb.call_mutable((32,));
-        cb.call_consume((32,));
+        cb.invoke((32, String::from("Hello, world!")));
+        cb.invoke((32, "Test".into()));
     }
 }

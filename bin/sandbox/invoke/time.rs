@@ -6,6 +6,11 @@ pub fn now() -> Instant {
 }
 
 #[inline]
+pub const fn nanos(nanos: u64) -> Duration {
+    Duration::from_nanos(nanos)
+}
+
+#[inline]
 pub const fn micros(micros: u64) -> Duration {
     Duration::from_micros(micros)
 }
@@ -13,11 +18,6 @@ pub const fn micros(micros: u64) -> Duration {
 #[inline]
 pub const fn millis(millis: u64) -> Duration {
     Duration::from_millis(millis)
-}
-
-#[inline]
-pub const fn nanos(nanos: u64) -> Duration {
-    Duration::from_nanos(nanos)
 }
 
 #[inline]

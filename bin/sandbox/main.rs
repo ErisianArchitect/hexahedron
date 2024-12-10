@@ -1,10 +1,10 @@
 #![allow(unused)]
 
-mod shared_state;
-mod scheduler;
 mod any_map;
-mod invoke;
 mod arg_injection;
+mod invoke;
+mod scheduler;
+mod shared_state;
 
 use hexahedron::prelude::Increment;
 
@@ -15,36 +15,61 @@ async fn main() {
         A sparse struct using manual memory management
         and unsafe code.
     */
-    sched_experiment::experiment();
+    fn take_fnonce<F: FnOnce() + Clone>(f: F) {
+        let f1 = f.clone();
+        f();
+        f1();
+    }
+    #[derive(Debug, Clone)]
+    struct Dropped<T: std::fmt::Display + Clone>(T);
+    impl<T: std::fmt::Display + Clone> Drop for Dropped<T> {
+        fn drop(&mut self) {
+            println!("{}", self.0);
+        }
+    }
+    let dropped = Dropped("This might be cloned.");
+    take_fnonce(move || {
+        drop(dropped);
+    });
+    // sched_experiment::experiment();
     // any_map::any_map_test();
     // unsafe_experiment::experiment();
     // sched_experiment::experiment();
 }
 
 mod sched_experiment {
-    use std::{
-        io::Write,
-        sync::{
-            atomic::{AtomicBool, AtomicU32}, Arc
-            // Mutex,
-        },
-        time::{Duration, Instant}
-    };
     use hashbrown::HashMap;
     use parking_lot::Mutex;
+    use std::{
+        env::Args, io::Write, marker::PhantomData, sync::{
+            atomic::{AtomicBool, AtomicU32},
+            Arc, // Mutex,
+        }, time::{Duration, Instant}
+    };
 
     use chrono::Timelike;
     use hexahedron::{math::minmax, prelude::Increment};
 
     use crate::invoke::{
-        callback::*, context::SharedState, context_injector::*, optional::Optional, scheduler::Scheduler, scheduler_context::{*}, scheduler_context::{*}, task_context::{self, TaskContext}, task_response::TaskResponse, tuple_combine::TupleJoin, tuple_flatten::TupleFlatten, variadic_callback::*
+        callback::*,
+        context::SharedState,
+        // context_injector::*,
+        optional::Optional,
+        scheduler::Scheduler,
+        scheduler_context::*,
+        scheduler_context::*,
+        task_context::{self, TaskContext},
+        task_response::TaskResponse,
+        // tuple_combine::TupleJoin,
+        // tuple_flatten::TupleFlatten,
+        // variadic_callback::*,
+        modifiers::{
+            conditional::*,
+        },
     };
     use TaskResponse::*;
 
-
-
     pub fn experiment() {
-
         let mut context = SharedState::new();
         context.insert(Mutex::new(vec![
             String::from("Hello, world!"),
@@ -58,18 +83,31 @@ mod sched_experiment {
         let mut counter = 0u32;
         let trigger = Trigger::new(false);
         context.insert_arc(trigger.clone_inner());
-        scheduler.now(every(Duration::from_secs(1), EveryTimeAnchor::After, conditional(trigger.clone(), || {
-            println!("The condition is active!");
-        })));
-
-
+        // scheduler.now(every(
+        //     Duration::from_secs(1),
+        //     EveryTimeAnchor::After,
+        //     // conditional(trigger.clone(), || {
+        //     //     println!("The condition is active!");
+        //     // }),
+        // ));
+        const VALUE: i32 = {
+            let opt = Some(0i32);
+            // let opt = None;
+            opt.expect("Expected some.")
+        };
         let trig2 = trigger.clone();
         // scheduler.after_secs(3, move || {
         //     trig2.activate();
         // });
-        scheduler.after_secs(3, |trigger: Arc<AtomicBool>, mut task_context: TaskContext<'_, SharedState>| {
-            trigger.store(true, std::sync::atomic::Ordering::Relaxed);
-        });
+        scheduler.after_secs(
+            3,
+            |opt: Optional<Arc<String>>, trigger: Arc<AtomicBool>, mut task_context: TaskContext<'_, SharedState>| {
+                trigger.store(true, std::sync::atomic::Ordering::Relaxed);
+            },
+        );
+        // scheduler.after_secs(10, move || {
+        //     trigger.deactivate();
+        // });
         scheduler.after_secs(10, move || {
             trigger.deactivate();
         });
@@ -78,7 +116,7 @@ mod sched_experiment {
         // scheduler.now(every(Duration::from_secs(1) / 60, EveryTimeAnchor::Schedule, |num: Optional<Arc<i32>>, mut context: TaskContext<'_, SharedState>| {
         //     println!("Hello, world!");
         // }));
-        
+
         // (|mut context: Arc<i32>| {}).into_callback();
         // let mut task_ctx: TaskContext<'static, SharedState>;
         // (|mut context: TaskContext<'static, SharedState>| {}).call_mutable((task_ctx,));
@@ -173,12 +211,14 @@ mod sched_experiment {
         //         }
         //     }));
         // });
-        
     }
 }
 
 mod extract_ref {
-    use std::{borrow::BorrowMut, sync::{Arc, Mutex, MutexGuard}};
+    use std::{
+        borrow::BorrowMut,
+        sync::{Arc, Mutex, MutexGuard},
+    };
 
     fn experiment() {
         let arc = Arc::new(Mutex::new(String::from("Hello, world!")));
@@ -197,7 +237,6 @@ mod extract_ref {
     }
 }
 
-
 // Code Graveyard beyond this point.
 
 /// Code that is completely ignored, as it lay it to rest.
@@ -206,7 +245,7 @@ macro_rules! grave {
     ($($_:tt)*) => {};
 }
 
-grave!{
+grave! {
     mod any_experiment {
         use std::sync::{Arc, Mutex};
         pub fn any_experiment() {
@@ -228,27 +267,26 @@ grave!{
     }
 }
 
-
 grave! {
     fn drop_experiment() {
         // The goal is to find out what happens to an object that is returned
         // from a function/method that is unused. I want to see if it's dropped
         // right away or if it's dropped at the end of the frame.
-    
+
         // Conclusion: It's dropped right away.
-    
+
         struct DropMe(&'static str);
-    
+
         impl Drop for DropMe {
             fn drop(&mut self) {
                 println!("Dropped: {}", self.0);
             }
         }
-    
+
         fn returns_dropme() -> DropMe {
             DropMe("returns_dropme()")
         }
-    
+
         {
             let first = DropMe("first");
             returns_dropme();
@@ -270,23 +308,23 @@ grave! {
             }
         );
     }
-    
+
     mod cancelable_test {
         use std::{cell::RefCell, rc::Rc, sync::atomic::AtomicBool};
-    
+
         #[derive(Debug, Clone)]
         pub struct Cancel(Rc<RefCell<bool>>);
-        
+
         impl Cancel {
             pub fn cancel(&self) {
                 self.0.replace(true);
             }
-    
+
             pub fn is_canceled(&self) -> bool {
                 *self.0.borrow()
             }
         }
-        
+
         pub fn cancelable_work<T, Args: CancelableWorkerArgs, D: FnMut() -> T, W: CancelableWorker<T, Args>>(mut data_extractor: D, mut worker: W) {
             let cancel = Cancel(Rc::new(RefCell::new(false)));
             while !cancel.is_canceled() {
@@ -294,16 +332,16 @@ grave! {
                 worker.run(cancel.clone(), data);
             }
         }
-    
+
         pub trait CancelableWorkerArgs {}
-    
+
         impl<T> CancelableWorkerArgs for (T,) {}
         impl<T> CancelableWorkerArgs for (Cancel, T) {}
-    
+
         pub trait CancelableWorker<T, Args: CancelableWorkerArgs> {
             fn run(&mut self, cancel: Cancel, data: T);
         }
-    
+
         impl<T, F> CancelableWorker<T, (Cancel, T)> for F
         where
             F: FnMut(Cancel, T) -> () {
@@ -311,7 +349,7 @@ grave! {
                     self(cancel, data);
                 }
             }
-        
+
         impl<T, F> CancelableWorker<T, (T,)> for F
         where
             F: FnMut(T) -> () {
@@ -322,7 +360,7 @@ grave! {
     }
 }
 
-grave!{
+grave! {
     fn time_large_collection_clone() {
         struct NoCopy(u32);
         let mut updates: Vec<(NoCopy, IVec3)> = (0..1024*1024).map(|_| {
@@ -332,11 +370,11 @@ grave!{
             )
         }).collect();
         let start_time = std::time::Instant::now();
-        
+
         let update_clone = updates.iter().map(|(_, c)| *c).collect::<Vec<_>>();
-        
+
         let elapsed = start_time.elapsed();
-        
+
         let mut fin = 0i32;
         for c in update_clone.into_iter() {
             fin = fin.wrapping_add(c.x);
@@ -348,7 +386,7 @@ grave!{
     }
 }
 
-grave!{
+grave! {
     fn gen_bsn_table() -> std::fmt::Result {
         use std::fmt::Write;
         let mut table = String::new();

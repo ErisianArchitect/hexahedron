@@ -1,32 +1,42 @@
-use std::{env::Args, marker::PhantomData, sync::{atomic::{AtomicBool, Ordering}, Arc}, time::Duration};
+use std::{
+    env::Args, marker::PhantomData, ops::{Deref, DerefMut}, rc::Rc, sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    }, time::Duration
+};
 
 use super::{
-    context_injector::ContextInjector, scheduler_context::*, task_context::TaskContext, task_response::TaskResponse, tuple_combine::TupleJoin, variadic_callback::*
+    context_injector::ContextInjector, scheduler_context::*, task_context::TaskContext,
+    task_response::TaskResponse,
+    // tuple_combine::TupleJoin,
+    // variadic_callback::*,
 };
 
 pub trait Callback<Ctx>
 where
-Self: 'static,
-Ctx: SchedulerContext {
+    Self: 'static,
+    Ctx: SchedulerContext,
+{
     #[inline]
-    fn invoke(
-        &mut self,
-        task_ctx: TaskContext<'_, Ctx>,
-    ) -> TaskResponse;
+    fn invoke(&mut self, task_ctx: TaskContext<'_, Ctx>) -> TaskResponse;
 }
 
 pub trait IntoCallback<Ctx: SchedulerContext, T>: 'static
-where Self::Output: Callback<Ctx> {
+where
+    Self::Output: Callback<Ctx>,
+{
     type Output;
     fn into_callback(self) -> Self::Output;
 }
 
 pub struct ContextInjectableMarker<Args, Ctx: SchedulerContext = ()>(PhantomData<(Args, Ctx)>);
 
-impl<Args, ContextArg, F, Output, Ctx> IntoCallback<Ctx, ContextInjectableMarker<((), Args, ContextArg, F, Output), Ctx>> for F
+impl<Args, ContextArg, F, Output, Ctx>
+    IntoCallback<Ctx, ContextInjectableMarker<((), Args, ContextArg, F, Output), Ctx>> for F
 where
-Ctx: SchedulerContext,
-ContextInjector<(), Args, ContextArg, F, Output, Ctx>: Callback<Ctx> {
+    Ctx: SchedulerContext,
+    ContextInjector<(), Args, ContextArg, F, Output, Ctx>: Callback<Ctx>,
+{
     type Output = ContextInjector<(), Args, ContextArg, F, Output, Ctx>;
     fn into_callback(self) -> Self::Output {
         ContextInjector::<(), Args, ContextArg, F, Output, Ctx>::new(self)
@@ -44,244 +54,67 @@ impl<Ctx: SchedulerContext, C: Callback<Ctx>> IntoCallback<Ctx, C> for C {
 pub struct Clear;
 
 impl<Ctx: SchedulerContext> Callback<Ctx> for Clear {
-    fn invoke(
-            &mut self,
-            task_ctx: TaskContext<'_, Ctx>,
-        ) -> TaskResponse {
+    fn invoke(&mut self, task_ctx: TaskContext<'_, Ctx>) -> TaskResponse {
         task_ctx.scheduler.clear();
         TaskResponse::Finish
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum EveryTimeAnchor {
-    /// Relative to the scheduled time of the task.
-    Schedule,
-    /// Relative to the time immediately after the task finishs.
-    After,
-    /// Relative to the time before the task begins.
-    Before,
-}
+// #[derive(Clone, Copy)]
+// pub struct TriggerBuilder<E: Clone + Copy, U: Clone + Copy>(bool, E, U);
 
-pub struct Every<Ctx, F>
-where
-Ctx: SchedulerContext,
-F: Callback<Ctx> {
-    phantom: PhantomData<Ctx>,
-    duration: Duration,
-    anchor: EveryTimeAnchor,
-    callback: F,
-}
+// impl TriggerBuilder<(), ()> {
+//     #[inline]
+//     pub const fn new(active: bool) -> Self {
+//         Self(active, (), ())
+//     }
 
-pub fn every<T, Ctx, F>(duration: Duration, anchor: EveryTimeAnchor, callback: F) -> Every<Ctx, F::Output>
-where
-Ctx: SchedulerContext,
-F: IntoCallback<Ctx, T> {
-    Every {
-        phantom: PhantomData,
-        duration,
-        anchor,
-        callback: callback.into_callback(),
-    }
-}
+//     #[inline]
+//     pub const fn active() -> Self {
+//         Self(true, (), ())
+//     }
 
-impl<Ctx, F> Callback<Ctx> for Every<Ctx, F>
-where
-Ctx: SchedulerContext,
-F: Callback<Ctx> {
-    fn invoke(
-            &mut self,
-            task_ctx: TaskContext<'_, Ctx>,
-        ) -> TaskResponse {
-        let resp = (self.callback).invoke(task_ctx);
-        match self.anchor {
-            EveryTimeAnchor::Schedule => TaskResponse::AfterScheduled(self.duration),
-            EveryTimeAnchor::After => TaskResponse::AfterTaskEnds(self.duration),
-            EveryTimeAnchor::Before => TaskResponse::AfterTaskBegan(self.duration),
-        }
-    }
-}
+//     #[inline]
+//     pub const fn inactive() -> Self {
+//         Self(false, (), ())
+//     }
 
-pub trait ConditionalPredicate<Args>: 'static {
-    fn evaluate(&mut self, args: Args) -> bool;
-}
+//     #[inline]
+//     pub const fn eval_ordering(self, ordering: Ordering) -> TriggerBuilder<Ordering, ()> {
+//         TriggerBuilder(self.0, ordering, ())
+//     }
 
-impl<Args, F> ConditionalPredicate<Args> for F
-where
-F: VariadicCallbackMut<Args, bool> {
-    fn evaluate(&mut self, args: Args) -> bool {
-        self.call_mutable(args)
-    }
-}
+//     #[inline]
+//     pub const fn update_ordering(self, ordering: Ordering) -> TriggerBuilder<(), Ordering> {
+//         TriggerBuilder(self.0, (), ordering)
+//     }
 
-#[derive(Debug, Clone)]
-pub struct Trigger {
-    trigger: Arc<AtomicBool>,
-    eval_ordering: Ordering,
-    update_ordering: Ordering,
-}
+//     #[inline]
+//     pub const fn total_ordering(self, ordering: Ordering) -> TriggerBuilder<Ordering, Ordering> {
+//         TriggerBuilder(self.0, ordering, ordering)
+//     }
+// }
 
-#[derive(Clone, Copy)]
-pub struct TriggerBuilder<E: Clone + Copy, U: Clone + Copy>(bool, E, U);
+// impl TriggerBuilder<Ordering, ()> {
+//     #[inline]
+//     pub const fn update_ordering(self, ordering: Ordering) -> TriggerBuilder<Ordering, Ordering> {
+//         TriggerBuilder(self.0, self.1, ordering)
+//     }
+// }
 
-impl TriggerBuilder<(), ()> {
-    #[inline]
-    pub const fn new(active: bool) -> Self {
-        Self(active, (), ())
-    }
+// impl TriggerBuilder<(), Ordering> {
+//     #[inline]
+//     pub const fn eval_ordering(self, ordering: Ordering) -> TriggerBuilder<Ordering, Ordering> {
+//         TriggerBuilder(self.0, ordering, self.2)
+//     }
+// }
 
-    #[inline]
-    pub const fn active() -> Self {
-        Self(true, (), ())
-    }
-
-    #[inline]
-    pub const fn inactive() -> Self {
-        Self(false, (), ())
-    }
-
-    #[inline]
-    pub const fn eval_ordering(self, ordering: Ordering) -> TriggerBuilder<Ordering, ()> {
-        TriggerBuilder(self.0, ordering, ())
-    }
-
-    #[inline]
-    pub const fn update_ordering(self, ordering: Ordering) -> TriggerBuilder<(), Ordering> {
-        TriggerBuilder(self.0, (), ordering)
-    }
-
-    #[inline]
-    pub const fn total_ordering(self, ordering: Ordering) -> TriggerBuilder<Ordering, Ordering> {
-        TriggerBuilder(self.0, ordering, ordering)
-    }
-}
-
-impl TriggerBuilder<Ordering, ()> {
-    #[inline]
-    pub const fn update_ordering(self, ordering: Ordering) -> TriggerBuilder<Ordering, Ordering> {
-        TriggerBuilder(self.0, self.1, ordering)
-    }
-}
-
-impl TriggerBuilder<(), Ordering> {
-    #[inline]
-    pub const fn eval_ordering(self, ordering: Ordering) -> TriggerBuilder<Ordering, Ordering> {
-        TriggerBuilder(self.0, ordering, self.2)
-    }
-}
-
-impl TriggerBuilder<Ordering, Ordering> {
-    #[inline]
-    pub fn build(self) -> Trigger {
-        Trigger::with_ordering(self.0, self.1, self.2)
-    }
-}
-
-#[cfg(test)]
-mod testing_sandbox {
-    // TODO: Remove this sandbox when it is no longer in use.
-    use super::*;
-    #[test]
-    fn sandbox() {
-        let trigger = TriggerBuilder::new(true)
-            .eval_ordering(Ordering::Relaxed)
-            .update_ordering(Ordering::Relaxed)
-            .build();
-    }
-}
-
-impl Trigger {
-    /// Uses Ordering::Relaxed by default.
-    #[inline]
-    pub fn new(active: bool) -> Self {
-        Self::with_ordering(active, Ordering::Relaxed, Ordering::Relaxed)
-    }
-
-    #[inline]
-    pub fn with_ordering(active: bool, eval_ordering: Ordering, update_ordering: Ordering) -> Self {
-        Self {
-            trigger: Arc::new(AtomicBool::new(active)),
-            eval_ordering,
-            update_ordering,
-        }
-    }
-
-    #[inline]
-    pub fn activate(&self) {
-        self.trigger.store(true, self.update_ordering);
-    }
-
-    #[inline]
-    pub fn deactivate(&self) {
-        self.trigger.store(false, self.update_ordering);
-    }
-
-    #[inline]
-    pub fn swap(&self, active: bool) -> bool {
-        self.trigger.swap(active, self.update_ordering)
-    }
-
-    /// Clones the inner `Arc<AtomicBool>`.
-    #[inline]
-    pub fn clone_inner(&self) -> Arc<AtomicBool> {
-        self.trigger.clone()
-    }
-}
-
-impl ConditionalPredicate<()> for Trigger {
-    fn evaluate(&mut self, args: ()) -> bool {
-        self.trigger.load(self.eval_ordering)
-    }
-}
-
-pub struct Conditional<Ctx, F, P, PredArgs>
-where
-Ctx: SchedulerContext,
-F: Callback<Ctx>,
-PredArgs: ResolvableGroup<Ctx>,
-P: ConditionalPredicate<PredArgs> {
-    phantom: PhantomData<(Ctx, PredArgs)>,
-    callback: F,
-    predicate: P,
-}
-
-pub fn conditional<T, Ctx, F, P, PredArgs>(predicate: P, callback: F) -> Conditional<Ctx, F::Output, P, PredArgs>
-where
-Ctx: SchedulerContext,
-F: IntoCallback<Ctx, T>,
-PredArgs: ResolvableGroup<Ctx>,
-P: ConditionalPredicate<PredArgs> {
-    Conditional {
-        phantom: PhantomData,
-        callback: callback.into_callback(),
-        predicate: predicate,
-    }
-}
-
-impl<Ctx, F, P, PredArgs> Callback<Ctx> for Conditional<Ctx, F, P, PredArgs>
-where
-Ctx: SchedulerContext,
-F: Callback<Ctx>,
-PredArgs: ResolvableGroup<Ctx>,
-P: ConditionalPredicate<PredArgs> {
-    fn invoke(
-            &mut self,
-            task_ctx: TaskContext<'_, Ctx>,
-        ) -> TaskResponse {
-        let pred_args = match PredArgs::group_resolve(task_ctx.shared) {
-            Ok(args) => args,
-            Err(ResolveError::Skip) => return TaskResponse::Finish,
-            Err(ResolveError::NotFound(type_name)) => {
-                panic!("Type not found: \"{type_name}\"");
-            }
-        };
-        if self.predicate.evaluate(pred_args) {
-            self.callback.invoke(task_ctx)
-        } else {
-            TaskResponse::Finish
-        }
-    }
-}
+// impl TriggerBuilder<Ordering, Ordering> {
+//     #[inline]
+//     pub fn build(self) -> Trigger {
+//         Trigger::with_ordering(self.0, self.1, self.2)
+//     }
+// }
 
 // Other Callback types:
 // constantly
@@ -317,8 +150,6 @@ P: ConditionalPredicate<PredArgs> {
 //         self.callback.call_mutable(args).into()
 //     }
 // }
-
-
 
 // impl<Ctx, Args, R, F> Callback<Ctx> for VariadicCallback<Ctx, Args, (), R, F>
 // where
