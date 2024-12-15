@@ -15,15 +15,15 @@
 //! 
 //! Here's what that expander function looks like:
 //! ```rust,no_run
-//! pub const fn block_size_notation<const BIT_SIZE: u32>(block_count: u64, exponent: u32) -> u64 {
-//!     let max_block_size = const { 2u64.pow(BIT_SIZE)-1 };
-//!     let spacer1 = (2u64.pow(exponent) - 1) * max_block_size;
-//!     let spacer2 = if exponent > 0 {
-//!         2u64.pow(exponent)
+//! pub const fn block_size_notation(block_count: u64, exponent: u32, block_count_bit_size: u32) -> u64 {
+//!     if exponent == 0 {
+//!         block_count + 1
 //!     } else {
-//!         0
-//!     };
-//!     block_count * 2u64.pow(exponent) + spacer1 + spacer2 + 1
+//!         let max_block_size = 2u64.pow(block_count_bit_size)-1;
+//!         let exp = 2u64.pow(exponent);
+//!         let spacer = exp + (exp - 1) * max_block_size;
+//!         block_count * 2u64.pow(exponent) + spacer + 1
+//!     }
 //! }
 //! ``````
 //! This function takes pieces of the 8-bit number and performs some math
