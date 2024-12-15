@@ -178,6 +178,14 @@ group_resolver_impls!{
 mod testing_sandbox {
     // TODO: Remove this sandbox when it is no longer in use.
     use super::*;
+
+    macro_rules! type_generics {
+        ($($_:tt)*) => {
+        };
+    }
+
+    type_generics!(some_macro; [Type{0..8}Name, ]);
+
     #[test]
     fn sandbox() {
         let tn: &'static str = std::any::type_name::<i32>();
