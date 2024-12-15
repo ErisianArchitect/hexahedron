@@ -6,7 +6,8 @@ mod invoke;
 mod scheduler;
 mod shared_state;
 
-use hexahedron::prelude::Increment;
+use hexahedron as hex;
+use hex::prelude::Increment;
 
 #[tokio::main]
 async fn main() {
@@ -15,22 +16,6 @@ async fn main() {
         A sparse struct using manual memory management
         and unsafe code.
     */
-    fn take_fnonce<F: FnOnce() + Clone>(f: F) {
-        let f1 = f.clone();
-        f();
-        f1();
-    }
-    #[derive(Debug, Clone)]
-    struct Dropped<T: std::fmt::Display + Clone>(T);
-    impl<T: std::fmt::Display + Clone> Drop for Dropped<T> {
-        fn drop(&mut self) {
-            println!("{}", self.0);
-        }
-    }
-    let dropped = Dropped("This might be cloned.");
-    take_fnonce(move || {
-        drop(dropped);
-    });
     // sched_experiment::experiment();
     // any_map::any_map_test();
     // unsafe_experiment::experiment();
@@ -90,11 +75,6 @@ mod sched_experiment {
         //     //     println!("The condition is active!");
         //     // }),
         // ));
-        const VALUE: i32 = {
-            let opt = Some(0i32);
-            // let opt = None;
-            opt.expect("Expected some.")
-        };
         let trig2 = trigger.clone();
         // scheduler.after_secs(3, move || {
         //     trig2.activate();
@@ -103,11 +83,8 @@ mod sched_experiment {
             3,
             |opt: Optional<Arc<String>>, trigger: Arc<AtomicBool>, mut task_context: TaskContext<'_, SharedState>| {
                 trigger.store(true, std::sync::atomic::Ordering::Relaxed);
-            },
+            }
         );
-        // scheduler.after_secs(10, move || {
-        //     trigger.deactivate();
-        // });
         scheduler.after_secs(10, move || {
             trigger.deactivate();
         });
