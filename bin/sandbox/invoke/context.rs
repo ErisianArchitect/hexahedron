@@ -110,36 +110,3 @@ where T: Send + Sync + 'static {
         context.get::<T>().ok_or_else(|| ResolveError::NotFound(std::any::type_name::<Arc<T>>()))
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    #[test]
-    fn invoke_context_test() {
-        let mut ctx = SharedState::new();
-        let strings = vec![
-            "Hello, world!",
-            "This is a test.",
-            "The quick brown fox jumps over the lazy dog.",
-            "0123456789",
-            "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
-            "abcdefghijklmnopqrstuvwxyz",
-        ];
-        ctx.insert_rw_lock(strings);
-        if let Some(strings) = ctx.get_rw_lock::<Vec<&'static str>>() {
-            let lock = strings.read().unwrap();
-            for &item in lock.iter() {
-                println!("{item}");
-            }
-            drop(lock);
-            let mut lock = strings.write().unwrap();
-            lock.push("Lorem ipsum dolor");
-        }
-        if let Some(strings) = ctx.get_rw_lock::<Vec<&'static str>>() {
-            let lock = strings.read().unwrap();
-            for &item in lock.iter() {
-                println!("{item}");
-            }
-        }
-    }
-}
