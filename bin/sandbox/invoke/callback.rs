@@ -8,6 +8,7 @@ use std::{
 use super::{
     context_injector::ContextInjector, scheduler_context::*, task_context::TaskContext,
     task_response::TaskResponse,
+    variadic_callback::VariadicCallback as VariadicCallbackTrait,
     // tuple_combine::TupleJoin,
     // variadic_callback::*,
 };
@@ -17,11 +18,10 @@ where
     Self: 'static,
     Ctx: SchedulerContext,
 {
-    #[inline]
     fn invoke(&mut self, task_ctx: TaskContext<'_, Ctx>) -> TaskResponse;
 }
 
-pub trait IntoCallback<Ctx: SchedulerContext, T>: 'static
+pub trait IntoCallback<Ctx: SchedulerContext, Marker>: 'static
 where
     Self::Output: Callback<Ctx>,
 {
@@ -120,12 +120,11 @@ impl<Ctx: SchedulerContext> Callback<Ctx> for Clear {
 // constantly
 // when
 
-// pub struct VariadicCallback<Ctx, Args, ContextArg, R, F>
+// pub struct VariadicCallback<Ctx, Args, R, F>
 // where
 // Ctx: SchedulerContext,
-// Args: ResolvableGroup<Ctx>,
-// ContextArg: 'static {
-//     phantom: PhantomData<(Ctx, Args, ContextArg, R)>,
+// Args: ResolvableGroup<Ctx> {
+//     phantom: PhantomData<(Ctx, Args, R)>,
 //     callback: F,
 // }
 
@@ -151,12 +150,12 @@ impl<Ctx: SchedulerContext> Callback<Ctx> for Clear {
 //     }
 // }
 
-// impl<Ctx, Args, R, F> Callback<Ctx> for VariadicCallback<Ctx, Args, (), R, F>
+// impl<Ctx, Args, R, F> Callback<Ctx> for VariadicCallback<Ctx, Args, R, F>
 // where
 // Ctx: SchedulerContext,
 // Args: ResolvableGroup<Ctx>,
 // R: Into<TaskResponse> + 'static,
-// F: VariadicCallbackMut<Args, R> {
+// F: VariadicCallbackTrait<Args, R> {
 //     fn invoke(
 //             &mut self,
 //             task_ctx: TaskContext<'_, Ctx>,
@@ -168,7 +167,7 @@ impl<Ctx: SchedulerContext> Callback<Ctx> for Clear {
 //         };
 //         // let ctx = ContextArg::resolve(task_ctx);
 //         // let args = (args, ()).join();
-//         self.callback.call_mutable(args).into()
+//         self.callback.invoke(args).into()
 //     }
 // }
 
@@ -190,16 +189,16 @@ impl<Ctx: SchedulerContext> Callback<Ctx> for Clear {
 //     }
 // }
 
-// impl<Ctx, Args, R, F> IntoCallback<Ctx, VariadicCallback<Ctx, Args, (), R, F>> for F
+// impl<Ctx, Args, R, F> IntoCallback<Ctx, VariadicCallback<Ctx, Args, R, F>> for F
 // where
 // Ctx: SchedulerContext,
 // Args: ResolvableGroup<Ctx>,
 // R: Into<TaskResponse> + 'static,
 // // for<'a> (Args, (TaskContext<'a, Ctx>,)): TupleJoin,
-// for<'a> F: VariadicCallbackMut<Args, R> {
-//     type Output = VariadicCallback<Ctx, Args, (), R, F>;
+// for<'a> F: VariadicCallbackTrait<Args, R> {
+//     type Output = VariadicCallback<Ctx, Args, R, F>;
 //     fn into_callback(self) -> Self::Output {
-//         VariadicCallback::<Ctx, Args, (), R, F> {
+//         VariadicCallback::<Ctx, Args, R, F> {
 //             phantom: PhantomData,
 //             callback: self
 //         }
