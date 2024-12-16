@@ -81,7 +81,7 @@ macro_rules! context_injector_impls {
         paste!{
             impl<$($data_type,)* $($arg_type,)* R, F, Ctx: SchedulerContext> Callback<Ctx> for ContextInjector<($($data_type,)*), ($($arg_type,)*), ( ($($data_type,)*), ($($arg_type,)*), ($(context_injector_impls!(@ctx_type; $ctx(Ctx)),)*) ), F, R, Ctx>
             where
-            R: Into<TaskResponse>,
+            R: Into<TaskResponse> + 'static,
             $(
                 $data_type: 'static,
             )*
@@ -98,11 +98,12 @@ macro_rules! context_injector_impls {
                 $(
                     context_injector_impls!(@ctx_type; $ctx(Ctx)),
                 )*
-            ) -> R + 'static {
+            ) -> R {
                 #[allow(non_snake_case)]
                 fn invoke(
                     &mut self,
                     context: TaskContext<'_, Ctx>,
+                    data: &mut (),
                 ) -> TaskResponse {
                     let (
                         $(
@@ -116,7 +117,7 @@ macro_rules! context_injector_impls {
                         $(
                             match $arg_type::resolve(context.shared) {
                                 Ok(resolved) => resolved,
-                                Err(ResolveError::Skip) => return TaskResponse::Finish,
+                                Err(ResolveError::Skip) => return TaskResponse::Continue,
                                 Err(ResolveError::NotFound(type_name)) => {
                                     panic!("{type_name} not found in context");
                                 }
