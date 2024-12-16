@@ -138,8 +138,8 @@ impl<Ctx: SchedulerContext> Scheduler<Ctx> {
             scheduler: self,
         };
         let start_time = Instant::now();
-        match value.invoke(task_context) {
-            TaskResponse::Finish => (),
+        match value.invoke(task_context, &mut ()) {
+            TaskResponse::Finish | TaskResponse::Continue => (),
             TaskResponse::AfterTaskBegan(duration) => {
                 self.schedule_heap.push(TimeKey::new(start_time + duration, value));
             },
