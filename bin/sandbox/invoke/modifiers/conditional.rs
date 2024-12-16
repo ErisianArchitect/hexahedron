@@ -52,18 +52,19 @@ P: ConditionalPredicate<PredArgs> {
     fn invoke(
             &mut self,
             task_ctx: TaskContext<'_, Ctx>,
+            _: &mut (),
         ) -> TaskResponse {
         let pred_args = match PredArgs::group_resolve(task_ctx.shared) {
             Ok(args) => args,
-            Err(ResolveError::Skip) => return TaskResponse::Finish,
+            Err(ResolveError::Skip) => return TaskResponse::Continue,
             Err(ResolveError::NotFound(type_name)) => {
                 panic!("Type not found: \"{type_name}\"");
             }
         };
         if self.predicate.evaluate(pred_args) {
-            self.callback.invoke(task_ctx)
+            self.callback.invoke(task_ctx, &mut ())
         } else {
-            TaskResponse::Finish
+            TaskResponse::Continue
         }
     }
 }
