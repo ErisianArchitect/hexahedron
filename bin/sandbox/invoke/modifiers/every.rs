@@ -47,8 +47,11 @@ where
     Ctx: SchedulerContext,
     F: Callback<Ctx>,
 {
-    fn invoke(&mut self, task_ctx: TaskContext<'_, Ctx>) -> TaskResponse {
-        let resp = (self.callback).invoke(task_ctx);
+    fn invoke(&mut self, task_ctx: TaskContext<'_, Ctx>, _: &mut ()) -> TaskResponse {
+        let resp = (self.callback).invoke(task_ctx, &mut ());
+        if matches!(resp, TaskResponse::Finish) {
+            return TaskResponse::Finish;
+        }
         match self.anchor {
             EveryTimeAnchor::Schedule => TaskResponse::AfterScheduled(self.duration),
             EveryTimeAnchor::After => TaskResponse::AfterTaskEnds(self.duration),
