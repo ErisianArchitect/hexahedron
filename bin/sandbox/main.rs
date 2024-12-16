@@ -19,7 +19,7 @@ async fn main() {
     // sched_experiment::experiment();
     // any_map::any_map_test();
     // unsafe_experiment::experiment();
-    // sched_experiment::experiment();
+    sched_experiment::experiment();
 }
 
 mod sched_experiment {
