@@ -13,17 +13,17 @@ use super::{
     // variadic_callback::*,
 };
 
-pub trait Callback<Ctx>
+pub trait Callback<Ctx, R = TaskResponse, Data = ()>
 where
     Self: 'static,
     Ctx: SchedulerContext,
 {
-    fn invoke(&mut self, task_ctx: TaskContext<'_, Ctx>) -> TaskResponse;
+    fn invoke(&mut self, task_ctx: TaskContext<'_, Ctx>, data: &mut Data) -> R;
 }
 
-pub trait IntoCallback<Ctx: SchedulerContext, Marker>: 'static
+pub trait IntoCallback<Ctx: SchedulerContext, Marker, R = TaskResponse, Data = ()>: 'static
 where
-    Self::Output: Callback<Ctx>,
+    Self::Output: Callback<Ctx, R, Data>,
 {
     type Output;
     fn into_callback(self) -> Self::Output;
@@ -54,7 +54,7 @@ impl<Ctx: SchedulerContext, C: Callback<Ctx>> IntoCallback<Ctx, C> for C {
 pub struct Clear;
 
 impl<Ctx: SchedulerContext> Callback<Ctx> for Clear {
-    fn invoke(&mut self, task_ctx: TaskContext<'_, Ctx>) -> TaskResponse {
+    fn invoke(&mut self, task_ctx: TaskContext<'_, Ctx>, data: &mut ()) -> TaskResponse {
         task_ctx.scheduler.clear();
         TaskResponse::Finish
     }
