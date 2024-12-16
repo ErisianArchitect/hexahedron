@@ -4,6 +4,7 @@ use std::time::{Duration, Instant};
 pub enum TaskResponse {
     /// Finish task, do nothing.
     #[default]
+    Continue,
     Finish,
     /// Reschedule task immediately.
     Immediate,
