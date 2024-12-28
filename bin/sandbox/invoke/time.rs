@@ -161,9 +161,3 @@ pub fn after_days_f32(days: f32) -> Instant {
 pub fn after_days_f64(days: f64) -> Instant {
     after(Duration::from_secs_f64(days * 86400.0))
 }
-
-#[cfg(test)]
-mod tests {
-    use chrono::{DateTime, NaiveDate, NaiveDateTime, Utc};
-
-}
