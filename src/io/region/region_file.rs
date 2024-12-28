@@ -70,11 +70,13 @@ use flate2::{read::GzDecoder, write::GzEncoder, Compression};
 use crate::{error::*, io::region::sector_offset::SectorOffset, prelude::{write_zeros, Readable, Writeable}};
 use super::{header::RegionHeader, region_coord::RegionCoord, sector_manager::SectorManager, block_size::BlockSize, time_stamp::Timestamp};
 
+/// Gets the number of bytes needed to pad to a multiple of 4096.
 #[inline]
 const fn pad_size(length: u64) -> u64 {
     4096 - (length & 4095) & 4095
 }
 
+/// Gets the `length + pad_size(length)` bytes.
 #[inline]
 const fn padded_size(length: u64) -> u64 {
     const NEG4096_U64: u64 = -4096i64 as u64;
@@ -123,7 +125,7 @@ impl RegionFile {
         })
     }
 
-    /// Returns error if the file already exists.
+    /// Create new region file. Returns error if the file already exists.
     pub fn create_new<P: AsRef<Path>>(path: P) -> Result<Self> {
         let path = path.as_ref();
         let parent = path.parent().ok_or(Error::ParentNotFound)?;
