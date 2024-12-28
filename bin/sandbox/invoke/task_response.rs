@@ -2,9 +2,10 @@ use std::time::{Duration, Instant};
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum TaskResponse {
-    /// Finish task, do nothing.
+    /// Continue task, do nothing.
     #[default]
     Continue,
+    /// Finish task, do nothing.
     Finish,
     /// Reschedule task immediately.
     Immediate,
@@ -46,7 +47,7 @@ impl TaskResponse {
 impl From<()> for TaskResponse {
     #[inline]
     fn from(value: ()) -> Self {
-        TaskResponse::Finish
+        TaskResponse::Continue
     }
 }
 
@@ -70,7 +71,7 @@ impl<T: Into<TaskResponse>> From<Option<T>> for TaskResponse {
         if let Some(value) = value {
             value.into()
         } else {
-            TaskResponse::Finish
+            TaskResponse::Continue
         }
     }
 }
