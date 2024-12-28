@@ -6,6 +6,7 @@ use std::{
 };
 
 use super::{
+    scheduler::Scheduler,
     context_injector::ContextInjector, scheduler_context::*, task_context::TaskContext,
     task_response::TaskResponse,
     variadic_callback::VariadicCallback as VariadicCallbackTrait,
@@ -22,8 +23,7 @@ where
 }
 
 pub trait IntoCallback<Ctx: SchedulerContext, Marker, R = TaskResponse, Data = ()>: 'static
-where
-    Self::Output: Callback<Ctx, R, Data>,
+where Self::Output: Callback<Ctx, R, Data>,
 {
     type Output;
     fn into_callback(self) -> Self::Output;
@@ -38,6 +38,7 @@ where
     ContextInjector<(), Args, ContextArg, F, Output, Ctx>: Callback<Ctx>,
 {
     type Output = ContextInjector<(), Args, ContextArg, F, Output, Ctx>;
+
     fn into_callback(self) -> Self::Output {
         ContextInjector::<(), Args, ContextArg, F, Output, Ctx>::new(self)
     }
@@ -50,7 +51,7 @@ impl<Ctx: SchedulerContext, C: Callback<Ctx>> IntoCallback<Ctx, C> for C {
     }
 }
 
-// Used to clear the [Scheduler] of all tasks.
+///  Used to clear the [Scheduler] of all tasks.
 pub struct Clear;
 
 impl<Ctx: SchedulerContext> Callback<Ctx> for Clear {
