@@ -1,3 +1,4 @@
+
 #![allow(unused)]
 
 mod any_map;
@@ -19,7 +20,101 @@ async fn main() {
     // sched_experiment::experiment();
     // any_map::any_map_test();
     // unsafe_experiment::experiment();
-    sched_experiment::experiment();
+    // sched_experiment::run();
+    // borrow_experiment::run();
+    // transmute_experiment::run();
+    counting_experiment::run();
+}
+
+mod counting_experiment {
+    use std::time::{Duration, Instant};
+
+    pub fn run() {
+        const ONE_SEC: Duration = Duration::from_secs(1);
+        let mut counter = 0u64;
+        let start = Instant::now();
+        let end = start + ONE_SEC;
+        // let mut next_print = start;
+        while Instant::now() < end {
+            counter += 1;
+            // if Instant::now() >= next_print {
+            //     println!("Count: {counter}");
+            //     next_print += ONE_SEC
+            // }
+        }
+        println!("Count: {counter}")
+    }
+}
+
+mod transmute_experiment {
+    use std::time::{Duration, Instant};
+
+    trait ForeignFrom<T> {
+        fn foreign_from(value: T) -> Self;
+    }
+
+    trait ForeignInto<T> {
+        fn foreign_into(self) -> T;
+    }
+
+    impl<S, T: ForeignFrom<S>> ForeignInto<T> for S {
+        fn foreign_into(self) -> T {
+            T::foreign_from(self)
+        }
+    }
+
+    impl ForeignFrom<Duration> for Instant {
+        fn foreign_from(value: Duration) -> Self {
+            unsafe {
+                std::mem::transmute(value)
+            }
+        }
+    }
+
+    impl ForeignFrom<Instant> for Duration {
+        fn foreign_from(value: Instant) -> Self {
+            unsafe {
+                std::mem::transmute(value)
+            }
+        }
+    }
+
+    pub fn run() {
+        let inst: Instant = Duration::from_secs(1000).foreign_into();
+        println!("{}, {}", std::mem::size_of::<Duration>(), std::mem::size_of::<Instant>());
+        let duration: Duration = unsafe { std::mem::transmute(Instant::now()) };
+        println!("{}", duration.as_secs());
+    }
+}
+
+mod borrow_experiment {
+    use std::{borrow::Borrow, cell::{Ref, RefCell, RefMut}};
+
+
+    struct Hold {
+        cell: RefCell<u32>
+    }
+
+    impl Hold {
+        fn borrow(&self) -> Ref<u32> {
+            self.cell.borrow()
+        }
+
+        fn borrow_mut(&self) -> RefMut<u32> {
+            self.cell.borrow_mut()
+        }
+    }
+
+    pub fn take_refmut(mut num: RefMut<u32>) {
+        *num = 12345;
+    }
+
+    pub fn run() {
+        let hold = Hold { cell: RefCell::new(1234) };
+        take_refmut(hold.borrow_mut());
+        let bor = hold.borrow();
+        println!("{bor}");
+    }
 }
 
 mod sched_experiment {
@@ -36,25 +131,13 @@ mod sched_experiment {
     use hexahedron::{math::minmax, prelude::Increment};
 
     use crate::invoke::{
-        callback::*,
-        context::SharedState,
-        // context_injector::*,
-        optional::Optional,
-        scheduler::Scheduler,
-        scheduler_context::*,
-        scheduler_context::*,
-        task_context::{self, TaskContext},
-        task_response::TaskResponse,
-        // tuple_combine::TupleJoin,
-        // tuple_flatten::TupleFlatten,
-        // variadic_callback::*,
-        modifiers::{
-            conditional::*,
-        },
+        callback::*, context::SharedState, modifiers::{
+            conditional::*, every::{every, EveryTimeAnchor},
+        }, optional::Optional, scheduler::Scheduler, scheduler_context::{*}, scheduler_context::{*}, task_context::{self, TaskContext}, task_response::TaskResponse
     };
     use TaskResponse::*;
 
-    pub fn experiment() {
+    pub fn run() {
         let mut context = SharedState::new();
         context.insert(Mutex::new(vec![
             String::from("Hello, world!"),
@@ -68,13 +151,13 @@ mod sched_experiment {
         let mut counter = 0u32;
         let trigger = Trigger::new(false);
         context.insert_arc(trigger.clone_inner());
-        // scheduler.now(every(
-        //     Duration::from_secs(1),
-        //     EveryTimeAnchor::After,
-        //     // conditional(trigger.clone(), || {
-        //     //     println!("The condition is active!");
-        //     // }),
-        // ));
+        scheduler.now(every(
+            Duration::from_secs(1),
+            EveryTimeAnchor::After,
+            conditional(trigger.clone(), || {
+                println!("The condition is active!");
+            }),
+        ));
         let trig2 = trigger.clone();
         // scheduler.after_secs(3, move || {
         //     trig2.activate();
@@ -85,6 +168,9 @@ mod sched_experiment {
                 trigger.store(true, std::sync::atomic::Ordering::Relaxed);
             }
         );
+        scheduler.after_days(1, || {
+            println!("Why were you running this program for a whole day?");
+        });
         scheduler.after_secs(10, move || {
             trigger.deactivate();
         });
