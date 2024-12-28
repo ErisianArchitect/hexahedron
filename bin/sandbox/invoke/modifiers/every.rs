@@ -50,7 +50,7 @@ where
     fn invoke(&mut self, task_ctx: TaskContext<'_, Ctx>, _: &mut ()) -> TaskResponse {
         let resp = (self.callback).invoke(task_ctx, &mut ());
         if matches!(resp, TaskResponse::Finish) {
-            return TaskResponse::Finish;
+            return TaskResponse::Continue;
         }
         match self.anchor {
             EveryTimeAnchor::Schedule => TaskResponse::AfterScheduled(self.duration),
