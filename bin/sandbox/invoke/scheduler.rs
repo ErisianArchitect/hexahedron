@@ -238,12 +238,3 @@ impl<Ctx: SchedulerContext> Scheduler<Ctx> {
         self.schedule_heap.clear();
     }
 }
-
-#[cfg(test)]
-mod testing_sandbox {
-    // TODO: Remove this sandbox when it is no longer in use.
-    use super::*;
-    #[test]
-    fn sandbox() {
-    }
-}
