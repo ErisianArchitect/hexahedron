@@ -76,6 +76,7 @@ impl<T: Debug> Debug for Optional<T> {
 }
 
 impl<T> Optional<T> {
+    // Cannot make this function const.
     // destructor of `Option<T>` cannot be evaluated at compile-time
     #[inline]
     pub fn from_option(option: Option<T>) -> Self {
@@ -85,6 +86,8 @@ impl<T> Optional<T> {
         }
     }
 
+    // Cannot make this function const
+    // destructor of `Optional<T>` cannot be evaluated at compile-time
     #[inline]
     pub fn to_option(self) -> Option<T> {
         match self {
