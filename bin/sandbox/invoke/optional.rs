@@ -58,7 +58,10 @@ impl<T: Hash> Hash for Optional<T> {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         match self {
             Optional::None => state.write_u8(0),
-            Optional::Some(some) => some.hash(state),
+            Optional::Some(some) => {
+                state.write_u8(1);
+                some.hash(state)
+            },
         }
     }
 }
