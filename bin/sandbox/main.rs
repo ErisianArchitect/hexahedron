@@ -10,8 +10,8 @@ mod shared_state;
 use hexahedron as hex;
 use hex::prelude::Increment;
 
-#[tokio::main]
-async fn main() {
+// #[tokio::main]
+/* async */ fn main() {
     /*
     Next experiment:
         A sparse struct using manual memory management
@@ -23,6 +23,7 @@ async fn main() {
     // sched_experiment::run();
     // borrow_experiment::run();
     // transmute_experiment::run();
+    // counting_experiment::run();
     counting_experiment::run();
 }
 
@@ -43,77 +44,6 @@ mod counting_experiment {
             // }
         }
         println!("Count: {counter}")
-    }
-}
-
-mod transmute_experiment {
-    use std::time::{Duration, Instant};
-
-    trait ForeignFrom<T> {
-        fn foreign_from(value: T) -> Self;
-    }
-
-    trait ForeignInto<T> {
-        fn foreign_into(self) -> T;
-    }
-
-    impl<S, T: ForeignFrom<S>> ForeignInto<T> for S {
-        fn foreign_into(self) -> T {
-            T::foreign_from(self)
-        }
-    }
-
-    impl ForeignFrom<Duration> for Instant {
-        fn foreign_from(value: Duration) -> Self {
-            unsafe {
-                std::mem::transmute(value)
-            }
-        }
-    }
-
-    impl ForeignFrom<Instant> for Duration {
-        fn foreign_from(value: Instant) -> Self {
-            unsafe {
-                std::mem::transmute(value)
-            }
-        }
-    }
-
-    pub fn run() {
-        let inst: Instant = Duration::from_secs(1000).foreign_into();
-        println!("{}, {}", std::mem::size_of::<Duration>(), std::mem::size_of::<Instant>());
-        let duration: Duration = unsafe { std::mem::transmute(Instant::now()) };
-        println!("{}", duration.as_secs());
-    }
-}
-
-mod borrow_experiment {
-    use std::{borrow::Borrow, cell::{Ref, RefCell, RefMut}};
-
-
-    struct Hold {
-        cell: RefCell<u32>
-    }
-
-    impl Hold {
-        fn borrow(&self) -> Ref<u32> {
-            self.cell.borrow()
-        }
-
-        fn borrow_mut(&self) -> RefMut<u32> {
-            self.cell.borrow_mut()
-        }
-    }
-
-    pub fn take_refmut(mut num: RefMut<u32>) {
-        *num = 12345;
-    }
-
-    pub fn run() {
-        let hold = Hold { cell: RefCell::new(1234) };
-        take_refmut(hold.borrow_mut());
-        let bor = hold.borrow();
-        println!("{bor}");
     }
 }
 
