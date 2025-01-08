@@ -94,16 +94,18 @@ impl<T> Optional<T> {
     }
 }
 
+impl<T> From<Optional<T>> for Option<T> {
+    fn from(value: Optional<T>) -> Self {
+        match value {
+            Optional::None => None,
+            Optional::Some(some) => Some(some),
+        }
+    }
+}
+
 impl<T> From<Option<T>> for Optional<T> {
     #[inline]
     fn from(value: Option<T>) -> Self {
         Self::from_option(value)
-    }
-}
-
-impl<T> Into<Option<T>> for Optional<T> {
-    #[inline]
-    fn into(self) -> Option<T> {
-        self.to_option()
     }
 }
