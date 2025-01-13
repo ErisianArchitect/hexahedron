@@ -20,6 +20,7 @@ name = "netbox"
 path = "./bin/netbox/main.rs"
 
 [dependencies]
+blake3 = "1.5.5"
 bytemuck = { version = "1.18.0", features = ["derive"] }
 chrono = "0.4.38"
 flate2 = "1.0.33"
@@ -41,3 +42,4 @@ splines = { version = "4.3.1", features = ["glam"] }
 tap = "1.0.1"
 thiserror = "1.0.63"
 tokio = { version = "1.41.1", features = ["full"] }
+twox-hash = "2.1.0"
