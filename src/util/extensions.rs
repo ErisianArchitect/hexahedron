@@ -13,6 +13,18 @@ impl<T> Replace for T {
     }
 }
 
+pub trait TakeReplace: Sized {
+    fn take_replace<F: FnOnce(Self) -> Self>(&mut self, replace: F);
+}
+
+impl<T> TakeReplace for T {
+    fn take_replace<F: FnOnce(Self) -> Self>(&mut self, replace: F) {
+        unsafe {
+            std::ptr::write(self, replace(std::ptr::read(self)));
+        }
+    }
+}
+
 mod private {
     pub trait Sealed<T> {}
 }
@@ -49,10 +61,6 @@ pub trait BoolExtension: private::Sealed<bool> {
     fn unmark_if(&mut self, condition: bool) -> bool;
     fn toggle(&mut self) -> Self;
     fn toggle_if(&mut self, condition: bool) -> Self;
-    fn some<T>(self, value: T) -> Option<T>;
-    fn some_fn<T, F: FnOnce() -> T>(self, f: F) -> Option<T>;
-    fn some_else<T>(self, value: T) -> Option<T>;
-    fn some_else_fn<T, F: FnOnce() -> T>(self, f: F) -> Option<T>;
     fn if_<F: FnOnce()>(self, _if: F);
     fn if_not<F: FnOnce()>(self, _not: F);
     fn if_else<R, If: FnOnce() -> R, Else: FnOnce() -> R>(self, _if: If, _else: Else) -> R;
@@ -125,44 +133,6 @@ impl BoolExtension for bool {
             *self = !*self
         }
         *self
-    }
-
-    /// Returns `Some(some)` if true.
-    #[inline]
-    fn some<T>(self, value: T) -> Option<T> {
-        if self {
-            Some(value)
-        } else {
-            None
-        }
-    }
-
-    /// Returns `Some(f())` if true.
-    fn some_fn<T, F: FnOnce() -> T>(self, f: F) -> Option<T> {
-        if self {
-            Some(f())
-        } else {
-            None
-        }
-    }
-
-    /// Returns `Some(some)` if false.
-    #[inline]
-    fn some_else<T>(self, value: T) -> Option<T> {
-        if !self {
-            Some(value)
-        } else {
-            None
-        }
-    }
-
-    /// Returns `Some(f())` if false.
-    fn some_else_fn<T, F: FnOnce() -> T>(self, f: F) -> Option<T> {
-        if !self {
-            Some(f())
-        } else {
-            None
-        }
     }
 
     /// `if self { _if() }`
@@ -346,5 +316,27 @@ mod tests {
         debug_assert_eq!(rev_0_to_4.next(), Some(1));
         debug_assert_eq!(rev_0_to_4.next(), Some(0));
         debug_assert_eq!(rev_0_to_4.next(), None);
+    }
+
+    #[test]
+    fn take_replace_test() {
+        #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+        enum Options {
+            Apple(String),
+            Banana(String, usize),
+        }
+
+        let mut option = Options::Apple(String::from("hello, world"));
+        assert_eq!(option, Options::Apple(String::from("hello, world")));
+        option.take_replace(|option| match option {
+            Options::Apple(text) => Options::Banana(text, 0),
+            Options::Banana(text, count) => Options::Banana(text, count + 1),
+        });
+        assert_eq!(option, Options::Banana(String::from("hello, world"), 0));
+        option.take_replace(|option| match option {
+            Options::Apple(text) => Options::Banana(text, 0),
+            Options::Banana(text, count) => Options::Banana(text, count + 1),
+        });
+        assert_eq!(option, Options::Banana(String::from("hello, world"), 1));
     }
 }
