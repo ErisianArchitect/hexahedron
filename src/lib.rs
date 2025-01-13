@@ -1,3 +1,4 @@
+pub mod collections;
 pub mod io;
 pub mod math;
 pub mod meshing;
@@ -8,7 +9,6 @@ pub mod voxel;
 pub mod error;
 pub mod macros;
 pub mod prelude;
-pub mod collections;
 
 // def ch(*args):
 //     for arg in args:yield from arg
