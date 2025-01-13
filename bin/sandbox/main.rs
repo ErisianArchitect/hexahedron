@@ -1,234 +1,57 @@
 
 #![allow(unused)]
 
-mod any_map;
-mod arg_injection;
+// mod any_map;
+// mod arg_injection;
 mod invoke;
-mod scheduler;
-mod shared_state;
+// mod scheduler;
+// mod shared_state;
+mod rng;
 
 use hexahedron as hex;
 use hex::prelude::Increment;
+use rand::Rng;
+
+/*
+Next experiment:
+    A sparse struct using manual memory management
+    and unsafe code.
+*/
 
 // #[tokio::main]
-/* async */ fn main() {
-    /*
-    Next experiment:
-        A sparse struct using manual memory management
-        and unsafe code.
-    */
-    // sched_experiment::experiment();
-    // any_map::any_map_test();
-    // unsafe_experiment::experiment();
-    // sched_experiment::run();
-    // borrow_experiment::run();
-    // transmute_experiment::run();
-    // counting_experiment::run();
-    counting_experiment::run();
+// async fn main() {
+// }
+
+fn main() {
+    rng_experiment::run();
+    // use rnjesus::make_rng;
+    // let mut rng = make_rng((1, 2, 3));
+    // let byte: u8 = rng.gen();
+    // println!("{byte}");
+    
 }
 
-mod counting_experiment {
-    use std::time::{Duration, Instant};
+pub mod rng_experiment {
+    // use std::io::Write;
+    use crate::rng::*;
+
+    use hashbrown::HashSet;
+    use hexahedron::blockstate;
+    // use std::io::Write;
+    use rand::prelude::*;
 
     pub fn run() {
-        const ONE_SEC: Duration = Duration::from_secs(1);
-        let mut counter = 0u64;
-        let start = Instant::now();
-        let end = start + ONE_SEC;
-        // let mut next_print = start;
-        while Instant::now() < end {
-            counter += 1;
-            // if Instant::now() >= next_print {
-            //     println!("Count: {counter}");
-            //     next_print += ONE_SEC
-            // }
-        }
-        println!("Count: {counter}")
+        // let mut rng = (1, 2, 3).make_rng();
+        // let mut rng = make_rng((1, 2, 3));
+        // let byte = rng.gen::<u8>();
+        // println!("{}", byte);
+        // println!("{}", rng.gen::<u16>());
+        let state = blockstate!(random[test="hello, world"]);
+        let mut rng = make_rng_from_hash(state);
+        println!("{}", rng.gen::<u16>());
     }
 }
 
-mod sched_experiment {
-    use hashbrown::HashMap;
-    use parking_lot::Mutex;
-    use std::{
-        env::Args, io::Write, marker::PhantomData, sync::{
-            atomic::{AtomicBool, AtomicU32},
-            Arc, // Mutex,
-        }, time::{Duration, Instant}
-    };
-
-    use chrono::Timelike;
-    use hexahedron::{math::minmax, prelude::Increment};
-
-    use crate::invoke::{
-        callback::*, context::SharedState, modifiers::{
-            conditional::*, every::{every, EveryTimeAnchor},
-        }, optional::Optional, scheduler::Scheduler, scheduler_context::{*}, scheduler_context::{*}, task_context::{self, TaskContext}, task_response::TaskResponse
-    };
-    use TaskResponse::*;
-
-    pub fn run() {
-        let mut context = SharedState::new();
-        context.insert(Mutex::new(vec![
-            String::from("Hello, world!"),
-            String::from("The quick brown fox jumps over the lazy dog."),
-            String::from("This is a test."),
-        ]));
-        context.insert(AtomicU32::new(0));
-        let mut scheduler = Scheduler::<SharedState>::new();
-        // scheduler.now();
-        // scheduler.after_secs(10, Clear);
-        let mut counter = 0u32;
-        let trigger = Trigger::new(false);
-        context.insert_arc(trigger.clone_inner());
-        scheduler.now(every(
-            Duration::from_secs(1),
-            EveryTimeAnchor::After,
-            conditional(trigger.clone(), || {
-                println!("The condition is active!");
-            }),
-        ));
-        let trig2 = trigger.clone();
-        // scheduler.after_secs(3, move || {
-        //     trig2.activate();
-        // });
-        scheduler.after_secs(
-            3,
-            |opt: Optional<Arc<String>>, trigger: Arc<AtomicBool>, mut task_context: TaskContext<'_, SharedState>| {
-                trigger.store(true, std::sync::atomic::Ordering::Relaxed);
-            }
-        );
-        scheduler.after_days(1, || {
-            println!("Why were you running this program for a whole day?");
-        });
-        scheduler.after_secs(10, move || {
-            trigger.deactivate();
-        });
-        scheduler.after_secs(13, Clear);
-        scheduler.process_blocking(&mut context);
-        // scheduler.now(every(Duration::from_secs(1) / 60, EveryTimeAnchor::Schedule, |num: Optional<Arc<i32>>, mut context: TaskContext<'_, SharedState>| {
-        //     println!("Hello, world!");
-        // }));
-
-        // (|mut context: Arc<i32>| {}).into_callback();
-        // let mut task_ctx: TaskContext<'static, SharedState>;
-        // (|mut context: TaskContext<'static, SharedState>| {}).call_mutable((task_ctx,));
-        // scheduler.now({
-        //     #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-        //     struct Timer(Instant);
-        //     impl Timer {
-        //         fn time(&mut self) -> Duration {
-        //             let duration = self.0.elapsed();
-        //             self.0 = Instant::now();
-        //             duration
-        //         }
-
-        //         fn framerate(self) -> f64 {
-        //             1.0 / self.0.elapsed().as_secs_f64()
-        //         }
-        //     }
-        //     let mut timer = Timer(Instant::now());
-        //     let mut times = Some(vec![]);
-        //     move |atomic: Arc<AtomicU32>, Skip(skip): Skip<Arc<bool>>, mut context: TaskContext<'_, SharedState>| {
-        //         let old_time = timer;
-        //         let time = timer.time();
-        //         if atomic.fetch_add(1, std::sync::atomic::Ordering::Relaxed) > 600 {
-        //             let times = times.take().unwrap();
-        //             // context.now(move || {
-        //             //     for (fps, frametime_diff, fps_diff) in times.iter() {
-        //             //         println!("{fps:2.8}  |  {frametime_diff:.8}  |  {fps_diff:.8}");
-        //             //     }
-        //             // });
-        //             return None;
-        //         }
-        //         let Some(times) = &mut times else {
-        //             return None;
-        //         };
-        //         let (min, max) = minmax(old_time.0.elapsed().as_secs_f64(), 1.0 / 60.0);
-        //         let frametime_diff = max - min;
-        //         let (min, max) = minmax(old_time.framerate(), 60.0);
-        //         let fps_diff = max - min;
-        //         times.push((old_time.framerate(), frametime_diff, fps_diff));
-        //         // println!("FPS: {:2.8}  |  {frametime_diff:.8}  |  {fps_diff:.8}", old_time.framerate());
-        //         Some(AfterTaskBegan(Duration::from_secs_f64(1.0 / 59.0)))
-        //     }
-        // });
-        // scheduler.now(|mut context: TaskContext<'_>| {
-        //     let start_time = Instant::now();
-        //     let end_time = start_time + Duration::from_secs(20);
-        //     let final_time = end_time + Duration::from_secs(5);
-        //     context.after_secs(2, move || {
-        //         println!("Every 2 Seconds...");
-        //         if Instant::now() < end_time {
-        //             After(Duration::from_secs(2))
-        //         } else if Instant::now() < final_time {
-        //             At(final_time)
-        //         } else {
-        //             Finish
-        //         }
-        //     });
-        //     println!("Starting...");
-        //     context.after_secs(3, with((0i32,), |num: &mut i32, string: Arc<Mutex<Vec<String>>>, not_here: Option<Arc<i32>>, mut context: TaskContext<'_>| {
-        //         let chron = chrono::Local::now();
-        //         // assert!(not_here.is_none());
-        //         println!("Frame {:>2} {:>2} {:>16}", num.increment(), chron.second(), chron.timestamp_micros());
-        //         if *num < 61 {
-        //             Some(Duration::from_secs(1) / 60)
-        //         } else {
-        //             let mut lock = string.lock();
-        //             for s in lock.iter_mut() {
-        //                 println!("{s}");
-        //                 *s = format!("Frames: {num}");
-        //             }
-        //             println!("Sleeping for a second.");
-        //             spin_sleep::sleep(Duration::from_secs(1));
-        //             context.after_secs(3, |strings: Arc<Mutex<Vec<String>>>, mut context: TaskContext<'_>| {
-        //                 let chron = chrono::Local::now();
-        //                 println!("*** {:>16}", chron.timestamp_micros());
-        //                 let before = Instant::now();
-        //                 let lock = strings.lock();
-        //                 let elapsed = before.elapsed();
-        //                 println!("Locked in: {} ns", elapsed.as_nanos());
-        //                 for s in lock.iter() {
-        //                     println!("{s}");
-        //                 }
-        //                 // println!("Finished! {}", chron.timestamp_millis());
-        //                 for i in 0..10 {
-        //                     context.after_millis(i * 100 + 100, move || {
-        //                         let chron = chrono::Local::now();
-        //                         println!("Hello, world! {i:>2} {:>13}", chron.timestamp_micros());
-        //                     });
-        //                 }
-        //             });
-        //             None
-        //         }
-        //     }));
-        // });
-    }
-}
-
-mod extract_ref {
-    use std::{
-        borrow::BorrowMut,
-        sync::{Arc, Mutex, MutexGuard},
-    };
-
-    fn experiment() {
-        let arc = Arc::new(Mutex::new(String::from("Hello, world!")));
-        let arc_clone = arc.clone();
-        let mut lock = lock_mutex(&arc_clone);
-        let reft = extract_ref(&mut lock);
-        println!("");
-    }
-
-    fn lock_mutex<'a, T>(arc: &'a Arc<Mutex<T>>) -> MutexGuard<'a, T> {
-        arc.lock().unwrap()
-    }
-
-    fn extract_ref<'a, 'b: 'a, T>(guard: &'a mut MutexGuard<'b, T>) -> &'a mut T {
-        guard.borrow_mut()
-    }
-}
 
 // Code Graveyard beyond this point.
 
@@ -236,6 +59,194 @@ mod extract_ref {
 /// But also you wanna keep it around and make it look pretty.
 macro_rules! grave {
     ($($_:tt)*) => {};
+}
+
+
+grave!{
+    mod sched_experiment {
+        use hashbrown::HashMap;
+        use parking_lot::Mutex;
+        use std::{
+            env::Args, io::Write, marker::PhantomData, sync::{
+                atomic::{AtomicBool, AtomicU32},
+                Arc, // Mutex,
+            }, time::{Duration, Instant}
+        };
+
+        use chrono::Timelike;
+        use hexahedron::{math::minmax, prelude::Increment};
+
+        use crate::invoke::{
+            callback::*, context::SharedState, modifiers::{
+                conditional::*, every::{every, EveryTimeAnchor},
+            }, optional::Optional, scheduler::Scheduler, scheduler_context::{*}, scheduler_context::{*}, task_context::{self, TaskContext}, task_response::TaskResponse
+        };
+        use TaskResponse::*;
+
+        pub fn run() {
+            let mut context = SharedState::new();
+            context.insert(Mutex::new(vec![
+                String::from("Hello, world!"),
+                String::from("The quick brown fox jumps over the lazy dog."),
+                String::from("This is a test."),
+            ]));
+            context.insert(AtomicU32::new(0));
+            let mut scheduler = Scheduler::<SharedState>::new();
+            // scheduler.now();
+            // scheduler.after_secs(10, Clear);
+            let mut counter = 0u32;
+            let trigger = Trigger::new(false);
+            context.insert_arc(trigger.clone_inner());
+            scheduler.now(every(
+                Duration::from_secs(1),
+                EveryTimeAnchor::After,
+                conditional(trigger.clone(), || {
+                    println!("The condition is active!");
+                }),
+            ));
+            let trig2 = trigger.clone();
+            // scheduler.after_secs(3, move || {
+            //     trig2.activate();
+            // });
+            scheduler.after_secs(
+                3,
+                |opt: Optional<Arc<String>>, trigger: Arc<AtomicBool>, mut task_context: TaskContext<'_, SharedState>| {
+                    trigger.store(true, std::sync::atomic::Ordering::Relaxed);
+                }
+            );
+            scheduler.after_days(1, || {
+                println!("Why were you running this program for a whole day?");
+            });
+            scheduler.after_secs(10, move || {
+                trigger.deactivate();
+            });
+            scheduler.after_secs(13, Clear);
+            scheduler.process_blocking(&mut context);
+            // scheduler.now(every(Duration::from_secs(1) / 60, EveryTimeAnchor::Schedule, |num: Optional<Arc<i32>>, mut context: TaskContext<'_, SharedState>| {
+            //     println!("Hello, world!");
+            // }));
+
+            // (|mut context: Arc<i32>| {}).into_callback();
+            // let mut task_ctx: TaskContext<'static, SharedState>;
+            // (|mut context: TaskContext<'static, SharedState>| {}).call_mutable((task_ctx,));
+            // scheduler.now({
+            //     #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+            //     struct Timer(Instant);
+            //     impl Timer {
+            //         fn time(&mut self) -> Duration {
+            //             let duration = self.0.elapsed();
+            //             self.0 = Instant::now();
+            //             duration
+            //         }
+
+            //         fn framerate(self) -> f64 {
+            //             1.0 / self.0.elapsed().as_secs_f64()
+            //         }
+            //     }
+            //     let mut timer = Timer(Instant::now());
+            //     let mut times = Some(vec![]);
+            //     move |atomic: Arc<AtomicU32>, Skip(skip): Skip<Arc<bool>>, mut context: TaskContext<'_, SharedState>| {
+            //         let old_time = timer;
+            //         let time = timer.time();
+            //         if atomic.fetch_add(1, std::sync::atomic::Ordering::Relaxed) > 600 {
+            //             let times = times.take().unwrap();
+            //             // context.now(move || {
+            //             //     for (fps, frametime_diff, fps_diff) in times.iter() {
+            //             //         println!("{fps:2.8}  |  {frametime_diff:.8}  |  {fps_diff:.8}");
+            //             //     }
+            //             // });
+            //             return None;
+            //         }
+            //         let Some(times) = &mut times else {
+            //             return None;
+            //         };
+            //         let (min, max) = minmax(old_time.0.elapsed().as_secs_f64(), 1.0 / 60.0);
+            //         let frametime_diff = max - min;
+            //         let (min, max) = minmax(old_time.framerate(), 60.0);
+            //         let fps_diff = max - min;
+            //         times.push((old_time.framerate(), frametime_diff, fps_diff));
+            //         // println!("FPS: {:2.8}  |  {frametime_diff:.8}  |  {fps_diff:.8}", old_time.framerate());
+            //         Some(AfterTaskBegan(Duration::from_secs_f64(1.0 / 59.0)))
+            //     }
+            // });
+            // scheduler.now(|mut context: TaskContext<'_>| {
+            //     let start_time = Instant::now();
+            //     let end_time = start_time + Duration::from_secs(20);
+            //     let final_time = end_time + Duration::from_secs(5);
+            //     context.after_secs(2, move || {
+            //         println!("Every 2 Seconds...");
+            //         if Instant::now() < end_time {
+            //             After(Duration::from_secs(2))
+            //         } else if Instant::now() < final_time {
+            //             At(final_time)
+            //         } else {
+            //             Finish
+            //         }
+            //     });
+            //     println!("Starting...");
+            //     context.after_secs(3, with((0i32,), |num: &mut i32, string: Arc<Mutex<Vec<String>>>, not_here: Option<Arc<i32>>, mut context: TaskContext<'_>| {
+            //         let chron = chrono::Local::now();
+            //         // assert!(not_here.is_none());
+            //         println!("Frame {:>2} {:>2} {:>16}", num.increment(), chron.second(), chron.timestamp_micros());
+            //         if *num < 61 {
+            //             Some(Duration::from_secs(1) / 60)
+            //         } else {
+            //             let mut lock = string.lock();
+            //             for s in lock.iter_mut() {
+            //                 println!("{s}");
+            //                 *s = format!("Frames: {num}");
+            //             }
+            //             println!("Sleeping for a second.");
+            //             spin_sleep::sleep(Duration::from_secs(1));
+            //             context.after_secs(3, |strings: Arc<Mutex<Vec<String>>>, mut context: TaskContext<'_>| {
+            //                 let chron = chrono::Local::now();
+            //                 println!("*** {:>16}", chron.timestamp_micros());
+            //                 let before = Instant::now();
+            //                 let lock = strings.lock();
+            //                 let elapsed = before.elapsed();
+            //                 println!("Locked in: {} ns", elapsed.as_nanos());
+            //                 for s in lock.iter() {
+            //                     println!("{s}");
+            //                 }
+            //                 // println!("Finished! {}", chron.timestamp_millis());
+            //                 for i in 0..10 {
+            //                     context.after_millis(i * 100 + 100, move || {
+            //                         let chron = chrono::Local::now();
+            //                         println!("Hello, world! {i:>2} {:>13}", chron.timestamp_micros());
+            //                     });
+            //                 }
+            //             });
+            //             None
+            //         }
+            //     }));
+            // });
+        }
+    }
+}
+
+grave!{
+    mod extract_ref {
+        use std::{
+            borrow::BorrowMut,
+            sync::{Arc, Mutex, MutexGuard},
+        };
+
+        fn experiment() {
+            let arc = Arc::new(Mutex::new(String::from("Hello, world!")));
+            let arc_clone = arc.clone();
+            let mut lock = lock_mutex(&arc_clone);
+            let reft = extract_ref(&mut lock);
+            println!("");
+        }
+
+        fn lock_mutex<'a, T>(arc: &'a Arc<Mutex<T>>) -> MutexGuard<'a, T> {
+            arc.lock().unwrap()
+        }
+
+        fn extract_ref<'a, 'b: 'a, T>(guard: &'a mut MutexGuard<'b, T>) -> &'a mut T {
+            guard.borrow_mut()
+        }
+    }
 }
 
 grave! {
