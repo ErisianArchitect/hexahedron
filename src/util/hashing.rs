@@ -1,12 +1,18 @@
 use std::hash::{Hash, Hasher, DefaultHasher};
 use twox_hash::{XxHash32, XxHash64};
+use crate::private::{Sealed, seal};
 
-pub trait HashExt: Hash {
+pub struct HashExtMarker;
+
+/// An extension for Hashable types to get the hash of a value using various hashing algorithms.
+pub trait HashExt: Hash + Sealed<HashExtMarker> {
     fn std_hash(&self) -> u64;
     fn xxhash32(&self) -> u32;
     fn xxhash32_64(&self) -> u64;
     fn xxhash64(&self) -> u64;
 }
+
+seal!(HashExtMarker; where: Hash);
 
 impl<T: Hash> HashExt for T {
     /// Hashes `self` with [std::hash::DefaultHasher] and returns the result.
