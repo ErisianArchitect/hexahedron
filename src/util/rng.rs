@@ -1,10 +1,15 @@
 use std::hash::Hash;
 use rand::prelude::*;
 use super::hashing::HashExt;
+use crate::private::{Sealed, seal};
 
-pub trait RngSeedSource {
+pub struct RngSrcMarker;
+
+pub trait RngSeedSource: Sealed<RngSrcMarker> {
     fn seed_rng(&self) -> StdRng;
 }
+
+seal!(RngSrcMarker; where: Hash);
 
 impl<T: Hash> RngSeedSource for T {
     /// Hashes value using [twox_hash::XxHash64] then returns a [rand::rngs::StdRng] seeded from the hash.
