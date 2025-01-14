@@ -23,12 +23,19 @@ Next experiment:
 // }
 
 fn main() {
-    rng_experiment::run();
+    use hexahedron::util::functional::*;
+
+    nop();
+    let start = std::time::Instant::now();
+    (0..u128::MAX).for_each(nop_1);
+    let elapsed = start.elapsed();
+    println!("Time: {:.4}", elapsed.as_secs_f64());
+
+    // rng_experiment::run();
     // use rnjesus::make_rng;
     // let mut rng = make_rng((1, 2, 3));
     // let byte: u8 = rng.gen();
     // println!("{byte}");
-    
 }
 
 pub mod rng_experiment {
