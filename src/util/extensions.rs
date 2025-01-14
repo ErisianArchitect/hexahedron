@@ -1,6 +1,7 @@
 use std::ops::{Range, RangeInclusive};
 use crate::for_each_int_type;
 
+/// [Replace] allows for in-place replacement of values.
 pub trait Replace {
     fn replace(&mut self, src: Self) -> Self;
 }
@@ -13,11 +14,14 @@ impl<T> Replace for T {
     }
 }
 
+/// [TakeReplace] allows for in-place replacement of values using a transformer function.
 pub trait TakeReplace: Sized {
     fn take_replace<F: FnOnce(Self) -> Self>(&mut self, replace: F);
 }
 
-impl<T> TakeReplace for T {
+impl<T: Sized> TakeReplace for T {
+    /// Takes the value and replaces it using a function that takes the value as input and returns the new value.
+    #[inline(always)]
     fn take_replace<F: FnOnce(Self) -> Self>(&mut self, replace: F) {
         unsafe {
             std::ptr::write(self, replace(std::ptr::read(self)));
@@ -25,18 +29,21 @@ impl<T> TakeReplace for T {
     }
 }
 
+/// Private module contained the [Sealed] trait.
 mod private {
     pub trait Sealed<T> {}
 }
 
 impl<T> private::Sealed<Option<T>> for Option<T> {}
 
+/// An extension to the [Option] type.
 pub trait OptionExtension<T>: private::Sealed<Option<T>> {
     fn then<F: FnOnce(T)>(self, then: F);
     fn drop(&mut self);
 }
 
 impl<T> OptionExtension<T> for Option<T> {
+    /// Calls function with inner value as argument if `self` is [Some].
     #[inline]
     fn then<F: FnOnce(T)>(self, then: F) {
         if let Some(value) = self {
@@ -44,6 +51,7 @@ impl<T> OptionExtension<T> for Option<T> {
         }
     }
 
+    /// If `self` is [Some], take the value and drop it, replacing it with [None].
     #[inline]
     fn drop(&mut self) {
         drop(self.take())
@@ -52,6 +60,7 @@ impl<T> OptionExtension<T> for Option<T> {
 
 impl private::Sealed<bool> for bool {}
 
+/// An extension to the [bool] type.
 pub trait BoolExtension: private::Sealed<bool> {
     fn select<T>(self, _false: T, _true: T) -> T;
     fn select_fn<T, FF: FnOnce() -> T, TF: FnOnce() -> T>(self, _false: FF, _true: TF) -> T;
@@ -154,6 +163,7 @@ impl BoolExtension for bool {
     }
 }
 
+/// An extension to integer types for iteration.
 pub trait NumIter: Sized + Copy + private::Sealed<()> {
     fn iter(self) -> Range<Self>;
     fn iter_inclusive(self) -> RangeInclusive<Self>;
@@ -165,21 +175,25 @@ macro_rules! num_iter_impls {
     ($type:ty) => {
         impl private::Sealed<()> for $type {}
         impl NumIter for $type {
+            #[doc = "Returns a [Range] from [0] to [self]."]
             #[inline]
             fn iter(self) -> Range<Self> {
                 0..self
             }
 
+            #[doc = "Returns a [RangeInclusive] from [0] to [self]."]
             #[inline]
             fn iter_inclusive(self) -> RangeInclusive<Self> {
                 0..=self
             }
 
+            #[doc = "Returns a [Range] from [self] to [end]."]
             #[inline]
             fn iter_to(self, end: Self) -> Range<Self> {
                 self..end
             }
 
+            #[doc = "Returns a [RangeInclusive] from [self] to [end]."]
             #[inline]
             fn iter_to_inclusive(self, end: Self) -> RangeInclusive<Self> {
                 self..=end
@@ -190,14 +204,16 @@ macro_rules! num_iter_impls {
 
 for_each_int_type!(num_iter_impls);
 
-pub trait Increment {
+/// An extension for integer types for incrementation.
+pub trait Increment: private::Sealed<()> {
     /// Increment and return the result of incrementation.
     fn increment(&mut self) -> Self;
     /// Increment and return the value prior to incrementation.
     fn post_increment(&mut self) -> Self;
 }
 
-pub trait Decrement {
+/// An extension for integer types for decrementation.
+pub trait Decrement: private::Sealed<()> {
     /// Decrement and return the result of decrementation.
     fn decrement(&mut self) -> Self;
     /// Decrement and return the value prior to decrementation.
@@ -207,12 +223,14 @@ pub trait Decrement {
 macro_rules! inc_dec_impls {
     ($type:ty) => {
         impl Increment for $type {
+            #[doc = "Increment [self] by [1] and return the result."]
             #[inline]
             fn increment(&mut self) -> Self {
                 *self += 1;
                 *self
             }
 
+            #[doc = "Increment [self] by [1] and return the value before incrementation."]
             #[inline]
             fn post_increment(&mut self) -> Self {
                 let original = *self;
@@ -222,12 +240,14 @@ macro_rules! inc_dec_impls {
         }
 
         impl Decrement for $type {
+            #[doc = "Decrement [self] by [1] and return the result."]
             #[inline]
             fn decrement(&mut self) -> Self {
                 *self -= 1;
                 *self
             }
 
+            #[doc = "Decrement [self] by [1] and return the value before decrementation."]
             #[inline]
             fn post_decrement(&mut self) -> Self {
                 let original = *self;
@@ -240,11 +260,12 @@ macro_rules! inc_dec_impls {
 
 for_each_int_type!(inc_dec_impls);
 
+/// An extension for [Result].
 pub trait ResultExtension: private::Sealed<Result<(), ()>> {
     type Ok;
     type Error;
-    fn handle_err<F: FnMut(Self::Error)>(self, f: F);
-    fn try_fn<F: FnMut() -> Self>(f: F) -> Self;
+    fn handle_err<F: FnOnce(Self::Error)>(self, f: F);
+    fn try_fn<F: FnOnce() -> Self>(f: F) -> Self;
 }
 
 impl<T, E> private::Sealed<std::result::Result<(), ()>> for std::result::Result<T, E> {}
@@ -254,14 +275,15 @@ impl<T, E> ResultExtension for std::result::Result<T, E> {
     type Error = E;
     /// For when you want to ignore the return value of a result but you also want to handle the error if there is one.
     #[inline]
-    fn handle_err<F: FnMut(E)>(self, mut f: F) {
+    fn handle_err<F: FnOnce(E)>(self, f: F) {
         if let std::result::Result::Err(err) = self {
             f(err);
         }
     }
 
+    /// Calls a fallible function and returns the result.
     #[inline]
-    fn try_fn<F: FnMut() -> Self>(mut f: F) -> Self {
+    fn try_fn<F: FnOnce() -> Self>(f: F) -> Self {
         f()
     }
 }
