@@ -1,7 +1,9 @@
+workspace = { members = ["hexmacros"] }
 [package]
 name = "hexahedron"
 version = "0.1.0"
 edition = "2021"
+
 
 [[bin]]
 name = "calc"
@@ -20,6 +22,8 @@ name = "netbox"
 path = "./bin/netbox/main.rs"
 
 [dependencies]
+hexmacros = { path = "hexmacros" }
+
 blake3 = "1.5.5"
 bytemuck = { version = "1.18.0", features = ["derive"] }
 chrono = "0.4.38"
