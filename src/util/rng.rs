@@ -1,21 +1,16 @@
-use std::hash::Hash;
+use deterministic::DeterministicHash;
 use rand::prelude::*;
-use super::hashing::HashExt;
-use crate::private::{Sealed, seal};
+use super::hashing::*;
 
-pub struct RngSrcMarker;
-
-pub trait RngSeedSource: Sealed<RngSrcMarker> {
-    fn seed_rng(&self) -> StdRng;
+pub fn seed_rng64<T: DeterministicHash>(source: T) -> StdRng {
+    StdRng::seed_from_u64(deterministic::xxhash64(source))
 }
 
-seal!(RngSrcMarker; where: Hash);
-
-impl<T: Hash> RngSeedSource for T {
-    /// Hashes value using [twox_hash::XxHash64] then returns a [rand::rngs::StdRng] seeded from the hash.
-    fn seed_rng(&self) -> StdRng {
-        StdRng::seed_from_u64(self.xxhash64())
-    }
+pub fn seed_rng256<T: DeterministicHash>(source: T) -> StdRng {
+    let mut buffer = [0u8; 32];
+    let hash = deterministic::blake3(source);
+    buffer.copy_from_slice(hash.as_bytes());
+    StdRng::from_seed(buffer)
 }
 
 #[cfg(test)]
@@ -60,13 +55,14 @@ mod tests {
         }
         hline();
         {
-            let mut rng = ("base_seed", 420, 69).seed_rng();
+            // let mut rng = ("base_seed", 420, 69).seed_rng();
+            let mut rng = seed_rng256(&1i32);
             render(&mut rng);
         }
         hline();
         {
             // let mut rng = ("base_seed", 421, 69).seed_rng();
-            render(&mut ("base_seed", 421, 69).seed_rng());
+            render(&mut seed_rng256(("base_seed", 421, 69)));
         }
         hline();
     }
