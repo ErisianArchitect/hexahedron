@@ -213,7 +213,7 @@ macro_rules! __bit_impls {
     };
 }
 
-crate::for_each_int_type!(__bit_impls);
+crate::macros::for_each_int_type!(__bit_impls);
 
 mod private {
     pub trait BitFlagsSealed: Sized + Default + Clone + Copy + PartialEq + Eq + PartialOrd + Ord + std::hash::Hash {}
