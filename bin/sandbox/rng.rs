@@ -54,7 +54,7 @@ macro_rules! seed_source_int_impls {
     };
 }
 
-hexahedron::for_each_int_type!(seed_source_int_impls);
+hexahedron::macros::for_each_int_type!(seed_source_int_impls);
 
 impl SeedSource for bool {
     fn write<W: std::io::Write>(&self, hasher: &mut W) -> std::io::Result<()> {
