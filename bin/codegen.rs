@@ -1,5 +1,6 @@
+#![allow(unused)]
+
 use hexahedron::prelude::*;
-use std::fmt::Write;
 
 #[allow(unused)]
 fn iter_angle() -> impl Iterator<Item = i32> {

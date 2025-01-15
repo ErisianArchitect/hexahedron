@@ -23,14 +23,13 @@ Next experiment:
 // }
 
 fn main() {
-    use hexahedron::util::functional::*;
-
-    nop();
-    let start = std::time::Instant::now();
-    (0..u128::MAX).for_each(nop_1);
-    let elapsed = start.elapsed();
-    println!("Time: {:.4}", elapsed.as_secs_f64());
-
+    // macro_rules! print_it {
+    //     ($token:tt) => {
+    //         println!("{}", stringify!($token));
+    //     };
+    // }
+    // hexmacros::for_each_int_type!(print_it; signed !(isize 128) !(32 64));
+    println!("{}", hexmacros::crate_name!());
     // rng_experiment::run();
     // use rnjesus::make_rng;
     // let mut rng = make_rng((1, 2, 3));
