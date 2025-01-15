@@ -2,9 +2,9 @@ pub mod region;
 use crate::error::{Error, Result};
 use crate::math::axis_flags::AxisFlags;
 use crate::voxel::block::block_property::Property;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::io::{Read, Write};
-use crate::for_each_int_type;
+use crate::macros::for_each_int_type;
 use crate::math::bit::*;
 use crate::rendering::color::{
     Color, Rgb, Rgba
@@ -38,8 +38,20 @@ use rollgrid::{
 };
 use paste::paste;
 use itertools::*;
+// must use crate as hexahedron in order for it to be used by the deterministic macro.
+use hexmacros::mark;
 
 const MAX_ARRAY_LENGTH: usize = 0xffffff;
+
+/// A marker trait that describes a Writeable type as being deterministic, which means that equal values of that type
+/// will always result in the same binary representation.
+/// 
+/// Examples of non-deterministic types:
+/// - HashMap, because the order of iteration is not guaranteed.
+/// - HashSet, same as HashMap.
+/// - ObjectPool, order is not preserved in the ObjectPool.
+/// -- isize/usize, because their size is architecture-dependent.
+pub trait Deterministic {}
 
 pub trait Readable: Sized {
     fn read_from<R: Read>(reader: &mut R) -> Result<Self>;
@@ -47,6 +59,12 @@ pub trait Readable: Sized {
 
 pub trait Writeable {
     fn write_to<W: Write>(&self, writer: &mut W) -> Result<u64>;
+}
+
+impl<T: Writeable> Writeable for &T {
+    fn write_to<W: Write>(&self, writer: &mut W) -> Result<u64> {
+        (*self).write_to(writer)
+    }
 }
 
 pub trait ReadExt {
@@ -149,7 +167,7 @@ macro_rules! num_io {
     };
 }
 
-for_each_int_type!(num_io);
+for_each_int_type!(num_io; all !sized);
 
 impl Readable for bool {
     fn read_from<R: Read>(reader: &mut R) -> Result<Self> {
@@ -164,6 +182,19 @@ impl Writeable for bool {
         let bytes = [*self as u8];
         writer.write_all(&bytes)?;
         Ok(1)
+    }
+}
+
+impl Readable for char {
+    fn read_from<R: Read>(reader: &mut R) -> Result<Self> {
+        let codepoint = u32::read_from(reader)?;
+        char::from_u32(codepoint).ok_or(Error::InvalidCodepoint)
+    }
+}
+
+impl Writeable for char {
+    fn write_to<W: Write>(&self, writer: &mut W) -> Result<u64> {
+        (*self as u32).write_to(writer)
     }
 }
 
@@ -808,6 +839,8 @@ impl Writeable for std::ops::RangeInclusive<i64> {
         Ok(16)
     }
 }
+
+// TODO: HERE
 
 impl<T: Readable + NonByte> Readable for Vec<T> {
     fn read_from<R: Read>(reader: &mut R) -> Result<Self> {
@@ -1589,10 +1622,17 @@ macro_rules! write_tuple_impls {
     };
 }
 
+macro_rules! deterministic_tuple_impls {
+    ($($tn:ident),+) => {
+        impl<$($tn: Deterministic),+> Deterministic for ($($tn,)*) {}
+    };
+}
+
 macro_rules! tuple_impls {
     ($($tn:ident),+) => {
         read_tuple_impls!($($tn),*);
         write_tuple_impls!($($tn),*);
+        deterministic_tuple_impls!($($tn),*);
     };
 }
 
@@ -1628,6 +1668,55 @@ tuple_impls!(T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T1
 tuple_impls!(T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, T24, T25, T26, T27, T28, T29);
 tuple_impls!(T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, T24, T25, T26, T27, T28, T29, T30);
 tuple_impls!(T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, T24, T25, T26, T27, T28, T29, T30, T31);
+
+mark!{trait = Deterministic;
+    // primitive types
+    bool; char;
+    // integer types (isize and usize are not considered deterministic because they are not a fixed size across platforms)
+    i8; i16; i32; i64; i128;
+    u8; u16; u32; u64; u128;
+    // String types
+    String; &str;
+    // Types with generics.
+    <T: Deterministic> for &T;
+    <T: Deterministic> for Box<T>;
+    <T: Deterministic, const SIZE: usize> for [T; SIZE];
+    <T: Deterministic> for &[T];
+    <T: Deterministic> for Vec<T>;
+    <T: Deterministic> for Box<[T]>;
+    <K, V> for BTreeMap<K, V> where (K, V): Deterministic;
+    <T: Deterministic> for BTreeSet<T>;
+    <T: Deterministic> for std::ops::Range<T>;
+    <T: Deterministic> for std::ops::RangeInclusive<T>;
+    // hexahedron types.
+    Axis;
+    Orientation;
+    Flip;
+    Rotation;
+    Cardinal;
+    Direction;
+    Color;
+    Rgb;
+    Rgba;
+    BitFlags8;
+    BitFlags16;
+    BitFlags32;
+    BitFlags64;
+    BitFlags128;
+    FaceFlags;
+    AxisFlags;
+    Property;
+    PropertyArray;
+    // glam
+    IVec2;
+    IVec3;
+    IVec4;
+    // rollgrid
+    Bounds2D;
+    Bounds3D;
+}
+
+
 
 #[cfg(test)]
 mod tests {
