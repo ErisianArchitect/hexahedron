@@ -1,5 +1,5 @@
 use std::ops::{Range, RangeInclusive};
-use crate::for_each_int_type;
+use crate::macros::for_each_int_type;
 
 /// [Replace] allows for in-place replacement of values.
 pub trait Replace {
@@ -62,8 +62,9 @@ impl private::Sealed<bool> for bool {}
 
 /// An extension to the [bool] type.
 pub trait BoolExtension: private::Sealed<bool> {
-    fn select<T>(self, _false: T, _true: T) -> T;
-    fn select_fn<T, FF: FnOnce() -> T, TF: FnOnce() -> T>(self, _false: FF, _true: TF) -> T;
+    fn select<T>(self, _true: T, _false: T) -> T;
+    fn select_fn<T, TF: FnOnce() -> T, FF: FnOnce() -> T>(self, _true: TF, _false: FF) -> T;
+    fn select_unary<T, V, TF: FnOnce(V) -> T, FF: FnOnce(V) -> T>(self, value: V, _true: TF, _false: FF) -> T;
     fn mark(&mut self) -> bool;
     fn mark_if(&mut self, condition: bool) -> bool;
     fn unmark(&mut self) -> bool;
@@ -78,7 +79,7 @@ pub trait BoolExtension: private::Sealed<bool> {
 impl BoolExtension for bool {
     /// Choose a truth value or a false value.
     #[inline]
-    fn select<T>(self, _false: T, _true: T) -> T {
+    fn select<T>(self, _true: T, _false: T) -> T {
         if self {
             _true
         } else {
@@ -88,11 +89,20 @@ impl BoolExtension for bool {
 
     /// Execute and return the value of _false or _true depending if self is false or true.
     #[inline]
-    fn select_fn<T, FF: FnOnce() -> T, TF: FnOnce() -> T>(self, _false: FF, _true: TF) -> T {
+    fn select_fn<T, TF: FnOnce() -> T, FF: FnOnce() -> T>(self, _true: TF, _false: FF) -> T {
         if self {
             _true()
         } else {
             _false()
+        }
+    }
+
+    #[inline]
+    fn select_unary<T, V, TF: FnOnce(V) -> T, FF: FnOnce(V) -> T>(self, value: V, _true: TF, _false: FF) -> T {
+        if self {
+            _true(value)
+        } else {
+            _false(value)
         }
     }
 
@@ -159,7 +169,7 @@ impl BoolExtension for bool {
     /// Like `if-else`, but with closures!
     #[inline]
     fn if_else<R, If: FnOnce() -> R, Else: FnOnce() -> R>(self, _if: If, _else: Else) -> R {
-        self.select_fn(_else, _if)
+        self.select_fn(_if, _else)
     }
 }
 
@@ -301,7 +311,7 @@ mod tests {
         });
         debug_assert!(executed);
         debug_assert!(edit);
-        assert_eq!(edit.select("false", "true"), "true");
+        assert_eq!(edit.select("true", "false"), "true");
         debug_assert!(!edit.unmark_if(false));
         debug_assert!(edit);
         debug_assert!(edit.unmark_if(true));
@@ -311,7 +321,17 @@ mod tests {
         });
         debug_assert!(executed);
         debug_assert!(!edit);
-        assert_eq!(edit.select("false", "true"), "false");
+        assert_eq!(edit.select("true", "false"), "false");
+
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+        enum FlagsModifier {
+            Include(u32),
+            Exclude(u32),
+        }
+
+        assert_eq!(true.select_unary(1234, FlagsModifier::Include, FlagsModifier::Exclude), FlagsModifier::Include(1234));
+        assert_eq!(false.select_unary(1234, FlagsModifier::Include, FlagsModifier::Exclude), FlagsModifier::Exclude(1234));
+
     }
 
     #[test]
