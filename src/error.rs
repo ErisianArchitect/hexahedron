@@ -18,6 +18,8 @@ pub enum Error {
     ArrayTooLong,
     #[error("Invalid binary format")]
     InvalidBinaryFormat,
+    #[error("Invalid codepoint")]
+    InvalidCodepoint,
     #[error("Chunk was too large and did not fit into the buffer")]
     ChunkTooLarge,
     #[error("File was too small to contain header")]
