@@ -174,11 +174,12 @@ pub trait RefOrOwned<T> {
 }
 
 impl RefOrOwned<BlockState> for Arc<BlockState> {
-    fn reference(&self) -> &BlockState {
-        self.as_ref()
-    }
     fn owned(self) -> BlockState {
         BlockState::clone(self.as_ref())
+    }
+    
+    fn reference(&self) -> &BlockState {
+        self.as_ref()
     }
 }
 
