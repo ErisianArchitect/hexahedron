@@ -1,40 +1,44 @@
-/// ```no_run
-/// macro_rules! num_impl {
-///     ($type:ty) => {
-///         // impl here
-///     };
-/// }
-/// for_each_int_type!(num_impl)
-/// // or
-/// for_each_int_type!(signed; num_impl)
-/// // or
-/// for_each_int_type!(unsigned; num_impl)
-/// ```
-#[macro_export]
-macro_rules! for_each_int_type {
-    ($macro:path) => {
-        $crate::for_each_int_type!(unsigned;$macro);
-        $crate::for_each_int_type!(signed;$macro);
-    };
-    (unsigned;$macro:path) => {
-        $macro!{u8}
-        $macro!{u16}
-        $macro!{u32}
-        $macro!{u64}
-        $macro!{u128}
-        $macro!{usize}
-    };
-    (signed;$macro:path) => {
-        $macro!{i8}
-        $macro!{i16}
-        $macro!{i32}
-        $macro!{i64}
-        $macro!{i128}
-        $macro!{isize}
-    }
-}
+// use hexmacros;
 
-pub use crate::for_each_int_type;
+// /// ```no_run
+// /// macro_rules! num_impl {
+// ///     ($type:ty) => {
+// ///         // impl here
+// ///     };
+// /// }
+// /// for_each_int_type!(num_impl)
+// /// // or
+// /// for_each_int_type!(signed; num_impl)
+// /// // or
+// /// for_each_int_type!(unsigned; num_impl)
+// /// ```
+// #[macro_export]
+// macro_rules! for_each_int_type {
+//     ($macro:path) => {
+//         $crate::for_each_int_type!(unsigned;$macro);
+//         $crate::for_each_int_type!(signed;$macro);
+//     };
+//     (unsigned;$macro:path) => {
+//         $macro!{u8}
+//         $macro!{u16}
+//         $macro!{u32}
+//         $macro!{u64}
+//         $macro!{u128}
+//         $macro!{usize}
+//     };
+//     (signed;$macro:path) => {
+//         $macro!{i8}
+//         $macro!{i16}
+//         $macro!{i32}
+//         $macro!{i64}
+//         $macro!{i128}
+//         $macro!{isize}
+//     };
+// }
+
+// pub use crate::for_each_int_type;
+
+pub use hexmacros::for_each_int_type;
 
 #[macro_export]
 macro_rules! pipeline {
@@ -49,6 +53,15 @@ macro_rules! pipeline {
 }
 
 pub use crate::pipeline;
+
+#[macro_export]
+macro_rules! deterministic {
+    ($($tokens:tt)*) => {
+        hexmacros::deterministic!($($tokens)*);
+    };
+}
+
+pub use crate::deterministic;
 
 #[cfg(test)]
 mod tests {
