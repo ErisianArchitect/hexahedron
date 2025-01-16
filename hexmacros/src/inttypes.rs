@@ -1,10 +1,11 @@
-/*
+/* Examples
 for_each_int_type!(path::to::macro);
 for_each_int_type!(path::to::macro; signed);
 for_each_int_type!(path::to::macro; unsigned);
-for_each_int_type!(path::to::macro; signed !size !(8, 16, 32, 64, 128) +(u8, u16, u32, u64) +u128 );
+for_each_int_type!(path::to::macro; signed !size !(8, 16, 32, 64, 128) (u8, u16, u32, u64) u128);
 for_each_int_type!(path::to::macro; signed);
 for_each_int_type!(path::to::macro; unsigned);
+for_each_int_type!(path::to::macro; all !sized);
 */
 use quote::quote;
 use quote::ToTokens;
@@ -33,24 +34,6 @@ macro_rules! make_flags {
                 _ => 0,
             }
         }
-
-        // pub fn get_flag_names(bits: u32) -> Vec<&'static str> {
-        //     let mut names = Vec::new();
-        //     let mut remainder = bits;
-        //     // (next_bit, remaining_bits)
-        //     fn next_bit_index(bits: &mut u32) -> u32 {
-        //         let index = bits.trailing_zeros();
-        //         let bit = 1u32 << index;
-        //         let invbit = !bit;
-        //         *bits = *bits & invbit;
-        //         index
-        //     }
-        //     while remainder != 0 {
-        //         let index = next_bit_index(&mut remainder);
-        //         names.push(FLAG_NAMES[index as usize]);
-        //     }
-        //     names
-        // }
     };
 }
 
@@ -77,6 +60,7 @@ make_flags![
     0x03f: unsigned,
     0xfc0: signed,
     0x820: sized,
+    0x7df: deterministic,
 ];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -120,18 +104,6 @@ enum FlagModifier {
 }
 
 impl FlagModifier {
-    // const UNMODIFIED: FlagModifier = FlagModifier::Include(0);
-    // const ALL: FlagModifier = FlagModifier::Include(0xfff);
-    // const EXCLUDE_ALL: FlagModifier = FlagModifier::Exclude(0xfff);
-    // const SIGNED: FlagModifier = FlagModifier::Include(0xfc0);
-    // const UNSIGNED: FlagModifier = FlagModifier::Include(0x03f);
-    // const NO_SIZED: FlagModifier = FlagModifier::Exclude(0x820);
-    // const SIZED: FlagModifier = FlagModifier::Include(0x820);
-
-    // pub const fn new() -> Self {
-    //     Self::UNMODIFIED
-    // }
-
     pub const fn modify(self, flags: u16) -> u16 {
         match self {
             FlagModifier::Include(include) => flags | include,
