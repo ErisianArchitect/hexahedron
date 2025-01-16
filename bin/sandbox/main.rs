@@ -1,5 +1,5 @@
-
 #![allow(unused)]
+use hexmacros::*;
 
 // mod any_map;
 // mod arg_injection;
@@ -7,6 +7,7 @@ mod invoke;
 // mod scheduler;
 // mod shared_state;
 mod rng;
+mod graph;
 
 use hexahedron as hex;
 use hex::prelude::Increment;
@@ -23,18 +24,35 @@ Next experiment:
 // }
 
 fn main() {
-    // macro_rules! print_it {
-    //     ($token:tt) => {
-    //         println!("{}", stringify!($token));
-    //     };
-    // }
-    // hexmacros::for_each_int_type!(print_it; signed !(isize 128) !(32 64));
-    println!("{}", hexmacros::crate_name!());
+    prototype_macro!{
+        (% for #i in 0..32 %)
+            pub fn [< test_i #i >]() {
+                println!("{}", #i);
+            }
+        (% continue %)
+    }
+    println!("{}", env!("CARGO_PKG_NAME"));
+    println!("{}", hexmacros::package_name!());
     // rng_experiment::run();
     // use rnjesus::make_rng;
     // let mut rng = make_rng((1, 2, 3));
     // let byte: u8 = rng.gen();
     // println!("{byte}");
+    crypto_experiment::run();
+}
+
+mod crypto_experiment {
+    use aes::{Aes256, Aes256Enc, Aes256Dec};
+    pub fn run() {
+        let argon = argon2::Argon2::default();
+        // let salt: [u8; 32] = rand::random();
+        let salt: &[u8] = blake3::hash(b"salt").as_bytes();
+        let salt: &[u8] = &[218, 60, 5, 2, 28, 249, 43, 203, 248, 31, 76, 118, 199, 198, 103, 129, 176, 135, 210, 67, 161, 52, 17, 76, 111, 129, 206, 232, 48, 104, 32, 48];
+        let mut output: [u8; 32] = [0; 32];
+        argon.hash_password_into(b"password", salt, &mut output).unwrap();
+        println!("{:?}", output);
+    }
+
 }
 
 pub mod rng_experiment {
