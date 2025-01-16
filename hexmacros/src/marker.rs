@@ -1,9 +1,7 @@
-use proc_macro2::Span;
 use quote::ToTokens;
 use quote::quote;
 use syn::punctuated::Punctuated;
 use syn::GenericParam;
-use syn::Ident;
 use syn::WhereClause;
 /* Outline
 deterministic!(std::collections::HashMap<String, i32>);
