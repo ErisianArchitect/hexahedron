@@ -25,3 +25,7 @@ macro_rules! seal {
 
 #[allow(unused)]
 pub use crate::seal;
+
+use hexmacros::*;
+
+prototype_macro!(in crate; Type, <T> for (T, T) where );
