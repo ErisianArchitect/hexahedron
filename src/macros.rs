@@ -1,48 +1,8 @@
-// use hexmacros;
-
-// /// ```no_run
-// /// macro_rules! num_impl {
-// ///     ($type:ty) => {
-// ///         // impl here
-// ///     };
-// /// }
-// /// for_each_int_type!(num_impl)
-// /// // or
-// /// for_each_int_type!(signed; num_impl)
-// /// // or
-// /// for_each_int_type!(unsigned; num_impl)
-// /// ```
-// #[macro_export]
-// macro_rules! for_each_int_type {
-//     ($macro:path) => {
-//         $crate::for_each_int_type!(unsigned;$macro);
-//         $crate::for_each_int_type!(signed;$macro);
-//     };
-//     (unsigned;$macro:path) => {
-//         $macro!{u8}
-//         $macro!{u16}
-//         $macro!{u32}
-//         $macro!{u64}
-//         $macro!{u128}
-//         $macro!{usize}
-//     };
-//     (signed;$macro:path) => {
-//         $macro!{i8}
-//         $macro!{i16}
-//         $macro!{i32}
-//         $macro!{i64}
-//         $macro!{i128}
-//         $macro!{isize}
-//     };
-// }
-
-// pub use crate::for_each_int_type;
-
-pub use hexmacros::for_each_int_type;
+pub use hexmacros::*;
 
 #[macro_export]
 macro_rules! pipeline {
-    ($input:expr => $($pipe:expr)=>+) => {
+    ($input:expr => $($pipe:expr) =>+) => {
         (|piped| {
             $(
                 let piped = ($pipe)(piped);
@@ -55,19 +15,18 @@ macro_rules! pipeline {
 pub use crate::pipeline;
 
 #[macro_export]
-macro_rules! deterministic {
-    ($($tokens:tt)*) => {
-        hexmacros::deterministic!($($tokens)*);
+macro_rules! hash_password {
+    ($lit:literal) => {
+        $crate::util::crypt::HashedPassword::hash_password($lit)
     };
 }
-
-pub use crate::deterministic;
 
 #[cfg(test)]
 mod tests {
     use super::*;
     #[test]
     fn pipeline_test() {
+        
         fn step1(input: i32) -> i32 {
             input + 55
         }
@@ -103,5 +62,20 @@ mod tests {
         let result = pipeline!(100 => |n: i32| n + 1 => |n: i32| n * 2);
         debug_assert_eq!(result, 202);
 
+    }
+
+    #[test]
+    fn hash_password_test() {
+        prototype_macro!{my_table!{
+            [1, 2, 3, 4]
+            ["hello, world"]
+            [one two three]
+            [env!("CARGO_PKG_NAME")]
+        }}
+        foreach!(println!(
+            ("Hello, world!")
+            ("This is a test")
+            ("Does this work? {}", env!("CARGO_PKG_NAME"))
+        ));
     }
 }
