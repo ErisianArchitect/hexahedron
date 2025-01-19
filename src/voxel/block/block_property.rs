@@ -1,48 +1,47 @@
+use hexmacros::table;
 use serde::{Serialize, Deserialize};
 use std::{borrow::Cow, rc::Rc, sync::Arc};
 
 use crate::io::*;
 
 #[rustfmt::skip]
-macro_rules! property_table {
-    ($macro:path) => {
-        $macro! {
-            [01     Bool(bool)                                          ]
-            [02     Int(i64)                                            ]
-            [03     String(String)                                      ]
-            [04     Direction(crate::voxel::direction::Direction)       ]
-            [05     Cardinal(crate::voxel::cardinal::Cardinal)          ]
-            [06     Rotation(crate::voxel::orientation::Rotation)       ]
-            [07     Flip(crate::voxel::orientation::Flip)               ]
-            [08     Orientation(crate::voxel::orientation::Orientation) ]
-            [09     Axis(crate::math::axis::Axis)                       ]
-            [10     IVec2(glam::IVec2)                                  ]
-            [11     IVec3(glam::IVec3)                                  ]
-            [12     IVec4(glam::IVec4)                                  ]
-            [13     FaceFlags(crate::voxel::face_flags::FaceFlags)      ]
-            [14     AxisFlags(crate::math::axis_flags::AxisFlags)       ]
-            [15     BitFlags8(crate::math::bit::BitFlags8)              ]
-            [16     BitFlags16(crate::math::bit::BitFlags16)            ]
-            [17     BitFlags32(crate::math::bit::BitFlags32)            ]
-            [18     BitFlags64(crate::math::bit::BitFlags64)            ]
-            [19     BitFlags128(crate::math::bit::BitFlags128)          ]
-            [20     Color(crate::rendering::color::Color)               ]
-            [21     Rgb(crate::rendering::color::Rgb)                   ]
-            [22     Rgba(crate::rendering::color::Rgba)                 ]
-            [23     Range(std::ops::Range<i64>)                         ]
-            [24     RangeInclusive(std::ops::RangeInclusive<i64>)       ]
-            [25     Bytes(Vec<u8>)                                      ]
-            [26     Map(std::collections::BTreeMap<String, Property>)   ]
-            [27     Array(PropertyArray)                                ]
-            /* 28   PropertyArray::Any(Vec<Property>) */
-        }
-    };
-}
+table!(macro property_table {
+    [01     Bool(bool)                                          ]
+    [02     Int(i64)                                            ]
+    [03     String(String)                                      ]
+    [04     Direction(crate::voxel::direction::Direction)       ]
+    [05     Cardinal(crate::voxel::cardinal::Cardinal)          ]
+    [06     Rotation(crate::voxel::orientation::Rotation)       ]
+    [07     Flip(crate::voxel::orientation::Flip)               ]
+    [08     Orientation(crate::voxel::orientation::Orientation) ]
+    [09     Axis(crate::math::axis::Axis)                       ]
+    [10     IVec2(glam::IVec2)                                  ]
+    [11     IVec3(glam::IVec3)                                  ]
+    [12     IVec4(glam::IVec4)                                  ]
+    [13     FaceFlags(crate::voxel::face_flags::FaceFlags)      ]
+    [14     AxisFlags(crate::math::axis_flags::AxisFlags)       ]
+    [15     BitFlags8(crate::math::bit::BitFlags8)              ]
+    [16     BitFlags16(crate::math::bit::BitFlags16)            ]
+    [17     BitFlags32(crate::math::bit::BitFlags32)            ]
+    [18     BitFlags64(crate::math::bit::BitFlags64)            ]
+    [19     BitFlags128(crate::math::bit::BitFlags128)          ]
+    [20     Color(crate::rendering::color::Color)               ]
+    [21     Rgb(crate::rendering::color::Rgb)                   ]
+    [22     Rgba(crate::rendering::color::Rgba)                 ]
+    [23     Range(std::ops::Range<i64>)                         ]
+    [24     RangeInclusive(std::ops::RangeInclusive<i64>)       ]
+    [25     Bytes(Vec<u8>)                                      ]
+    [26     Map(std::collections::BTreeMap<String, Property>)   ]
+    [27     Array(PropertyArray)                                ]
+    /*
+    [28     PropertyArray::Any(Vec<Property>)                   ]
+    */
+});
 
 const PROPERTY_ARRAY_ID: u8 = 28;
 
 macro_rules! build_property_enum {
-    ($([$id:literal $name:ident($type:ty)])+) => {
+    ($({$id:literal $name:ident($type:ty)})+) => {
         #[derive(Debug, Default, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
         #[repr(u8)]
         pub enum Property {
