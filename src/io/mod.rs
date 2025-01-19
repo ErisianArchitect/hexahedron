@@ -1680,10 +1680,14 @@ mark!{trait = Deterministic;
     // Types with generics.
     <T: Deterministic> for &T;
     <T: Deterministic> for Box<T>;
+    <T: Deterministic> for std::rc::Rc<T>;
+    <T: Deterministic> for std::sync::Arc<T>;
     <T: Deterministic, const SIZE: usize> for [T; SIZE];
     <T: Deterministic> for &[T];
     <T: Deterministic> for Vec<T>;
     <T: Deterministic> for Box<[T]>;
+    <T: Deterministic> for std::rc::Rc<[T]>;
+    <T: Deterministic> for std::sync::Arc<[T]>;
     <K, V> for BTreeMap<K, V> where (K, V): Deterministic;
     <T: Deterministic> for BTreeSet<T>;
     <T: Deterministic> for std::ops::Range<T>;
@@ -1715,8 +1719,6 @@ mark!{trait = Deterministic;
     Bounds2D;
     Bounds3D;
 }
-
-
 
 #[cfg(test)]
 mod tests {
