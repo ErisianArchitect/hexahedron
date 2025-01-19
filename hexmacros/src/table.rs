@@ -1,65 +1,72 @@
 use proc_macro2::TokenStream;
 use quote::{quote, ToTokens};
-use syn::{parenthesized, braced, bracketed, parse::Parse, token::{Brace, Bracket, Paren}, Token};
-
+use syn::{
+    braced, bracketed, parse::Parse, Attribute, Ident, Token
+};
 
 macro_rules! discard {
     ($($_:tt)*) => {};
 }
 
 discard!{
-    macro_rules! table_input {
-        ($($arg:expr),*) => {
-            $(
-                print!("{}", $arg);
-            )*
-            println!();
+    table!{macro table_name[
+        [cols...]
+        [...]
+        [...etc]
+    ]}
+    // becomes
+    macro_rules! table_name {
+        ($callback:path) => {
+            $callback!{
+                [cols...]
+                [...]
+                [...etc]
+            }
         };
     }
-    table!{
-        table_input![
-            ["test", "one", "two"]
-            [1, 2, 3, 4]
-        ]
+    // or
+    table!{macro table_name do [
+        [cols...]
+        [...]
+        [...etc]
+    ]}
+    // becomes
+    macro_rules! table_name {
+        ($callback:path) => {
+            $callback!{ [cols...] }
+            $callback!{ [...] }
+            $callback!{ [...etc] }
+        };
     }
 }
 
 pub struct TableInput {
-    path: syn::Path,
+    attrs: Vec<Attribute>,
+    name: Ident,
     rows: Vec<TokenStream>,
 }
 
 impl Parse for TableInput {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        let path = input.parse::<syn::Path>()?;
-        _ = input.parse::<Token![!]>()?;
-        macro_rules! grouped {
-            ($group_macro:path) => {
-                let content;
-                $group_macro!(content in input);
-                let mut rows = vec![];
-                loop {
-                    if content.is_empty() {
-                        break;
-                    }
-                    let row_content;
-                    $group_macro!(row_content in content);
-                    rows.push(row_content.parse()?);
-                }
-                rows
-            };
+        let attrs = input.call(Attribute::parse_outer)?;
+        _ = input.parse::<Token![macro]>()?;
+        let name = input.parse::<Ident>()?;
+        let table_content;
+        braced!(table_content in input);
+        let mut rows = vec![];
+
+        loop {
+            if table_content.is_empty() {
+                break;
+            }
+            let row_content;
+            bracketed!(row_content in table_content);
+            rows.push(row_content.parse()?);
         }
-        let rows = if input.peek(Paren) {
-            grouped!{parenthesized}
-        } else if input.peek(Bracket) {
-            grouped!{bracketed}
-        } else if input.peek(Brace) {
-            grouped!{braced}
-        } else {
-            return Err(syn::Error::new(input.cursor().span(), "Expected [...], (...), or {...}."));
-        };
+
         Ok(Self {
-            path,
+            attrs,
+            name,
             rows,
         })
     }
@@ -67,9 +74,28 @@ impl Parse for TableInput {
 
 impl ToTokens for TableInput {
     fn to_tokens(&self, tokens: &mut TokenStream) {
-        let path = &self.path;
-        for row in self.rows.iter() {
-            tokens.extend(quote!( #path!{#row} ));
-        }
+        let attrs = self.attrs.as_slice();
+        let name = &self.name;
+        let rows = self.rows.as_slice();
+        tokens.extend(quote!(
+            #(#attrs)*
+            macro_rules! #name {
+                () => {
+                    #(
+                        { #rows }
+                    )*
+                };
+                (foreach($___macro_callback:path)) => {
+                    #(
+                        $___macro_callback! { #rows }
+                    )*
+                };
+                ($___macro_callback:path) => {
+                    $___macro_callback! {
+                        #( { #rows } )*
+                    }
+                };
+            }
+        ));
     }
 }
