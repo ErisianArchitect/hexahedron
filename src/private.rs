@@ -28,4 +28,4 @@ pub use crate::seal;
 
 use hexmacros::*;
 
-prototype_macro!(in crate; Type, <T> for (T, T) where );
+prototype!(in crate; Type, <T> for (T, T) where );
