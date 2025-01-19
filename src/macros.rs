@@ -66,13 +66,13 @@ mod tests {
 
     #[test]
     fn hash_password_test() {
-        prototype_macro!{my_table!{
+        prototype!{my_table!{
             [1, 2, 3, 4]
             ["hello, world"]
             [one two three]
             [env!("CARGO_PKG_NAME")]
         }}
-        foreach!(println!(
+        foreach!(std::println!(
             ("Hello, world!")
             ("This is a test")
             ("Does this work? {}", env!("CARGO_PKG_NAME"))
