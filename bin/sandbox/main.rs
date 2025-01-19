@@ -1,4 +1,7 @@
 #![allow(unused)]
+use std::{hash::Hash, rc::Rc};
+
+use hashbrown::HashMap;
 use hexmacros::*;
 
 // mod any_map;
@@ -6,11 +9,11 @@ use hexmacros::*;
 mod invoke;
 // mod scheduler;
 // mod shared_state;
-mod rng;
 mod graph;
+mod rng;
 
-use hexahedron as hex;
 use hex::prelude::Increment;
+use hexahedron as hex;
 use rand::Rng;
 
 /*
@@ -22,37 +25,133 @@ Next experiment:
 // #[tokio::main]
 // async fn main() {
 // }
+prototype! {
+    (% for #i in 0..32 %)
+        pub fn [< test_i #i >]() {
+            println!("{}", #i);
+        }
+    (% continue %)
+}
+
+table!(
+    /// A test table to see how I like the syntax.
+    macro test_table {
+        ["Hello, world"]
+        ["This is a test. {}", 1]
+    }
+);
 
 fn main() {
-    prototype_macro!{
-        (% for #i in 0..32 %)
-            pub fn [< test_i #i >]() {
-                println!("{}", #i);
-            }
-        (% continue %)
+    prototype!(impl<T> Deterministic<Marker<T>> where T: std::hash::Hash {
+        T;
+        &[T] where T: Seq;
+    });
+    // becomes
+    prototype!(
+        impl<T> Deterministic<Marker<T>> for T where T: std::hash::Hash {}
+        impl<T> for &[T] {}
+    );
+
+    table!(
+        macro colors {}
+    );
+
+    test_table!(foreach(println));
+
+    prototype_macro!(invoke_table);
+
+    invoke_table!(test_table; ($first:expr $(, $args:expr)*) => {
+        print!("{}", $first);
+        $(
+            print!(" {}", $args);
+        )*
+    });
+    /* Maybe invoke_table could expand into something like:
+    macro_rules! ___invoke_table_artifact {
+        ($( { $first:expr $(, $args:expr)* } )*) => {
+            $(
+                print!("{}", $first);
+                $(
+                    print!(" {}", $args);
+                )*
+            )*
+        }
     }
-    println!("{}", env!("CARGO_PKG_NAME"));
-    println!("{}", hexmacros::package_name!());
-    // rng_experiment::run();
-    // use rnjesus::make_rng;
-    // let mut rng = make_rng((1, 2, 3));
-    // let byte: u8 = rng.gen();
-    // println!("{byte}");
-    crypto_experiment::run();
+    test_table!(___invoke_table_artifact);
+
+    Then you'll have ___invoke_table_artifact as an artifact in your scope,
+    but that's not really a problem because you're not forced to use it.
+     */
+
+    #[rustfmt::skip]
+    foreach!(println!(
+        ("Test {}", 0),
+        ("hello, world"),
+        ("test")
+    ));
+
+    define!(
+        /// Test print macro.
+        macro qprint {
+            println!("Hello, world!");
+        }
+    );
+
+    prototype!(
+        define!(macro get_text "This was from the get_text macro.")
+        let text = get_text!();
+    );
+
+    qprint!();
+
+    return;
+    struct WithKey<K, V>
+    where
+        K: Hash,
+    {
+        key: K,
+        value: V,
+    }
+    impl<K: Hash + Clone, V> WithKey<K, V> {
+        fn new<IK: Into<K>>(key: IK, value: V) -> Self {
+            Self {
+                key: key.into(),
+                value,
+            }
+        }
+
+        fn key(&self) -> K {
+            self.key.clone()
+        }
+    }
+    let mut map = HashMap::<Rc<str>, WithKey<Rc<str>, &'static str>>::new();
+    let value1 = WithKey::new("key1", "hello, world");
+    let value2 = WithKey::new("key2", "this is a test");
+    let value3 = WithKey::new("key3", "I hope this workd.");
+    map.insert(value1.key(), value1);
+    map.insert(value2.key(), value2);
+    map.insert(value3.key(), value3);
+    if let Some(value) = map.get("key2") {
+        println!("  key: {}\nvalue: {}", value.key(), &value.value)
+    }
 }
 
 mod crypto_experiment {
-    use aes::{Aes256, Aes256Enc, Aes256Dec};
+    use aes::{Aes256, Aes256Dec, Aes256Enc};
     pub fn run() {
         let argon = argon2::Argon2::default();
         // let salt: [u8; 32] = rand::random();
         let salt: &[u8] = blake3::hash(b"salt").as_bytes();
-        let salt: &[u8] = &[218, 60, 5, 2, 28, 249, 43, 203, 248, 31, 76, 118, 199, 198, 103, 129, 176, 135, 210, 67, 161, 52, 17, 76, 111, 129, 206, 232, 48, 104, 32, 48];
+        let salt: &[u8] = &[
+            218, 60, 5, 2, 28, 249, 43, 203, 248, 31, 76, 118, 199, 198, 103, 129, 176, 135, 210,
+            67, 161, 52, 17, 76, 111, 129, 206, 232, 48, 104, 32, 48,
+        ];
         let mut output: [u8; 32] = [0; 32];
-        argon.hash_password_into(b"password", salt, &mut output).unwrap();
+        argon
+            .hash_password_into(b"password", salt, &mut output)
+            .unwrap();
         println!("{:?}", output);
     }
-
 }
 
 pub mod rng_experiment {
@@ -70,23 +169,29 @@ pub mod rng_experiment {
         // let byte = rng.gen::<u8>();
         // println!("{}", byte);
         // println!("{}", rng.gen::<u16>());
-        let state = blockstate!(random[test="hello, world"]);
+        let state = blockstate!(random[test = "hello, world"]);
         let mut rng = make_rng_from_hash(state);
         println!("{}", rng.gen::<u16>());
     }
 }
 
-
 // Code Graveyard beyond this point.
+prototype_macro!(
+    /// Code that is completely ignored, as it lay it to rest.
+    /// But also you wanna keep it around and make it look pretty.
+    grave
+);
 
-/// Code that is completely ignored, as it lay it to rest.
-/// But also you wanna keep it around and make it look pretty.
-macro_rules! grave {
-    ($($_:tt)*) => {};
+grave! {
+    #[experiment(on)]
+    mod experiment {
+        pub fn run() {
+
+        }
+    }
 }
 
-
-grave!{
+grave! {
     mod sched_experiment {
         use hashbrown::HashMap;
         use parking_lot::Mutex;
@@ -248,7 +353,7 @@ grave!{
     }
 }
 
-grave!{
+grave! {
     mod extract_ref {
         use std::{
             borrow::BorrowMut,
