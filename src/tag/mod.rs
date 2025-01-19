@@ -7,73 +7,70 @@ use crate::io::{
 use std::io::{
     Read, Write,
 };
+use hexmacros::table;
 
 pub trait NonByte {}
 pub trait Byte {}
 
 #[rustfmt::skip]
-macro_rules! tag_table {
-    ($macro:path) => {
-        $macro! {
-//  ID | Name | Byte-Size or Non-Byte-Size | Boxed | Type
-[ 1 Bool            Byte        unbox   <bool>                                  ]
-[ 2 BitFlags8       Byte        unbox   <crate::math::bit::BitFlags8>           ]
-[ 3 BitFlags16      NonByte     unbox   <crate::math::bit::BitFlags16>          ]
-[ 4 BitFlags32      NonByte     unbox   <crate::math::bit::BitFlags32>          ]
-[ 5 BitFlags64      NonByte     unbox   <crate::math::bit::BitFlags64>          ]
-[ 6 BitFlags128     NonByte     box     <crate::math::bit::BitFlags128>         ]
-[ 7 U8              Byte        unbox   <u8>                                    ]
-[ 8 I8              Byte        unbox   <i8>                                    ]
-[ 9 U16             NonByte     unbox   <u16>                                   ]
-[10 I16             NonByte     unbox   <i16>                                   ]
-[11 U32             NonByte     unbox   <u32>                                   ]
-[12 I32             NonByte     unbox   <i32>                                   ]
-[13 U64             NonByte     unbox   <u64>                                   ]
-[14 I64             NonByte     unbox   <i64>                                   ]
-[15 F32             NonByte     unbox   <f32>                                   ]
-[16 F64             NonByte     unbox   <f64>                                   ]
-[17 Direction       Byte        unbox   <crate::voxel::direction::Direction>    ]
-[18 Cardinal        Byte        unbox   <crate::voxel::cardinal::Cardinal>      ]
-[19 Rotation        Byte        unbox   <crate::voxel::orientation::Rotation>   ]
-[20 Flip            Byte        unbox   <crate::voxel::orientation::Flip>       ]
-[21 Orientation     Byte        unbox   <crate::voxel::orientation::Orientation>]
-[22 Axis            Byte        unbox   <crate::math::axis::Axis>               ]
-[23 AxisFlags       Byte        unbox   <crate::math::axis_flags::AxisFlags>    ]
-[24 FaceFlags       Byte        unbox   <crate::voxel::face_flags::FaceFlags>   ]
-[25 Color           Byte        unbox   <crate::rendering::color::Color>        ]
-[26 Rgb             NonByte     unbox   <crate::rendering::color::Rgb>          ]
-[27 Rgba            NonByte     unbox   <crate::rendering::color::Rgba>         ]
-[28 IVec2           NonByte     unbox   <glam::IVec2>                           ]
-[29 IVec3           NonByte     unbox   <glam::IVec3>                           ]
-[30 IVec4           NonByte     box     <glam::IVec4>                           ]
-[31 Vec2            NonByte     unbox   <glam::Vec2>                            ]
-[32 Vec3            NonByte     unbox   <glam::Vec3>                            ]
-[33 Vec4            NonByte     box     <glam::Vec4>                            ]
-[34 Mat2            NonByte     box     <glam::Mat2>                            ]
-[35 Mat3            NonByte     box     <glam::Mat3>                            ]
-[36 Mat4            NonByte     box     <glam::Mat4>                            ]
-[37 Quat            NonByte     box     <glam::Quat>                            ]
-[38 Bounds2         NonByte     box     <rollgrid::rollgrid2d::Bounds2D>        ]
-[39 Bounds3         NonByte     box     <rollgrid::rollgrid3d::Bounds3D>        ]
-[40 Range           NonByte     box     <std::ops::Range<i64>>                  ]
-[41 RangeInclusive  NonByte     box     <std::ops::RangeInclusive<i64>>         ]
-[42 String          NonByte     box     <String>                                ]
-[43 Array           NonByte     box     <crate::tag::Array>                     ]
-[44 Map             NonByte     box     <hashbrown::HashMap<String, Tag>>       ]
-/* This line should remain commented out.
-This represents a tag ID that I inserted manually into the generation code.
-(See: TAG_ARRAY_ID)
-[63 Tag           NonByte   box     <Tag>                                                   ]
-Continue writing new rows at index 41
-*/
-        }
-    };
-}
+table!(macro tag_table {
+    //  ID | Name | Byte-Size or Non-Byte-Size | Boxed | Type
+    [ 1 Bool            Byte        unbox   <bool>                                  ]
+    [ 2 BitFlags8       Byte        unbox   <crate::math::bit::BitFlags8>           ]
+    [ 3 BitFlags16      NonByte     unbox   <crate::math::bit::BitFlags16>          ]
+    [ 4 BitFlags32      NonByte     unbox   <crate::math::bit::BitFlags32>          ]
+    [ 5 BitFlags64      NonByte     unbox   <crate::math::bit::BitFlags64>          ]
+    [ 6 BitFlags128     NonByte     box     <crate::math::bit::BitFlags128>         ]
+    [ 7 U8              Byte        unbox   <u8>                                    ]
+    [ 8 I8              Byte        unbox   <i8>                                    ]
+    [ 9 U16             NonByte     unbox   <u16>                                   ]
+    [10 I16             NonByte     unbox   <i16>                                   ]
+    [11 U32             NonByte     unbox   <u32>                                   ]
+    [12 I32             NonByte     unbox   <i32>                                   ]
+    [13 U64             NonByte     unbox   <u64>                                   ]
+    [14 I64             NonByte     unbox   <i64>                                   ]
+    [15 F32             NonByte     unbox   <f32>                                   ]
+    [16 F64             NonByte     unbox   <f64>                                   ]
+    [17 Direction       Byte        unbox   <crate::voxel::direction::Direction>    ]
+    [18 Cardinal        Byte        unbox   <crate::voxel::cardinal::Cardinal>      ]
+    [19 Rotation        Byte        unbox   <crate::voxel::orientation::Rotation>   ]
+    [20 Flip            Byte        unbox   <crate::voxel::orientation::Flip>       ]
+    [21 Orientation     Byte        unbox   <crate::voxel::orientation::Orientation>]
+    [22 Axis            Byte        unbox   <crate::math::axis::Axis>               ]
+    [23 AxisFlags       Byte        unbox   <crate::math::axis_flags::AxisFlags>    ]
+    [24 FaceFlags       Byte        unbox   <crate::voxel::face_flags::FaceFlags>   ]
+    [25 Color           Byte        unbox   <crate::rendering::color::Color>        ]
+    [26 Rgb             NonByte     unbox   <crate::rendering::color::Rgb>          ]
+    [27 Rgba            NonByte     unbox   <crate::rendering::color::Rgba>         ]
+    [28 IVec2           NonByte     unbox   <glam::IVec2>                           ]
+    [29 IVec3           NonByte     unbox   <glam::IVec3>                           ]
+    [30 IVec4           NonByte     box     <glam::IVec4>                           ]
+    [31 Vec2            NonByte     unbox   <glam::Vec2>                            ]
+    [32 Vec3            NonByte     unbox   <glam::Vec3>                            ]
+    [33 Vec4            NonByte     box     <glam::Vec4>                            ]
+    [34 Mat2            NonByte     box     <glam::Mat2>                            ]
+    [35 Mat3            NonByte     box     <glam::Mat3>                            ]
+    [36 Mat4            NonByte     box     <glam::Mat4>                            ]
+    [37 Quat            NonByte     box     <glam::Quat>                            ]
+    [38 Bounds2         NonByte     box     <rollgrid::rollgrid2d::Bounds2D>        ]
+    [39 Bounds3         NonByte     box     <rollgrid::rollgrid3d::Bounds3D>        ]
+    [40 Range           NonByte     box     <std::ops::Range<i64>>                  ]
+    [41 RangeInclusive  NonByte     box     <std::ops::RangeInclusive<i64>>         ]
+    [42 String          NonByte     box     <String>                                ]
+    [43 Array           NonByte     box     <crate::tag::Array>                     ]
+    [44 Map             NonByte     box     <hashbrown::HashMap<String, Tag>>       ]
+    /* This line should remain commented out.
+    This represents a tag ID that I inserted manually into the generation code.
+    (See: TAG_ARRAY_ID)
+    [63 Tag           NonByte   box     <Tag>                                                   ]
+    Continue writing new rows at index 41
+    */
+});
 
 const TAG_ARRAY_ID: u8 = 63;
 
 macro_rules! table_impls {
-    ($([$id:literal $name:ident $impl:ident $box:ident <$type:ty> $($end:tt)*])*) => {
+    ($({$id:literal $name:ident $impl:ident $box:ident <$type:ty> $($end:tt)*})*) => {
         // Blanket impls
         $(
             impl $impl for $type {}
@@ -300,7 +297,7 @@ impl From<&str> for Tag {
 }
 
 macro_rules! from_impls {
-    ($([$id:literal $name:ident $impl:ident $box:ident <$type:ty> $($end:tt)*])*) => {
+    ($({$id:literal $name:ident $impl:ident $box:ident <$type:ty> $($end:tt)*})*) => {
         $(
             from_impls!($box $name $type);
         )*
