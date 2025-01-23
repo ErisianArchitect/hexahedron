@@ -40,10 +40,7 @@ impl<T> Change<T> {
 
     #[inline]
     pub fn unwrap(self) -> T {
-        let Self::Changed(previous) = self else {
-            panic!("Attempted to unwrap Change::Unchanged (no previous value present).");
-        };
-        previous
+        self.expect("Attempted to unwrap Change::Unchanged (no previous value present).")
     }
 }
 
