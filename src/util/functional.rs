@@ -1,54 +1,63 @@
+#[inline]
+pub fn pass<T>(value: T) -> T {
+    value
+}
+
+#[inline]
 pub fn eval<R, F: FnOnce() -> R>(f: F) -> R {
     f()
 }
 
+#[inline]
 pub fn catch<T, E, F: FnOnce() -> Result<T, E>>(f: F) -> Result<T, E> {
     f()
 }
 
-pub const fn nop() {}
+#[inline]
+pub const fn noop() {}
 
-macro_rules! nop_fns {
+macro_rules! noop {
     ($( $name:ident <$($t:ident),+$(,)?> ;)+) => {
         $(
+            #[inline]
             pub fn $name<$($t),*>($(_: $t),*) {}
         )+
     };
 }
 
-nop_fns! {
-    nop_1<T0>;
-    nop_2<T0, T1>;
-    nop_3<T0, T1, T2>;
-    nop_4<T0, T1, T2, T3>;
-    nop_5<T0, T1, T2, T3, T4>;
-    nop_6<T0, T1, T2, T3, T4, T5>;
-    nop_7<T0, T1, T2, T3, T4, T5, T6>;
-    nop_8<T0, T1, T2, T3, T4, T5, T6, T7>;
-    nop_9<T0, T1, T2, T3, T4, T5, T6, T7, T8>;
-    nop_10<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9>;
-    nop_11<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>;
-    nop_12<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>;
-    nop_13<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>;
-    nop_14<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>;
-    nop_15<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>;
-    nop_16<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15>;
-    nop_17<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>;
-    nop_18<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17>;
-    nop_19<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18>;
-    nop_20<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19>;
-    nop_21<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20>;
-    nop_22<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21>;
-    nop_23<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22>;
-    nop_24<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23>;
-    nop_25<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, T24>;
-    nop_26<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, T24, T25>;
-    nop_27<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, T24, T25, T26>;
-    nop_28<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, T24, T25, T26, T27>;
-    nop_29<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, T24, T25, T26, T27, T28>;
-    nop_30<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, T24, T25, T26, T27, T28, T29>;
-    nop_31<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, T24, T25, T26, T27, T28, T29, T30>;
-    nop_32<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, T24, T25, T26, T27, T28, T29, T30, T31>;
+noop! {
+    noop_1<T0>;
+    noop_2<T0, T1>;
+    noop_3<T0, T1, T2>;
+    noop_4<T0, T1, T2, T3>;
+    noop_5<T0, T1, T2, T3, T4>;
+    noop_6<T0, T1, T2, T3, T4, T5>;
+    noop_7<T0, T1, T2, T3, T4, T5, T6>;
+    noop_8<T0, T1, T2, T3, T4, T5, T6, T7>;
+    noop_9<T0, T1, T2, T3, T4, T5, T6, T7, T8>;
+    noop_10<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9>;
+    noop_11<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>;
+    noop_12<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>;
+    noop_13<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>;
+    noop_14<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>;
+    noop_15<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>;
+    noop_16<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15>;
+    noop_17<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>;
+    noop_18<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17>;
+    noop_19<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18>;
+    noop_20<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19>;
+    noop_21<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20>;
+    noop_22<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21>;
+    noop_23<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22>;
+    noop_24<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23>;
+    noop_25<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, T24>;
+    noop_26<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, T24, T25>;
+    noop_27<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, T24, T25, T26>;
+    noop_28<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, T24, T25, T26, T27>;
+    noop_29<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, T24, T25, T26, T27, T28>;
+    noop_30<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, T24, T25, T26, T27, T28, T29>;
+    noop_31<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, T24, T25, T26, T27, T28, T29, T30>;
+    noop_32<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, T24, T25, T26, T27, T28, T29, T30, T31>;
 }
 
 #[cfg(test)]
@@ -57,9 +66,9 @@ mod tests {
     
     #[test]
     fn nop_test() {
-        nop();
+        noop();
         let start = std::time::Instant::now();
-        (0..1000000000).for_each(nop_1);
+        (0..1000000000).for_each(noop_1);
         let elapsed = start.elapsed();
         println!("Time: {:.4}", elapsed.as_secs_f64());
     }
