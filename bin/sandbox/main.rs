@@ -13,7 +13,7 @@ mod graph;
 mod rng;
 
 use hex::prelude::Increment;
-use hexahedron as hex;
+use hexahedron::{self as hex, util::extensions::*};
 use rand::Rng;
 
 /*
@@ -41,7 +41,32 @@ table!(
     }
 );
 
+trait ForFn<F> {
+    fn call(self);
+}
+
+impl<F> ForFn<F> for F
+where F: FnOnce() {
+    fn call(self) {
+        self();
+    }
+}
+
+fn foo() {
+    println!("foo()");
+}
+
 fn main() {
+    foo.call();
+    return;
+    fn takes_slice(slice: &[i32]) {
+        for val in slice {
+            println!("{}", val);
+        }
+    }
+    let val = 1;
+    takes_slice(val.as_slice_of_one());
+
     prototype!(impl<T> Deterministic<Marker<T>> where T: std::hash::Hash {
         T;
         &[T] where T: Seq;
@@ -51,6 +76,10 @@ fn main() {
         impl<T> Deterministic<Marker<T>> for T where T: std::hash::Hash {}
         impl<T> for &[T] {}
     );
+
+    prototype!(crate; token_input());
+    prototype!(token_input());
+    prototype!(as Deterministic;);
 
     table!(
         macro colors {}
@@ -127,7 +156,7 @@ fn main() {
     let mut map = HashMap::<Rc<str>, WithKey<Rc<str>, &'static str>>::new();
     let value1 = WithKey::new("key1", "hello, world");
     let value2 = WithKey::new("key2", "this is a test");
-    let value3 = WithKey::new("key3", "I hope this workd.");
+    let value3 = WithKey::new("key3", "I hope this work.");
     map.insert(value1.key(), value1);
     map.insert(value2.key(), value2);
     map.insert(value3.key(), value3);
