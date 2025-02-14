@@ -74,6 +74,7 @@ impl<T: Clone> Clone for Change<T> {
         }
     }
 }
+
 impl<T: Clone + Copy> Copy for Change<T> {}
 
 pub trait ReplaceCompare: Sized {
@@ -109,7 +110,7 @@ mod tests {
         change.if_changed(|old_value| {
             debug_assert_eq!(old_value, 1234);
         });
-        assert!(change.changed());
+        debug_assert!(change.changed());
         change.if_changed(|old_value| {
             debug_assert_eq!(old_value, 1234);
         });
