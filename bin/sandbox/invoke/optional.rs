@@ -6,6 +6,60 @@ pub enum Optional<T> {
     Some(T),
 }
 
+impl<T> Optional<T> {
+    // Cannot make this function const.
+    // destructor of `Option<T>` cannot be evaluated at compile-time
+    #[inline]
+    pub fn from_option(option: Option<T>) -> Self {
+        match option {
+            Some(some) => Optional::Some(some),
+            None => Optional::None,
+        }
+    }
+
+    // Cannot make this function const
+    // destructor of `Optional<T>` cannot be evaluated at compile-time
+    #[inline]
+    pub fn to_option(self) -> Option<T> {
+        match self {
+            Optional::None => None,
+            Optional::Some(some) => Some(some),
+        }
+    }
+
+    #[inline]
+    pub fn as_ref(&self) -> Optional<&T> {
+        match self {
+            Optional::None => Optional::None,
+            Optional::Some(some) => Optional::Some(some),
+        }
+    }
+
+    #[inline]
+    pub fn as_ref_option(&self) -> Option<&T> {
+        match self {
+            Optional::None => None,
+            Optional::Some(some) => Some(some),
+        }
+    }
+
+    #[inline]
+    pub fn as_mut(&mut self) -> Optional<&mut T> {
+        match self {
+            Optional::None => Optional::None,
+            Optional::Some(some) => Optional::Some(some),
+        }
+    }
+
+    #[inline]
+    pub fn as_mut_option(&mut self) -> Option<&mut T> {
+        match self {
+            Self::None => None,
+            Self::Some(some) => Some(some),
+        }
+    }
+}
+
 impl<T: Clone> Clone for Optional<T> {
     #[inline]
     fn clone(&self) -> Self {
@@ -71,28 +125,6 @@ impl<T: Debug> Debug for Optional<T> {
         match self {
             Optional::None => write!(f, "None"),
             Optional::Some(some) => write!(f, "Some({some:?})"),
-        }
-    }
-}
-
-impl<T> Optional<T> {
-    // Cannot make this function const.
-    // destructor of `Option<T>` cannot be evaluated at compile-time
-    #[inline]
-    pub fn from_option(option: Option<T>) -> Self {
-        match option {
-            Some(some) => Optional::Some(some),
-            None => Optional::None,
-        }
-    }
-
-    // Cannot make this function const
-    // destructor of `Optional<T>` cannot be evaluated at compile-time
-    #[inline]
-    pub fn to_option(self) -> Option<T> {
-        match self {
-            Optional::None => None,
-            Optional::Some(some) => Some(some),
         }
     }
 }
