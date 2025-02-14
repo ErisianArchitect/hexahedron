@@ -13,6 +13,7 @@
 //! * Loading block meshes from `.gltf` files.
 //! * Task scheduler.
 //! * (Maybe) Multiplayer server architecture.
+//! * Scripting API.
 
 pub mod collections;
 pub mod io;
