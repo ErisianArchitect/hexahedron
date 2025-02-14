@@ -131,7 +131,7 @@ pub const fn byte_scalar(byte: u8) -> f32 {
 }
 
 macro_rules! color_enum {
-    ($([
+    ($({
         $readable_name:literal
         $pascal_name:ident
         $const_name:ident
@@ -140,7 +140,7 @@ macro_rules! color_enum {
         $upper_name:ident
         $rgb_hex:literal
         RGB($r:literal, $g:literal, $b:literal)
-    ])+) => {
+    })+) => {
         #[repr(u8)]
         #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, NoUninit, Serialize, Deserialize)]
         pub enum Color {
@@ -285,7 +285,7 @@ pub struct Rgb {
 }
 
 macro_rules! rgb_color_consts {
-    ($([
+    ($({
         $readable_name:literal
         $pascal_name:ident
         $const_name:ident
@@ -294,7 +294,7 @@ macro_rules! rgb_color_consts {
         $upper_name:ident
         $rgb_hex:literal
         RGB($r:literal, $g:literal, $b:literal)
-    ])+) => {
+    })+) => {
         impl Rgb {
             $(
                 pub const $const_name: Self = Rgb::new($r, $g, $b);
@@ -367,16 +367,16 @@ impl Rgb {
     }
 
     #[inline]
-    pub const fn as_bytes(&self) -> &[u8; 3] {
+    pub const fn as_bytes(&self) -> &[u8] {
         unsafe {
-            &*(self as *const Self).cast()
+            std::slice::from_raw_parts(std::ptr::from_ref(self).cast(), 3)
         }
     }
 
     #[inline]
-    pub fn as_mut_bytes(&mut self) -> &mut [u8; 3] {
+    pub fn as_mut_bytes(&mut self) -> &mut [u8] {
         unsafe {
-            &mut *(self as *mut Self).cast()
+            std::slice::from_raw_parts_mut(std::ptr::from_mut(self).cast(), 3)
         }
     }
 
@@ -519,7 +519,7 @@ pub struct Rgba {
 }
 
 macro_rules! rgba_color_consts {
-    ($([
+    ($({
         $readable_name:literal
         $pascal_name:ident
         $const_name:ident
@@ -528,7 +528,7 @@ macro_rules! rgba_color_consts {
         $upper_name:ident
         $rgb_hex:literal
         RGB($r:literal, $g:literal, $b:literal)
-    ])+) => {
+    })+) => {
         impl Rgba {
             $(
                 pub const $const_name: Self = Rgba::new($r, $g, $b, 255);
@@ -623,16 +623,16 @@ impl Rgba {
     }
 
     #[inline]
-    pub const fn as_bytes(&self) -> &[u8; 4] {
+    pub const fn as_bytes(&self) -> &[u8] {
         unsafe {
-            &*(self as *const Self).cast()
+            std::slice::from_raw_parts(std::ptr::from_ref(self).cast(), 4)
         }
     }
 
     #[inline]
-    pub fn as_mut_bytes(&mut self) -> &mut [u8; 4] {
+    pub fn as_mut_bytes(&mut self) -> &mut [u8] {
         unsafe {
-            &mut *(self as *mut Self).cast()
+            std::slice::from_raw_parts_mut(std::ptr::from_mut(self).cast(), 4)
         }
     }
 
@@ -991,7 +991,7 @@ impl ColorEntry {
 }
 
 macro_rules! color_table {
-    ($([
+    ($({
         $readable_name:literal
         $pascal_name:ident
         $upper_snake_name:ident
@@ -1000,7 +1000,7 @@ macro_rules! color_table {
         $uppercase_name:ident
         $rgb_hex:literal
         RGB($r:literal, $g:literal, $b:literal)
-    ])+) => {
+    })+) => {
         pub const HTML_COLORS: [ColorEntry; 140] = [
             $(
                 ColorEntry::new(
