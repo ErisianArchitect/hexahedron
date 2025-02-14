@@ -7,3 +7,4 @@ pub mod hashing;
 pub mod rng;
 pub mod crypt;
 pub mod lowlevel;
+pub mod typing;
