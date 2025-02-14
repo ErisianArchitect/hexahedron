@@ -975,6 +975,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1261fe7e33c73b354eab43b1273a57c8f967d0391e80353e51f764ac02cf6775"
 
 [[package]]
+name = "panicmsg"
+version = "1.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c0943233c90774fabcc8bae4b2f45bd817ce57f85b35a7fb6023bf6e982395c1"
+
+[[package]]
 name = "parking_lot"
 version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1226,10 +1232,11 @@ checksum = "57397d16646700483b67d2dd6511d79318f9d057fdbd21a4066aeac8b41d310a"
 
 [[package]]
 name = "rollgrid"
-version = "0.3.1"
+version = "3.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f5a269ca07b0db97392df348f97482be2d294a6879a82222740f8b5e5afd4b6c"
+checksum = "be0228715d4e911eadcd3df048512222f53fc3df6d4fb5e7e989b7b3a89019d5"
 dependencies = [
+ "panicmsg",
  "serde",
 ]
 
