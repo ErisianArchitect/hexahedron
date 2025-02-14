@@ -3,29 +3,25 @@ pub trait Sealed<T> {}
 
 #[macro_export]
 macro_rules! seal {
-    ($marker:ty; $($type:ty),+$(,)?) => {
-        $(
-            impl $crate::private::Sealed<$marker> for $type {}
-        )+
+    (marker = $marker:ty; $($token:tt)*) => {
+        hexmacros::mark!(trait = $crate::private::Sealed<$marker>; $($token)*);
     };
-    ($($type:ty),+$(,)?) => {
-        $(
-            impl $crate::private::Sealed<()> for $type {}
-        )+
+    ($($token:tt)*) => {
+        hexmacros::mark!(trait = $crate::private::Sealed<()>; $($token)*);
     };
-    ($marker:ty; where: $($trait:path),+$(,)?) => {
-        impl<T> $crate::private::Sealed<$marker> for T
-        where T: $($trait+)+ {}
+}
+
+#[macro_export]
+macro_rules! sealed {
+    [$marker:ty] => {
+        $crate::private::Sealed<$marker>
     };
-    (where: $($trait:path),+$(,)?) => {
-        impl<T> $crate::private::Sealed<()> for T
-        where T: $($trait+)+ {}
+    [] => {
+        $crate::private::Sealed<()>
     };
 }
 
 #[allow(unused)]
-pub use crate::seal;
-
-use hexmacros::*;
-
-prototype!(in crate; Type, <T> for (T, T) where );
+pub(crate) use crate::seal;
+#[allow(unused)]
+pub(crate) use crate::sealed;
