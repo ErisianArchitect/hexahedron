@@ -129,3 +129,7 @@ pub use crate::{
     error::Error as VoxelError,
     error::Result as VoxelResult,
 };
+
+pub(crate) use crate::{
+    private::*,
+};
