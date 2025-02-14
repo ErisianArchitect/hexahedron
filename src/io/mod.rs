@@ -33,8 +33,8 @@ use glam::{
     quat,
 };
 use rollgrid::{
-    rollgrid2d::Bounds2D,
-    rollgrid3d::Bounds3D,
+    bounds2d::Bounds2D,
+    bounds3d::Bounds3D,
 };
 use paste::paste;
 use itertools::*;
