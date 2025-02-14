@@ -12,14 +12,8 @@ macro_rules! pipeline {
     };
 }
 
-pub use crate::pipeline;
 
-#[macro_export]
-macro_rules! hash_password {
-    ($lit:literal) => {
-        $crate::util::crypt::HashedPassword::hash_password($lit)
-    };
-}
+pub use crate::pipeline;
 
 #[cfg(test)]
 mod tests {
