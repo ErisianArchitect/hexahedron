@@ -138,6 +138,40 @@ pub fn calculate_tri_normal(tri: &[Vec3]) -> Vec3 {
     Vec3::new(nx, ny, nz).normalize()
 }
 
+pub fn quadratic_bezier2(points: &[glam::Vec2], t: f32) -> glam::Vec2 {
+    debug_assert_eq!(points.len(), 3, "Must have exactly 3 points.");
+    let ab = points[0].lerp(points[1], t);
+    let bc = points[1].lerp(points[2], t);
+    ab.lerp(bc, t)
+}
+
+pub fn cubic_bezier2(points: &[glam::Vec2], t: f32) -> glam::Vec2 {
+    debug_assert_eq!(points.len(), 4, "Must have exactly 4 points.");
+    let ab = points[0].lerp(points[1], t);
+    let bc = points[1].lerp(points[2], t);
+    let cd = points[2].lerp(points[3], t);
+    let ab_bc = ab.lerp(bc, t);
+    let bc_cd = bc.lerp(cd, t);
+    ab_bc.lerp(bc_cd, t)
+}
+
+pub fn quadratic_bezier3(points: &[glam::Vec3], t: f32) -> glam::Vec3 {
+    debug_assert_eq!(points.len(), 3, "Must have exactly 3 points.");
+    let ab = points[0].lerp(points[1], t);
+    let bc = points[1].lerp(points[2], t);
+    ab.lerp(bc, t)
+}
+
+pub fn cubic_bezier3(points: &[glam::Vec3], t: f32) -> glam::Vec3 {
+    debug_assert_eq!(points.len(), 4, "Must have exactly 4 points.");
+    let ab = points[0].lerp(points[1], t);
+    let bc = points[1].lerp(points[2], t);
+    let cd = points[2].lerp(points[3], t);
+    let ab_bc = ab.lerp(bc, t);
+    let bc_cd = bc.lerp(cd, t);
+    ab_bc.lerp(bc_cd, t)
+}
+
 #[inline]
 pub fn checkerboard1<T: GetBit>(x: T) -> bool {
     x.get_bit(0)

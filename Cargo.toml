@@ -1,4 +1,11 @@
-workspace = { members = ["hexmacros"] }
+# workspace = { members = ["hexmacros"] }
+[workspace]
+members = [
+    "hexcolor",
+    "hexcore", "hexhash", "hexio",
+    "hexmacros", "hexorient", "hexregion",
+]
+
 [package]
 name = "hexahedron"
 version = "0.1.0"
@@ -9,43 +16,42 @@ edition = "2021"
 name = "calc"
 path = "./bin/calc.rs"
 
-[[bin]]
-name = "codegen"
-path = "./bin/codegen.rs"
+# [[bin]]
+# name = "codegen"
+# path = "./bin/codegen.rs"
 
-[[bin]]
-name = "sandbox"
-path = "./bin/sandbox/main.rs"
-
-[[bin]]
-name = "netbox"
-path = "./bin/netbox/main.rs"
+# [[bin]]
+# name = "sandbox"
+# path = "./bin/sandbox/main.rs"
 
 [dependencies]
 hexmacros = { path = "hexmacros" }
 
-blake3 = "1.5.5"
+# blake3 = "1.5.5"
 bytemuck = { version = "1.18.0", features = ["derive"] }
-chrono = "0.4.38"
-flate2 = "1.0.33"
-glam = { version = "0.29.0", features = ["serde"] }
-gltf = "1.4.1"
+# chrono = "0.4.38"
+# flate2 = "1.0.33"
+glam = { version = "0.29.0", features = ["serde", "bytemuck"] }
+# gltf = "1.4.1"
 hashbrown = { version = "0.14.5", features = ["serde"] }
 image = "0.25.2"
-itertools = "0.13.0"
-noise = "0.9.0"
-parking_lot = "0.12.3"
+# itertools = "0.13.0"
+# noise = "0.9.0"
+# parking_lot = "0.12.3"
 paste = "1.0.15"
 rand = "0.8.5"
-rollgrid = { version = "3.0.1", features = ["serde"]}
+# rollgrid = { version = "3.0.1", features = ["serde"]}
 serde = { version = "1.0.210", features = ["derive"] }
 serde_json = "1.0.128"
-sha2 = "0.10.8"
+# sha2 = "0.10.8"
 spin_sleep = "1.3.0"
-splines = { version = "4.3.1", features = ["glam"] }
-tap = "1.0.1"
+# splines = { version = "4.3.1", features = ["glam"] }
+# tap = "1.0.1"
 thiserror = "1.0.63"
-tokio = { version = "1.41.1", features = ["full"] }
-twox-hash = "2.1.0"
-argon2 = "0.5.3"
-aes = "0.8.4"
+# tokio = { version = "1.41.1", features = ["full"] }
+# twox-hash = "2.1.0"
+# argon2 = "0.5.3"
+# aes = "0.8.4"
+wgpu = "24.0.1"
+winit = "0.30.9"
+pollster = { version = "0.4.0", features = ["macro"] }

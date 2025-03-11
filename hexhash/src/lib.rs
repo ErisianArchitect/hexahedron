@@ -1,3 +1,4 @@
+mod private;
 use std::{hash::{DefaultHasher, Hash, Hasher}, io::Write};
 use hexmacros::mark;
 use twox_hash::{XxHash32, XxHash64};
@@ -345,7 +346,7 @@ pub mod deterministic {
 
     use super::*;
 
-    use crate::io::{Deterministic, Writeable};
+    use hexio::{Deterministic, Writeable};
 
 
     struct HasherWriter<T: Hasher>(T);

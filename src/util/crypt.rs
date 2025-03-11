@@ -7,7 +7,7 @@ static ARGON2: LazyLock<argon2::Argon2> = LazyLock::new(|| {
 
 pub const SALT_SIZE: usize = 16;
 
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Salt(pub [u8; SALT_SIZE]);
 
 impl Salt {
@@ -16,6 +16,15 @@ impl Salt {
         let mut salt = [0u8; SALT_SIZE];
         OsRng.fill_bytes(&mut salt);
         Self(salt)
+    }
+}
+
+impl Drop for Salt {
+    fn drop(&mut self) {
+        const ZEROED: [u8; SALT_SIZE] = [0u8; SALT_SIZE];
+        unsafe {
+            std::ptr::write_volatile(&mut self.0, ZEROED);
+        }
     }
 }
 
@@ -62,7 +71,7 @@ impl From<Salt> for [u8; SALT_SIZE] {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Password {
     pub hash: [u8; 32],
     pub salt: Salt,
@@ -116,6 +125,15 @@ impl<P: AsRef<[u8]>> PartialEq<P> for Password {
     #[inline]
     fn eq(&self, other: &P) -> bool {
         self.compare(other)
+    }
+}
+
+impl Drop for Password {
+    fn drop(&mut self) {
+        const ZEROED: [u8; 32] = [0u8; 32];
+        unsafe {
+            std::ptr::write_volatile(&mut self.hash, ZEROED);
+        }
     }
 }
 

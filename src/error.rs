@@ -10,8 +10,8 @@ pub enum Error {
     IoError(#[from]std::io::Error),
     #[error("From UTF-8 Error: {0}")]
     FromUtf8Error(#[from]std::string::FromUtf8Error),
-    #[error("Block Error: {0}")]
-    BlockError(#[from]crate::voxel::block::error::Error),
+    // #[error("Block Error: {0}")]
+    // BlockError(#[from]crate::voxel::block::error::Error),
     #[error("String too long")]
     StringTooLong,
     #[error("Array too long")]

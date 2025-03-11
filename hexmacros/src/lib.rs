@@ -201,7 +201,7 @@ pub fn foreach(input: TokenStream) -> TokenStream {
 /// table_name!(foreach(path_to::other_macro));
 /// ```
 /// 
-/// Table rows can be matches using syntax like so when not using `foreach` mode:
+/// Table rows can be matched using syntax like so when not using `foreach` mode:
 /// ```rust, no_run
 /// $( { $($token:tt)* } )*
 /// ```
