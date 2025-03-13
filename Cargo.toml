@@ -2,8 +2,8 @@
 [workspace]
 members = [
     "hexcolor",
-    "hexcore", "hexhash", "hexio",
-    "hexmacros", "hexorient", "hexregion",
+    "hexcore", "hexgpu", "hexhash", "hexio",
+    "hexmacros", "hexmath", "hexorient", "hexregion",
 ]
 
 [package]
@@ -25,33 +25,58 @@ path = "./bin/calc.rs"
 # path = "./bin/sandbox/main.rs"
 
 [dependencies]
-hexmacros = { path = "hexmacros" }
-
+# These commented out crates are likely to be used, but are not included right now.
 # blake3 = "1.5.5"
-bytemuck = { version = "1.18.0", features = ["derive"] }
 # chrono = "0.4.38"
 # flate2 = "1.0.33"
-glam = { version = "0.29.0", features = ["serde", "bytemuck"] }
 # gltf = "1.4.1"
-hashbrown = { version = "0.14.5", features = ["serde"] }
-image = "0.25.2"
 # itertools = "0.13.0"
 # noise = "0.9.0"
 # parking_lot = "0.12.3"
-paste = "1.0.15"
-rand = "0.8.5"
 # rollgrid = { version = "3.0.1", features = ["serde"]}
-serde = { version = "1.0.210", features = ["derive"] }
-serde_json = "1.0.128"
 # sha2 = "0.10.8"
-spin_sleep = "1.3.0"
 # splines = { version = "4.3.1", features = ["glam"] }
 # tap = "1.0.1"
-thiserror = "1.0.63"
 # tokio = { version = "1.41.1", features = ["full"] }
 # twox-hash = "2.1.0"
 # argon2 = "0.5.3"
 # aes = "0.8.4"
+
+# Internal Crates
+hexmacros = { workspace = true }
+# External Crates
+thiserror = { workspace = true }
+wgpu = { workspace = true }
+winit = { workspace = true }
+pollster = { workspace = true}
+spin_sleep = { workspace = true }
+rand = { workspace = true }
+paste = { workspace = true }
+image = { workspace = true }
+hashbrown = { workspace = true }
+glam = { workspace = true }
+bytemuck = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+hexmath = { workspace = true }
+hexcore = { workspace = true }
+
+[workspace.dependencies]
+# Internal Crates
+hexcore = { path = "hexcore" }
+hexmacros = { path = "hexmacros" }
+hexmath = { path = "hexmath" }
+# External Crates
+thiserror = "1.0.63"
 wgpu = "24.0.1"
-winit = "0.30.9"
+winit = { version = "0.29", features = ["rwh_05"] }
 pollster = { version = "0.4.0", features = ["macro"] }
+spin_sleep = "1.3.0"
+rand = "0.8.5"
+paste = "1.0.15"
+image = "0.25.2"
+hashbrown = { version = "0.14.5", features = ["serde"] }
+glam = { version = "0.29.0", features = ["serde", "bytemuck"] }
+bytemuck = { version = "1.18.0", features = ["derive"] }
+serde = { version = "1.0.210", features = ["derive"] }
+serde_json = "1.0.128"

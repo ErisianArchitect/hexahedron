@@ -1,10 +1,10 @@
 [package]
-name = "hexorient"
+name = "hexmath"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
 hexmacros = { workspace = true }
-serde = { workspace = true }
-bytemuck = { workspace = true }
 glam = { workspace = true }
+bytemuck = { workspace = true }
+paste = { workspace = true }

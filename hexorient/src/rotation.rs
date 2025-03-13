@@ -12,12 +12,15 @@ pub struct Rotation(pub u8);
 
 impl Rotation {
     pub const UNROTATED: Rotation = Rotation::new(Direction::PosY, 0);
-    pub const ROTATE_X: Rotation = Rotation::new(Direction::NegZ, 2);
+    pub const ROTATE_X: Rotation = Rotation::new(Direction::PosZ, 0);
     pub const ROTATE_Y: Rotation = Rotation::new(Direction::PosY, 1);
-    pub const ROTATE_Z: Rotation = Rotation::new(Direction::PosX, 1);
+    pub const ROTATE_Z: Rotation = Rotation::new(Direction::NegX, 1);
     pub const X_ROTATIONS: [Rotation; 4] = Self::ROTATE_X.angles();
     pub const Y_ROTATIONS: [Rotation; 4] = Self::ROTATE_Y.angles();
     pub const Z_ROTATIONS: [Rotation; 4] = Self::ROTATE_Z.angles();
+
+    // FIXME: Fix CORNER_ROTATIONS_MATRIX
+    // TODO: Create visualizer program to help with orientations.
 
     pub const CORNER_ROTATIONS_MATRIX: [[[[Rotation; 3]; 2]; 2]; 2] = [
         [
@@ -31,12 +34,12 @@ impl Rotation {
     ];
 
     pub const FACE_ROTATIONS: [[Rotation; 4]; 6] = [
-        Rotation::new(Direction::PosY, 1).angles(), // PosY
-        Rotation::new(Direction::NegZ, 2).angles(), // PosX
-        Rotation::new(Direction::PosX, 1).angles(), // PosZ
-        Rotation::new(Direction::PosY, 3).angles(), // NegY
-        Rotation::new(Direction::PosZ, 0).angles(), // NegX
-        Rotation::new(Direction::NegX, 3).angles(), // NegZ
+        Self::Y_ROTATIONS, // PosY
+        Self::X_ROTATIONS, // PosX
+        Self::Z_ROTATIONS, // PosZ
+        Self::ROTATE_Y.invert().angles(), // NegY
+        Self::ROTATE_X.invert().angles(), // NegX
+        Self::ROTATE_Z.invert().angles(), // NegZ
     ];
 
     #[inline]
@@ -557,7 +560,7 @@ impl Rotation {
     /// Gets the angle of the source face. 
     pub fn face_angle(self, face: Direction) -> u8 {
         use Direction::*;
-        match (self.angle(), self.up(), face) {
+        match (self.angle(), self.up(), face) {// unfinished after this point
             (0, NegX, NegX) => 0,
             (0, NegX, NegY) => 1,
             (0, NegX, NegZ) => 3,
@@ -575,23 +578,23 @@ impl Rotation {
             (0, NegZ, NegZ) => 0,
             (0, NegZ, PosX) => 3,
             (0, NegZ, PosY) => 0,
-            (0, NegZ, PosZ) => 2,//
+            (0, NegZ, PosZ) => 2,
             (0, PosX, NegX) => 2,
-            (0, PosX, NegY) => 1,
-            (0, PosX, NegZ) => 3,
+            (0, PosX, NegY) => 3,
+            (0, PosX, NegZ) => 1,
             (0, PosX, PosX) => 0,
-            (0, PosX, PosY) => 1,
-            (0, PosX, PosZ) => 1,
+            (0, PosX, PosY) => 3,
+            (0, PosX, PosZ) => 3,
             (0, PosY, NegX) => 0,
             (0, PosY, NegY) => 0,
             (0, PosY, NegZ) => 0,
             (0, PosY, PosX) => 0,
             (0, PosY, PosY) => 0,
             (0, PosY, PosZ) => 0,
-            (0, PosZ, NegX) => 1,
+            (0, PosZ, NegX) => 3,
             (0, PosZ, NegY) => 0,
             (0, PosZ, NegZ) => 2,
-            (0, PosZ, PosX) => 3,
+            (0, PosZ, PosX) => 1,
             (0, PosZ, PosY) => 2,
             (0, PosZ, PosZ) => 0,
             (1, NegX, NegX) => 1,
@@ -600,25 +603,24 @@ impl Rotation {
             (1, NegX, PosX) => 1,
             (1, NegX, PosY) => 1,
             (1, NegX, PosZ) => 1,
-            // unfinished after this point
             (1, NegY, NegX) => 2,
             (1, NegY, NegY) => 1,
             (1, NegY, NegZ) => 2,
             (1, NegY, PosX) => 2,
             (1, NegY, PosY) => 3,
             (1, NegY, PosZ) => 2,
-            (1, NegZ, NegX) => 3,
+            (1, NegZ, NegX) => 1,
             (1, NegZ, NegY) => 2,
             (1, NegZ, NegZ) => 1,
-            (1, NegZ, PosX) => 1,
+            (1, NegZ, PosX) => 3,
             (1, NegZ, PosY) => 0,
             (1, NegZ, PosZ) => 1,
             (1, PosX, NegX) => 1,
-            (1, PosX, NegY) => 1,
-            (1, PosX, NegZ) => 3,
+            (1, PosX, NegY) => 3,
+            (1, PosX, NegZ) => 1,
             (1, PosX, PosX) => 1,
-            (1, PosX, PosY) => 1,
-            (1, PosX, PosZ) => 1,
+            (1, PosX, PosY) => 3,
+            (1, PosX, PosZ) => 3,
             (1, PosY, NegX) => 0,
             (1, PosY, NegY) => 3,
             (1, PosY, NegZ) => 0,
@@ -628,79 +630,79 @@ impl Rotation {
             (1, PosZ, NegX) => 1,
             (1, PosZ, NegY) => 0,
             (1, PosZ, NegZ) => 1,
-            (1, PosZ, PosX) => 3,
+            (1, PosZ, PosX) => 1,
             (1, PosZ, PosY) => 2,
             (1, PosZ, PosZ) => 1,
             (2, NegX, NegX) => 2,
-            (2, NegX, NegY) => 3,
-            (2, NegX, NegZ) => 1,
+            (2, NegX, NegY) => 1,
+            (2, NegX, NegZ) => 3,
             (2, NegX, PosX) => 0,
-            (2, NegX, PosY) => 3,
-            (2, NegX, PosZ) => 3,
+            (2, NegX, PosY) => 1,
+            (2, NegX, PosZ) => 1,
             (2, NegY, NegX) => 2,
             (2, NegY, NegY) => 2,
             (2, NegY, NegZ) => 2,
             (2, NegY, PosX) => 2,
             (2, NegY, PosY) => 2,
             (2, NegY, PosZ) => 2,
-            (2, NegZ, NegX) => 3,
+            (2, NegZ, NegX) => 1,
             (2, NegZ, NegY) => 2,
             (2, NegZ, NegZ) => 2,
-            (2, NegZ, PosX) => 1,
+            (2, NegZ, PosX) => 3,
             (2, NegZ, PosY) => 0,
             (2, NegZ, PosZ) => 0,
             (2, PosX, NegX) => 0,
-            (2, PosX, NegY) => 1,
-            (2, PosX, NegZ) => 3,
+            (2, PosX, NegY) => 3,
+            (2, PosX, NegZ) => 1,
             (2, PosX, PosX) => 2,
-            (2, PosX, PosY) => 1,
-            (2, PosX, PosZ) => 1,
+            (2, PosX, PosY) => 3,
+            (2, PosX, PosZ) => 3,
             (2, PosY, NegX) => 0,
             (2, PosY, NegY) => 2,
             (2, PosY, NegZ) => 0,
             (2, PosY, PosX) => 0,
             (2, PosY, PosY) => 2,
             (2, PosY, PosZ) => 0,
-            (2, PosZ, NegX) => 1,
+            (2, PosZ, NegX) => 3,
             (2, PosZ, NegY) => 0,
             (2, PosZ, NegZ) => 0,
-            (2, PosZ, PosX) => 3,
+            (2, PosZ, PosX) => 1,
             (2, PosZ, PosY) => 2,
             (2, PosZ, PosZ) => 2,
             (3, NegX, NegX) => 3,
-            (3, NegX, NegY) => 3,
-            (3, NegX, NegZ) => 1,
+            (3, NegX, NegY) => 1,
+            (3, NegX, NegZ) => 3,
             (3, NegX, PosX) => 3,
-            (3, NegX, PosY) => 3,
-            (3, NegX, PosZ) => 3,
+            (3, NegX, PosY) => 1,
+            (3, NegX, PosZ) => 1,
             (3, NegY, NegX) => 2,
             (3, NegY, NegY) => 3,
             (3, NegY, NegZ) => 2,
             (3, NegY, PosX) => 2,
             (3, NegY, PosY) => 1,
             (3, NegY, PosZ) => 2,
-            (3, NegZ, NegX) => 3,
+            (3, NegZ, NegX) => 1,
             (3, NegZ, NegY) => 2,
             (3, NegZ, NegZ) => 3,
-            (3, NegZ, PosX) => 1,
+            (3, NegZ, PosX) => 3,
             (3, NegZ, PosY) => 0,
             (3, NegZ, PosZ) => 3,
             (3, PosX, NegX) => 3,
-            (3, PosX, NegY) => 1,
-            (3, PosX, NegZ) => 3,
+            (3, PosX, NegY) => 3,
+            (3, PosX, NegZ) => 1,
             (3, PosX, PosX) => 3,
-            (3, PosX, PosY) => 1,
-            (3, PosX, PosZ) => 1,
+            (3, PosX, PosY) => 3,
+            (3, PosX, PosZ) => 3,
             (3, PosY, NegX) => 0,
             (3, PosY, NegY) => 1,
             (3, PosY, NegZ) => 0,
             (3, PosY, PosX) => 0,
             (3, PosY, PosY) => 3,
             (3, PosY, PosZ) => 0,
-            (3, PosZ, NegX) => 1,
+            (3, PosZ, NegX) => 3,
             (3, PosZ, NegY) => 0,
             (3, PosZ, NegZ) => 3,
-            (3, PosZ, PosX) => 3,
+            (3, PosZ, PosX) => 1,
             (3, PosZ, PosY) => 2,
             (3, PosZ, PosZ) => 3,
             _ => unreachable!(),
@@ -773,8 +775,8 @@ impl Rotation {
     #[inline]
     pub fn to_matrix(self) -> glam::Mat4 {
         let up = self.reface(Direction::PosY).to_vec3();
-        let forward = self.reface(Direction::NegZ).to_vec3();
-        let right = self.reface(Direction::PosX).to_vec3();
+        let forward = self.reface(Direction::PosZ).to_vec3();
+        let right = self.reface(Direction::NegX).to_vec3();
         glam::Mat4::from_cols(
             right.extend(0.0),
             up.extend(0.0),
@@ -790,10 +792,11 @@ mod testing_sandbox {
     use super::*;
     #[test]
     fn sandbox() {
-        let rot = Rotation::new(Direction::NegX, 0);
+        let rot = Rotation::new(Direction::NegX, 3);
         let mat = rot.to_matrix();
-        let trans = mat.transform_point3(glam::Vec3::Y);
+        let trans = mat.transform_point3(glam::Vec3::NEG_Z);
         println!("{trans:?}");
+        println!("{}", rot.source_face(Direction::NegZ));
     }
 }
 

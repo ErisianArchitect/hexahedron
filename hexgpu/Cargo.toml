@@ -1,7 +1,7 @@
 [package]
-name = "hexio"
+name = "hexgpu"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
 hexmacros = { workspace = true }
@@ -9,6 +9,6 @@ hexmacros = { workspace = true }
 # bytemuck = { version = "1.18.0", features = ["derive"] }
 glam = { workspace = true }
 paste = { workspace = true }
-itertools = "0.13.0"
+# itertools = "0.13.0"
 bytemuck = { workspace = true }
 thiserror = { workspace = true }

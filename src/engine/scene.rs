@@ -10,7 +10,7 @@
 
 use std::sync::{Arc, Mutex};
 
-use super::Engine;
+use super::engine::Engine;
 
 
 #[allow(unused)]
@@ -66,6 +66,24 @@ pub trait Scene {
     ) {}
 
     fn end_frame(
+        &mut self,
+        engine: &Engine,
+        frame_index: u64,
+    ) {}
+
+    fn begin_fixed_update(
+        &mut self,
+        engine: &Engine,
+        frame_index: u64,
+    ) {}
+
+    fn fixed_update(
+        &mut self,
+        engine: &Engine,
+        frame_index: u64,
+    ) {}
+
+    fn end_fixed_update(
         &mut self,
         engine: &Engine,
         frame_index: u64,

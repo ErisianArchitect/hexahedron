@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-hexmacros = { path = "../hexmacros" }
-serde = { version = "1.0.210", features = ["derive"] }
-bytemuck = { version = "1.18.0", features = ["derive"] }
-glam = { version = "0.29.0", features = ["serde", "bytemuck"] }
+hexmacros = { workspace = true }
+serde = { workspace = true }
+bytemuck = { workspace = true }
+glam = { workspace = true }

@@ -2,6 +2,8 @@
 A simple Directed Acyclic Dependency Graph for Scene ordering.
 */
 
+use std::collections::VecDeque;
+
 use hashbrown::{HashMap, HashSet};
 use super::scene::*;
 
@@ -36,11 +38,40 @@ impl GraphId {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum Dependency {
+    /// The node requires the dependency to be active.
+    NeedsActive(GraphId),
+    /// The node only needs the correct ordering.
+    NeedsOrder(GraphId),
+}
+
+impl Dependency {
+    pub fn id(self) -> GraphId {
+        match self {
+            Dependency::NeedsActive(graph_id) => graph_id,
+            Dependency::NeedsOrder(graph_id) => graph_id,
+        }
+    }
+
+    /// Creates a new [Dependency] with the same variant but a new id.
+    pub fn with_new_id(self, id: GraphId) -> Self {
+        match self {
+            Dependency::NeedsActive(_) => Dependency::NeedsActive(id),
+            Dependency::NeedsOrder(_) => Dependency::NeedsOrder(id),
+        }
+    }
+
+    pub fn needs_active(self) -> bool {
+        matches!(self, Self::NeedsActive(_))
+    }
+}
+
 pub struct SceneGraphNode {
     scene: SharedScene,
     active: bool,
-    dependencies: HashSet<GraphId>,
-    dependents: HashSet<GraphId>,
+    dependencies: HashSet<Dependency>,
+    dependents: HashSet<Dependency>,
 }
 
 // Store nodes, roots, topological sort.
@@ -97,18 +128,94 @@ impl SceneGraph {
         dependencies: I,
     ) -> GraphId
     where
-        I: IntoIterator<Item = GraphId>,
+        I: IntoIterator<Item = Dependency>,
     {
         let id = self.id_counter.fetch_increment();
         let node = self.nodes.entry(id).insert(SceneGraphNode::new(scene, active)).into_mut();
         let deps = Vec::from_iter(dependencies.into_iter());
         node.dependencies.extend(deps.iter().cloned());
-        for dep in &deps {
-            let dep_mut = self.nodes.get_mut(dep).expect("Failed to get dependency node. Graph was built incorrectly.");
-            dep_mut.dependents.insert(id);
+        for dep in deps {
+            let dep_mut = self.nodes.get_mut(&dep.id()).expect("Failed to get dependency node. Graph was built incorrectly.");
+            dep_mut.dependents.insert(dep.with_new_id(id));
         }
         self.request_sort();
         id
     }
+
+    fn rebuild_topological_sort(&mut self) {
+        if !self.needs_sort {
+            return;
+        }
+        self.topological_sort.clear();
+        let mut queue: VecDeque<GraphId> = VecDeque::new();
+        queue.extend(&self.roots);
+        let mut in_degrees = HashMap::new();
+
+        for (&id, node) in self.nodes.iter() {
+            in_degrees.insert(id, node.dependencies.len());
+        }
+
+        while let Some(id) = queue.pop_front() {
+            let Some(node) = self.nodes.get(&id) else {
+                panic!("Corrupt graph");
+            };
+            // if !node.active {
+            //     // If the node isn't active, we should just skip it and do nothing with the dependents.
+            //     continue;
+            // }
+            if node.active {
+                self.topological_sort.push(id);
+            }
+            for dependent in node.dependents.iter() {
+                if !dependent.needs_active() || node.active {
+                    let Some(degrees) = in_degrees.get_mut(&dependent.id()) else {
+                        panic!("Corrupt graph.");
+                    };
+                    *degrees -= 1;
+                    if *degrees == 0 {
+                        queue.push_back(dependent.id());
+                    }
+                }
+            }
+        }
+        self.needs_sort = false;
+    }
+
+    pub fn topological_sort(&mut self) -> &[GraphId] {
+        self.rebuild_topological_sort();
+        &self.topological_sort
+    }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    struct TestScene(&'static str);
+
+    impl Scene for TestScene {
+        
+    }
+
+    #[test]
+    fn scene_graph_test() {
+        let mut graph = SceneGraph::new();
+        let root_0 = graph.insert_root(SharedScene::new(TestScene("Foo")), false);
+        let root_1 = graph.insert_root(SharedScene::new(TestScene("Bar")), true);
+        let child_0 = graph.insert_node(SharedScene::new(TestScene("Child of Foo")), true, [Dependency::NeedsActive(root_0)]);
+        let child_1 = graph.insert_node(SharedScene::new(TestScene("Order of Foo")), true, [Dependency::NeedsOrder(root_0)]);
+        let child_2 = graph.insert_node(SharedScene::new(TestScene("Child of Bar")), true, [Dependency::NeedsActive(root_1)]);
+        let names: HashMap<GraphId, &'static str> = HashMap::from([
+            (root_0, "Foo"),
+            (root_1, "Bar"),
+            (child_0, "Child of Foo"),
+            (child_1, "Order of Foo"),
+            (child_2, "Child of Bar"),
+        ]);
+        let top_sort = graph.topological_sort();
+        for node in top_sort {
+            println!("{}", names[node]);
+        }
+        
+    }
+}
