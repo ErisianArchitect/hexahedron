@@ -8,9 +8,10 @@
 - Render
 */
 
-use std::sync::{Arc, Mutex};
+use std::rc::Rc;
+use std::cell::RefCell;
 
-use super::engine::Engine;
+use super::{engine::{Engine, EventPropagation}, frames::frame_info::FrameInfo};
 
 
 #[allow(unused)]
@@ -38,6 +39,12 @@ pub trait Scene {
         focused: bool,
     ) {}
 
+    fn minimized_changed(
+        &mut self,
+        engine: &Engine,
+        minimized: bool,
+    ) {}
+
     fn close_requested(
         &mut self,
         engine: &Engine,
@@ -55,8 +62,8 @@ pub trait Scene {
         &mut self,
         engine: &Engine,
         event: &winit::event::WindowEvent,
-    ) -> bool {
-        false
+    ) -> EventPropagation {
+        EventPropagation::Propagate
     }
 
     fn begin_frame(
@@ -74,49 +81,49 @@ pub trait Scene {
     fn begin_fixed_update(
         &mut self,
         engine: &Engine,
-        frame_index: u64,
+        frame: &FrameInfo,
     ) {}
 
     fn fixed_update(
         &mut self,
         engine: &Engine,
-        frame_index: u64,
+        frame: &FrameInfo,
     ) {}
 
     fn end_fixed_update(
         &mut self,
         engine: &Engine,
-        frame_index: u64,
+        frame: &FrameInfo,
     ) {}
 
     fn begin_update(
         &mut self,
         engine: &Engine,
-        frame_index: u64,
+        frame: &FrameInfo,
     ) {}
 
     fn update(
         &mut self,
         engine: &Engine,
-        frame_index: u64,
+        frame: &FrameInfo,
     ) {}
 
     fn end_update(
         &mut self,
         engine: &Engine,
-        frame_index: u64,
+        frame: &FrameInfo,
     ) {}
 
     fn begin_render(
         &mut self,
         engine: &Engine,
-        frame_index: u64,
+        frame: &FrameInfo,
     ) {}
 
     fn render(
         &mut self,
         engine: &Engine,
-        frame_index: u64,
+        frame: &FrameInfo,
     ) -> Result<(), wgpu::SurfaceError> {
         Ok(())
     }
@@ -124,16 +131,14 @@ pub trait Scene {
     fn end_render(
         &mut self,
         engine: &Engine,
-        frame_index: u64,
+        frame: &FrameInfo,
     ) {}
 }
 
 #[derive(Clone)]
 pub struct SharedScene {
-    scene: Arc<Mutex<dyn Scene + 'static>>,
+    scene: Rc<RefCell<dyn Scene + 'static>>,
 }
-
-const SCENE_LOCK_FAILURE: &'static str = "Failed to lock scene.";
 
 impl<T: Scene + 'static> From<T> for SharedScene {
     fn from(value: T) -> Self {
@@ -144,7 +149,7 @@ impl<T: Scene + 'static> From<T> for SharedScene {
 impl SharedScene {
     pub fn new<S: Scene + 'static>(scene: S) -> Self {
         Self {
-            scene: Arc::new(Mutex::new(scene)),
+            scene: Rc::new(RefCell::new(scene)),
         }
     }
 
@@ -152,16 +157,16 @@ impl SharedScene {
         &self,
         engine: &Engine,
     ) {
-        let mut scene_lock = self.scene.lock().expect(SCENE_LOCK_FAILURE);
-        scene_lock.load(engine);
+        let mut scene = self.scene.borrow_mut();
+        scene.load(engine);
     }
 
     pub fn unload(
         &self,
         engine: &Engine,
     ) {
-        let mut scene_lock = self.scene.lock().expect(SCENE_LOCK_FAILURE);
-        scene_lock.unload(engine);
+        let mut scene = self.scene.borrow_mut();
+        scene.unload(engine);
     }
 
     pub fn resize(
@@ -169,8 +174,8 @@ impl SharedScene {
         engine: &Engine,
         new_size: winit::dpi::PhysicalSize<u32>,
     ) {
-        let mut scene_lock = self.scene.lock().expect(SCENE_LOCK_FAILURE);
-        scene_lock.resize(engine, new_size);
+        let mut scene = self.scene.borrow_mut();
+        scene.resize(engine, new_size);
     }
 
     pub fn focus_changed(
@@ -178,16 +183,16 @@ impl SharedScene {
         engine: &Engine,
         focused: bool,
     ) {
-        let mut scene_lock = self.scene.lock().expect(SCENE_LOCK_FAILURE);
-        scene_lock.focus_changed(engine, focused);
+        let mut scene = self.scene.borrow_mut();
+        scene.focus_changed(engine, focused);
     }
 
     pub fn close_requested(
         &self,
         engine: &Engine,
     ) -> bool {
-        let mut scene_lock = self.scene.lock().expect(SCENE_LOCK_FAILURE);
-        scene_lock.close_requested(engine)
+        let mut scene = self.scene.borrow_mut();
+        scene.close_requested(engine)
     }
 
     pub fn process_event(
@@ -195,17 +200,17 @@ impl SharedScene {
         engine: &Engine,
         event: &winit::event::Event<()>,
     ) {
-        let mut scene_lock = self.scene.lock().expect(SCENE_LOCK_FAILURE);
-        scene_lock.process_event(engine, event);
+        let mut scene = self.scene.borrow_mut();
+        scene.process_event(engine, event);
     }
 
     pub fn process_window_event(
         &self,
         engine: &Engine,
         event: &winit::event::WindowEvent,
-    ) -> bool {
-        let mut scene_lock = self.scene.lock().expect(SCENE_LOCK_FAILURE);
-        scene_lock.process_window_event(engine, event)
+    ) -> EventPropagation {
+        let mut scene = self.scene.borrow_mut();
+        scene.process_window_event(engine, event)
     }
 
     pub fn begin_frame(
@@ -213,8 +218,8 @@ impl SharedScene {
         engine: &Engine,
         frame_index: u64,
     ) {
-        let mut scene_lock = self.scene.lock().expect(SCENE_LOCK_FAILURE);
-        scene_lock.begin_frame(engine, frame_index);
+        let mut scene = self.scene.borrow_mut();
+        scene.begin_frame(engine, frame_index);
     }
 
     pub fn end_frame(
@@ -222,61 +227,61 @@ impl SharedScene {
         engine: &Engine,
         frame_index: u64,
     ) {
-        let mut scene_lock = self.scene.lock().expect(SCENE_LOCK_FAILURE);
-        scene_lock.end_frame(engine, frame_index);
+        let mut scene = self.scene.borrow_mut();
+        scene.end_frame(engine, frame_index);
     }
 
     pub fn begin_update(
         &self,
         engine: &Engine,
-        frame_index: u64,
+        frame: &FrameInfo,
     ) {
-        let mut scene_lock = self.scene.lock().expect(SCENE_LOCK_FAILURE);
-        scene_lock.begin_update(engine, frame_index);
+        let mut scene = self.scene.borrow_mut();
+        scene.begin_update(engine, frame);
     }
 
     pub fn update(
         &self,
         engine: &Engine,
-        frame_index: u64,
+        frame: &FrameInfo,
     ) {
-        let mut scene_lock = self.scene.lock().expect(SCENE_LOCK_FAILURE);
-        scene_lock.update(engine, frame_index);
+        let mut scene = self.scene.borrow_mut();
+        scene.update(engine, frame);
     }
 
     pub fn end_update(
         &self,
         engine: &Engine,
-        frame_index: u64,
+        frame: &FrameInfo,
     ) {
-        let mut scene_lock = self.scene.lock().expect(SCENE_LOCK_FAILURE);
-        scene_lock.end_update(engine, frame_index);
+        let mut scene = self.scene.borrow_mut();
+        scene.end_update(engine, frame);
     }
 
     pub fn begin_render(
         &self,
         engine: &Engine,
-        frame_index: u64,
+        frame: &FrameInfo,
     ) {
-        let mut scene_lock = self.scene.lock().expect(SCENE_LOCK_FAILURE);
-        scene_lock.begin_render(engine, frame_index);
+        let mut scene = self.scene.borrow_mut();
+        scene.begin_render(engine, frame);
     }
 
     pub fn render(
         &self,
         engine: &Engine,
-        frame_index: u64,
+        frame: &FrameInfo,
     ) -> Result<(), wgpu::SurfaceError> {
-        let mut scene_lock = self.scene.lock().expect(SCENE_LOCK_FAILURE);
-        scene_lock.render(engine, frame_index)
+        let mut scene = self.scene.borrow_mut();
+        scene.render(engine, frame)
     }
 
     pub fn end_render(
         &self,
         engine: &Engine,
-        frame_index: u64,
+        frame: &FrameInfo,
     ) {
-        let mut scene_lock = self.scene.lock().expect(SCENE_LOCK_FAILURE);
-        scene_lock.end_render(engine, frame_index);
+        let mut scene = self.scene.borrow_mut();
+        scene.end_render(engine, frame);
     }
 }

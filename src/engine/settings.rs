@@ -20,9 +20,32 @@ pub enum Resolution {
     Custom(PhysicalSize<u32>),
 }
 
+impl Resolution {
+    pub fn size(self, window: &winit::window::Window) -> PhysicalSize<u32> {
+        match self {
+            Resolution::Window => window.inner_size(),
+            Resolution::SD => PhysicalSize::new(640, 480),
+            Resolution::HD => PhysicalSize::new(1280, 720),
+            Resolution::FHD => PhysicalSize::new(1920, 1080),
+            Resolution::QHD => PhysicalSize::new(2560, 1440),
+            Resolution::Ultra => PhysicalSize::new(3480, 2160),
+            Resolution::EightK => PhysicalSize::new(7680, 4320),
+            Resolution::Custom(physical_size) => physical_size,
+        }
+    }
+}
+
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum Fullscreen {
+    #[default]
+    Exclusive,
+    Borderless,
+}
+
 #[derive(Debug, Clone)]
 pub struct EngineSettings {
     pub vsync: bool,
+    pub max_framerate: Option<u32>,
     pub preferred_resolution: Resolution,
     pub fullscreen: bool,
     pub title: String,
@@ -33,6 +56,7 @@ impl Default for EngineSettings {
         Self {
             vsync: true,
             preferred_resolution: Resolution::Window,
+            max_framerate: None,
             fullscreen: false,
             title: String::from("Hexahedron Game"),
         }

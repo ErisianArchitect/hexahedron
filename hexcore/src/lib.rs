@@ -1,4 +1,6 @@
 pub mod collections;
+pub mod signal;
+pub mod time;
 pub mod bit;
 pub mod change;
 pub mod extensions;

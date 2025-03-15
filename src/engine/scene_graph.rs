@@ -67,8 +67,8 @@ impl Dependency {
     }
 }
 
-pub struct SceneGraphNode {
-    scene: SharedScene,
+pub struct GraphNode<T> {
+    value: T,
     active: bool,
     dependencies: HashSet<Dependency>,
     dependents: HashSet<Dependency>,
@@ -76,18 +76,18 @@ pub struct SceneGraphNode {
 
 // Store nodes, roots, topological sort.
 // When graph changes, recalculate topological sort.
-pub struct SceneGraph {
+pub struct ActiveDependencyGraph<T> {
     id_counter: GraphId,
-    nodes: HashMap<GraphId, SceneGraphNode>,
+    nodes: HashMap<GraphId, GraphNode<T>>,
     roots: HashSet<GraphId>,
     topological_sort: Vec<GraphId>,
     needs_sort: bool,
 }
 
-impl SceneGraphNode {
-    pub fn new(scene: SharedScene, active: bool) -> Self {
+impl<T> GraphNode<T> {
+    pub fn new(value: T, active: bool) -> Self {
         Self {
-            scene,
+            value,
             active,
             dependencies: HashSet::new(),
             dependents: HashSet::new(),
@@ -95,7 +95,7 @@ impl SceneGraphNode {
     }
 }
 
-impl SceneGraph {
+impl<T> ActiveDependencyGraph<T> {
     pub fn new() -> Self {
         Self {
             // ids start at 1 so that 0 can be reserved for null.
@@ -108,14 +108,32 @@ impl SceneGraph {
         }
     }
 
-    /// Request that topological sort is rebuilt when it is next requested.
-    fn request_sort(&mut self) {
-        self.needs_sort = true;
+    pub fn get(&self, id: GraphId) -> Option<&T> {
+        self.nodes.get(&id).map(|node|&node.value)
     }
 
-    pub fn insert_root(&mut self, scene: SharedScene, active: bool) -> GraphId {
+    pub fn get_mut(&mut self, id: GraphId) -> Option<&mut T> {
+        self.nodes.get_mut(&id).map(|node| &mut node.value)
+    }
+
+    /// Returns whether or not the node is active.
+    /// 
+    /// This returns false if the node doesn't exist.
+    pub fn get_active(&self, id: GraphId) -> bool {
+        self.nodes.get(&id).map(|node| node.active).unwrap_or_default()
+    }
+
+    /// Sets the node's active state and returns the old state.
+    pub fn set_active(&mut self, id: GraphId, active: bool) -> bool {
+        let Some(node) = self.nodes.get_mut(&id) else {
+            panic!("Node not found.");
+        };
+        std::mem::replace(&mut node.active, active)
+    }
+
+    pub fn insert_root(&mut self, value: T, active: bool) -> GraphId {
         let id = self.id_counter.fetch_increment();
-        self.nodes.insert(id, SceneGraphNode::new(scene, active));
+        self.nodes.insert(id, GraphNode::new(value, active));
         self.roots.insert(id);
         self.request_sort();
         id
@@ -123,7 +141,7 @@ impl SceneGraph {
 
     pub fn insert_node<I>(
         &mut self,
-        scene: SharedScene,
+        value: T,
         active: bool,
         dependencies: I,
     ) -> GraphId
@@ -131,7 +149,7 @@ impl SceneGraph {
         I: IntoIterator<Item = Dependency>,
     {
         let id = self.id_counter.fetch_increment();
-        let node = self.nodes.entry(id).insert(SceneGraphNode::new(scene, active)).into_mut();
+        let node = self.nodes.entry(id).insert(GraphNode::new(value, active)).into_mut();
         let deps = Vec::from_iter(dependencies.into_iter());
         node.dependencies.extend(deps.iter().cloned());
         for dep in deps {
@@ -140,6 +158,89 @@ impl SceneGraph {
         }
         self.request_sort();
         id
+    }
+
+    pub fn remove_node(&mut self, id: GraphId) -> Option<T> {
+        if let Some(node) = self.nodes.remove(&id) {
+            // Remove from dependencies and dependents.
+            // Dependents
+            for dependent in node.dependents {
+                let Some(dependent_node) = self.nodes.get_mut(&dependent.id()) else {
+                    panic!("Corrupt graph.");
+                };
+                dependent_node.dependencies.remove(&dependent.with_new_id(id));
+            }
+            for dependency in node.dependencies {
+                let Some(dependency_node) = self.nodes.get_mut(&dependency.id()) else {
+                    panic!("Corrupt graph.");
+                };
+                dependency_node.dependents.remove(&dependency.with_new_id(id));
+            }
+            self.request_sort();
+            Some(node.value)
+        } else {
+            None
+        }
+    }
+
+    pub fn add_dependency(&mut self, id: GraphId, dependency: Dependency) {
+        let Some(node) = self.nodes.get_mut(&id) else {
+            panic!("Node not found.");
+        };
+        node.dependencies.insert(dependency);
+        let Some(dependency_node) = self.nodes.get_mut(&dependency.id()) else {
+            panic!("Dependency not found.");
+        };
+        dependency_node.dependents.insert(dependency.with_new_id(id));
+        self.request_sort();
+    }
+
+    pub fn add_dependencies<I: IntoIterator<Item = Dependency>>(&mut self, id: GraphId, dependencies: I) {
+        let Some(node) = self.nodes.get_mut(&id) else {
+            panic!("Node not found.");
+        };
+        let dependencies = dependencies.into_iter().collect::<Vec<_>>();
+        node.dependencies.extend(&dependencies);
+        for dependency in dependencies {
+            let Some(dependency_node) = self.nodes.get_mut(&dependency.id()) else {
+                panic!("Dependency not found.");
+            };
+            dependency_node.dependents.insert(dependency.with_new_id(id));
+        }
+        self.request_sort();
+    }
+
+    pub fn remove_dependency(&mut self, id: GraphId, dependency: Dependency) {
+        todo!()
+    }
+
+    pub fn remove_dependencies<I: IntoIterator<Item = Dependency>>(&mut self, id: GraphId, dependencies: I) {
+        todo!()
+    }
+
+    pub fn remove_all_dependencies(&mut self, id: GraphId) {
+        todo!()
+    }
+
+    pub fn remove_dependent(&mut self, dependent: Dependency) {
+        todo!()
+    }
+
+    pub fn remove_all_dependents(&mut self) {
+        todo!()
+    }
+    
+    pub fn insert_before(&mut self, id: GraphId, target: Dependency) {
+        todo!()
+    }
+
+    pub fn insert_after(&mut self, id: GraphId, target: Dependency) {
+        todo!()
+    }
+
+    /// Request that topological sort is rebuilt when it is next requested.
+    fn request_sort(&mut self) {
+        self.needs_sort = true;
     }
 
     fn rebuild_topological_sort(&mut self) {
@@ -159,10 +260,6 @@ impl SceneGraph {
             let Some(node) = self.nodes.get(&id) else {
                 panic!("Corrupt graph");
             };
-            // if !node.active {
-            //     // If the node isn't active, we should just skip it and do nothing with the dependents.
-            //     continue;
-            // }
             if node.active {
                 self.topological_sort.push(id);
             }
@@ -199,7 +296,7 @@ mod tests {
 
     #[test]
     fn scene_graph_test() {
-        let mut graph = SceneGraph::new();
+        let mut graph = ActiveDependencyGraph::new();
         let root_0 = graph.insert_root(SharedScene::new(TestScene("Foo")), false);
         let root_1 = graph.insert_root(SharedScene::new(TestScene("Bar")), true);
         let child_0 = graph.insert_node(SharedScene::new(TestScene("Child of Foo")), true, [Dependency::NeedsActive(root_0)]);

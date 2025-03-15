@@ -29,6 +29,9 @@ pub mod util;
 // pub mod prelude;
 pub(crate) mod private;
 
+pub use log;
+pub use env_logger;
+
 // i=int(not())
 // def ch(*args):
 //    for arg in args:yield from arg

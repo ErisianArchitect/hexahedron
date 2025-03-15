@@ -16,6 +16,10 @@ edition = "2021"
 name = "calc"
 path = "./bin/calc.rs"
 
+[[bin]]
+name = "engine_test"
+path = "./bin/engine_test/main.rs"
+
 # [[bin]]
 # name = "codegen"
 # path = "./bin/codegen.rs"
@@ -60,6 +64,9 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 hexmath = { workspace = true }
 hexcore = { workspace = true }
+env_logger = { workspace = true }
+log = { workspace = true }
+chrono.workspace = true
 
 [workspace.dependencies]
 # Internal Crates
@@ -80,3 +87,6 @@ glam = { version = "0.29.0", features = ["serde", "bytemuck"] }
 bytemuck = { version = "1.18.0", features = ["derive"] }
 serde = { version = "1.0.210", features = ["derive"] }
 serde_json = "1.0.128"
+env_logger = "0.11.7"
+log = "0.4.26"
+chrono = "0.4.40"

@@ -9,6 +9,7 @@ pub trait AvgBuffer<T> {
     fn new<I: Into<Option<T>>>(capacity: usize, initial: I) -> Self;
     fn push(&mut self, value: T) -> T;
     fn average(&self) -> T;
+    fn clear(&mut self);
 }
 
 impl AvgBuffer<f32> for AverageBuffer<f32> {
@@ -41,6 +42,11 @@ impl AvgBuffer<f32> for AverageBuffer<f32> {
 
     fn average(&self) -> f32 {
         self.current_total / self.buffer.len() as f32
+    }
+
+    fn clear(&mut self) {
+        self.buffer.clear();
+        self.current_total = 0.0;
     }
 }
 
@@ -75,6 +81,11 @@ impl AvgBuffer<f64> for AverageBuffer<f64> {
     fn average(&self) -> f64 {
         self.current_total / self.buffer.len() as f64
     }
+
+    fn clear(&mut self) {
+        self.buffer.clear();
+        self.current_total = 0.0;
+    }
 }
 
 impl AvgBuffer<Duration> for AverageBuffer<Duration> {
@@ -108,21 +119,9 @@ impl AvgBuffer<Duration> for AverageBuffer<Duration> {
     fn average(&self) -> Duration {
         self.current_total / self.buffer.len() as u32
     }
-}
 
-#[test]
-fn foo() {
-    let mut avg = AverageBuffer::<Duration>::new(32, None);
-    avg.push(Duration::from_millis(16));
-    avg.push(Duration::from_millis(16));
-    avg.push(Duration::from_millis(32));
-    avg.push(Duration::from_millis(16));
-    avg.push(Duration::from_millis(16));
-    avg.push(Duration::from_millis(16));
-    let average = avg.push(Duration::from_millis(16));
-    println!("{}", average.as_millis());
-
-    use glam::*;
-    let a = (vec2(5.0, 10.0) + vec2(10.0, 20.0)) / 2.0;
-    println!("{a}");
+    fn clear(&mut self) {
+        self.buffer.clear();
+        self.current_total = Duration::ZERO;
+    }
 }
