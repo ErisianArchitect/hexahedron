@@ -1,4 +1,4 @@
-use hexahedron::engine::{engine::*, settings::{EngineSettings, Fullscreen, Resolution}};
+use hexahedron::engine::{*, settings::{EngineSettings, Fullscreen, Resolution}};
 use hexahedron::{
     log::{info, warn, error},
     env_logger::Builder,
@@ -29,7 +29,7 @@ fn main() {
     info!("Running Engine (Test)");
 
     Engine::run(EngineSettings {
-        vsync: true,
+        vsync: false,
         fullscreen: false,
         preferred_resolution: Resolution::FHD,
         title: "Hexahedron Engine Test".to_owned(),

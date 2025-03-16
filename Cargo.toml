@@ -17,7 +17,7 @@ name = "calc"
 path = "./bin/calc.rs"
 
 [[bin]]
-name = "engine_test"
+name = "engine-test"
 path = "./bin/engine_test/main.rs"
 
 # [[bin]]
@@ -47,26 +47,27 @@ path = "./bin/engine_test/main.rs"
 # aes = "0.8.4"
 
 # Internal Crates
-hexmacros = { workspace = true }
+hexmacros.workspace = true
 # External Crates
-thiserror = { workspace = true }
-wgpu = { workspace = true }
-winit = { workspace = true }
-pollster = { workspace = true}
-spin_sleep = { workspace = true }
-rand = { workspace = true }
-paste = { workspace = true }
-image = { workspace = true }
-hashbrown = { workspace = true }
-glam = { workspace = true }
-bytemuck = { workspace = true }
-serde = { workspace = true }
-serde_json = { workspace = true }
-hexmath = { workspace = true }
-hexcore = { workspace = true }
-env_logger = { workspace = true }
-log = { workspace = true }
+thiserror.workspace = true
+wgpu.workspace = true
+winit.workspace = true
+pollster.workspace = true
+spin_sleep.workspace = true
+rand.workspace = true
+paste.workspace = true
+image.workspace = true
+hashbrown.workspace = true
+glam.workspace = true
+bytemuck.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+hexmath.workspace = true
+hexcore.workspace = true
+env_logger.workspace = true
+log.workspace = true
 chrono.workspace = true
+gilrs.workspace = true
 
 [workspace.dependencies]
 # Internal Crates
@@ -90,3 +91,4 @@ serde_json = "1.0.128"
 env_logger = "0.11.7"
 log = "0.4.26"
 chrono = "0.4.40"
+gilrs = { version = "0.11.0", default-features = false, features = ["xinput"] }

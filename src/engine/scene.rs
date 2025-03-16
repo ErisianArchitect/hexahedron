@@ -11,7 +11,7 @@
 use std::rc::Rc;
 use std::cell::RefCell;
 
-use super::{engine::{Engine, EventPropagation}, frames::frame_info::FrameInfo};
+use super::{Engine, EventPropagation, frames::frame_info::FrameInfo};
 
 
 #[allow(unused)]

@@ -1,6 +1,7 @@
 [INFO] in engine_test :: Running Engine (Test)
-[INFO] in hexahedron::engine::engine :: Monitor Refresh Rate: 59000
-[INFO] in hexahedron::engine::engine :: Monitor Refresh Frame Time: 16.949152ms
+[INFO] in hexahedron::engine :: Monitor Refresh Rate: 59000
+[INFO] in hexahedron::engine :: Monitor Refresh Frame Time: 16.949152ms
+me: 16.949152ms
 [INFO] in hexahedron::engine::engine :: Window Gained Focus.
 [INFO] in hexahedron::engine::engine :: Window Lost Focus.
 [INFO] in hexahedron::engine::engine :: Window Gained Focus.
