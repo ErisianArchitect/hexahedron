@@ -3,6 +3,8 @@ use std::time::{Duration, Instant};
 use hexcore::extensions::Replace;
 use hexmath::average::{AverageBuffer, AvgBuffer};
 
+use crate::engine::Engine;
+
 #[derive(Debug, Clone)]
 pub struct FrameLimiter {
     last_frame: Instant,
@@ -64,48 +66,45 @@ impl Spacing {
 }
 
 pub struct FrameSpace {
-    begin_frame_time: Instant,
-    last_frame_end_time: Instant,
     // Fixed Update
-    fixed_time: Instant,
-    fixed_timestep: Duration,
-    average_fixed_update_time: AverageBuffer<Duration>,
-    // Update
+    pub last_fixed_time: Instant,
+    pub fixed_timestep: Duration,
+    // Frame Spacing (Update/Render)
+    pub last_frame_time: Instant,
+    pub frame_spacing: Spacing,
+    pub average_frame_time: AverageBuffer<Duration>,
+}
 
-    // Render
-    render_spacing: Spacing,
-    average_render_time: AverageBuffer<Duration>,
-    last_render_time: Instant,
-
-
+pub struct FramespaceResult<T> {
+    pub result: T,
+    pub duration: Duration,
 }
 
 impl FrameSpace {
 
-    pub fn duration_since_last_frame(&self) -> Duration {
-        self.last_frame_end_time.elapsed()
+    pub fn fixed_updates<F: FnMut(Duration) -> ()>(&mut self, mut fixed_update: F) {
+        let mut last_fixed_time = self.last_fixed_time;
+        while last_fixed_time.elapsed() >= self.fixed_timestep {
+            fixed_update(self.fixed_timestep);
+            last_fixed_time += self.fixed_timestep;
+        }
+        self.last_fixed_time = last_fixed_time;
     }
 
-    pub fn fixed_updates<T, F: Fn(&mut Self, T) -> ()>(&mut self, arg: T, fixed_update: F) {
-        todo!()
-    }
-
-    pub fn update<T, R, F: FnOnce(&mut Self, T) -> R>(&mut self, arg: T, update: F) -> R{
-        todo!()
-    }
-
-    pub fn render<T, R, F: FnOnce(&mut Self, T) -> R>(&mut self, arg: T, render: F) -> Option<R> {
-        if self.render_spacing.is_ready(self.last_render_time, Some(self.average_render_time.average())) {
-            Some(render(self, arg))
+    pub fn frame<R, F: FnOnce() -> R>(&mut self, frame: F) -> Option<FramespaceResult<R>> {
+        if self.frame_spacing.is_ready(self.last_frame_time, Some(self.average_frame_time.average())) {
+            let hexcore::macros::MeasureTimeResult {
+                start_time,
+                result,
+                duration,
+            } = hexcore::measure_time!{
+                frame()
+            };
+            self.last_frame_time = start_time + duration;
+            self.average_frame_time.push(duration);
+            Some(FramespaceResult { result, duration })
         } else {
             None
         }
-    }
-
-    /// Call this function at the beginning of the frame to put the thread
-    /// to sleep until the target time. If your game loop is running too fast,
-    /// this will slow it down to the target rate.
-    pub fn rate_limit(&self, target_fps: u32) {
-        todo!()
     }
 }
