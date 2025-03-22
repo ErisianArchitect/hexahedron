@@ -35,6 +35,26 @@ impl Resolution {
     }
 }
 
+impl From<(u32, u32)> for Resolution {
+    fn from(value: (u32, u32)) -> Self {
+        match (value.0, value.1) {
+            (640, 480) => Resolution::SD,
+            (1280, 720) => Resolution::HD,
+            (1920, 1080) => Resolution::HD,
+            (2560, 1440) => Resolution::QHD,
+            (3480, 2160) => Resolution::Ultra,
+            (7680, 4320) => Resolution::EightK,
+            (width, height) => Resolution::Custom(PhysicalSize::new(width, height))
+        }
+    }
+}
+
+impl From<PhysicalSize<u32>> for Resolution {
+    fn from(value: PhysicalSize<u32>) -> Self {
+        Self::from((value.width, value.height))
+    }
+}
+
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Fullscreen {
     #[default]
@@ -43,22 +63,34 @@ pub enum Fullscreen {
 }
 
 #[derive(Debug, Clone)]
-pub struct EngineSettings {
-    pub vsync: bool,
-    pub max_framerate: Option<u32>,
-    pub preferred_resolution: Resolution,
+pub struct EngineSettings<T = String, R = Resolution, F = Option<u32>> {
+    pub prefered_present_mode: wgpu::PresentMode,
+    pub max_framerate: F,
+    pub preferred_resolution: R,
     pub fullscreen: bool,
-    pub title: String,
+    pub title: T,
 }
 
 impl Default for EngineSettings {
     fn default() -> Self {
         Self {
-            vsync: true,
+            prefered_present_mode: wgpu::PresentMode::Fifo,
             preferred_resolution: Resolution::Window,
             max_framerate: None,
             fullscreen: false,
-            title: String::from("Hexahedron Game"),
+            title: "Hexahedron Game".to_owned(),
+        }
+    }
+}
+
+impl<T: Into<String>, R: Into<Resolution>, F: Into<Option<u32>>> EngineSettings<T, R, F> {
+    pub fn resolve(self) -> EngineSettings<String, Resolution, Option<u32>> {
+        EngineSettings {
+            prefered_present_mode: self.prefered_present_mode,
+            fullscreen: self.fullscreen,
+            preferred_resolution: self.preferred_resolution.into(),
+            title: self.title.into(),
+            max_framerate: self.max_framerate.into(),
         }
     }
 }
