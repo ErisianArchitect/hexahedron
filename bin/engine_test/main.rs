@@ -29,10 +29,10 @@ fn main() {
     info!("Running Engine (Test)");
 
     Engine::run(EngineSettings {
-        vsync: false,
+        prefered_present_mode: wgpu::PresentMode::Mailbox,
         fullscreen: false,
-        preferred_resolution: Resolution::FHD,
-        title: "Hexahedron Engine Test".to_owned(),
-        max_framerate: Some(180),
+        preferred_resolution: (1280, 720),
+        title: "Hexahedron Engine Test",
+        max_framerate: 120,
     });
 }
