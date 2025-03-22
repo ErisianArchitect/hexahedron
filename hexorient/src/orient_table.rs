@@ -46,6 +46,7 @@ pub fn table_index(rotation: Rotation, flip: Flip, face: Direction) -> usize {
     flip * 144 + rot * 6 + face
 }
 
+// FIXME: The tables need to be regenerated. The code to do that is in `unvoga`.
 // Do not touch this table! It was hard to generate.
 pub const MAP_COORD_TABLE: [CoordMap; 1152] = [
     CoordMap::new(AxisMap::PosX, AxisMap::PosY),
