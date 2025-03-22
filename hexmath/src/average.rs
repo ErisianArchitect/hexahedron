@@ -41,7 +41,11 @@ impl AvgBuffer<f32> for AverageBuffer<f32> {
     }
 
     fn average(&self) -> f32 {
-        self.current_total / self.buffer.len() as f32
+        if self.buffer.is_empty() {
+            self.current_total
+        } else {
+            self.current_total / self.buffer.len() as f32
+        }
     }
 
     fn clear(&mut self) {
@@ -79,7 +83,11 @@ impl AvgBuffer<f64> for AverageBuffer<f64> {
     }
 
     fn average(&self) -> f64 {
-        self.current_total / self.buffer.len() as f64
+        if self.buffer.is_empty() {
+            self.current_total
+        } else {
+            self.current_total / self.buffer.len() as f64
+        }
     }
 
     fn clear(&mut self) {
@@ -117,7 +125,11 @@ impl AvgBuffer<Duration> for AverageBuffer<Duration> {
     }
 
     fn average(&self) -> Duration {
-        self.current_total / self.buffer.len() as u32
+        if self.buffer.is_empty() {
+            self.current_total
+        } else {
+            self.current_total / self.buffer.len() as u32
+        }
     }
 
     fn clear(&mut self) {
