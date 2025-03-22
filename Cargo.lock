@@ -1032,6 +1032,7 @@ dependencies = [
  "hexmacros",
  "hexmath",
  "image",
+ "itertools 0.13.0",
  "log",
  "paste",
  "pollster",
@@ -1076,6 +1077,7 @@ dependencies = [
  "bytemuck",
  "glam",
  "hexmacros",
+ "itertools 0.13.0",
  "paste",
  "thiserror 1.0.69",
 ]

@@ -12,3 +12,4 @@ paste = { workspace = true }
 # itertools = "0.13.0"
 bytemuck = { workspace = true }
 thiserror = { workspace = true }
+itertools.workspace = true
