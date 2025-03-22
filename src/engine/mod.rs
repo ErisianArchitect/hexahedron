@@ -18,11 +18,13 @@ pub mod render_frame;
 // std
 use std::{cell::RefCell, io::Write, rc::Rc, sync::{Arc, Mutex}, time::{Duration, Instant}};
 use chrono::{DateTime, Local};
+use frames::framespace::{FrameSpace, Spacing};
 // std extensions
 use hashbrown::HashMap;
+use settings::Resolution;
 // external
 use winit::{
-    dpi::{PhysicalPosition, PhysicalSize}, event::{ElementState, Event, KeyEvent, WindowEvent}, event_loop::{ControlFlow, EventLoop, EventLoopWindowTarget}, keyboard::KeyCode, monitor::MonitorHandle, window::{Window, WindowBuilder}
+    dpi::{PhysicalPosition, PhysicalSize, Position}, event::{ElementState, Event, KeyEvent, WindowEvent}, event_loop::{ControlFlow, EventLoop, EventLoopWindowTarget}, keyboard::KeyCode, monitor::MonitorHandle, window::{Window, WindowBuilder}
 };
 use wgpu::{
     Surface,
@@ -53,6 +55,7 @@ pub struct WindowState {
 
 pub struct GameLoopState {
     pub frame: FrameInfo,
+    pub refresh_rate: Duration,
     pub start_time: DateTime<chrono::Local>,
 }
 
@@ -175,16 +178,18 @@ impl<'a> Engine<'a> {
             .find(|f| f.is_srgb())
             .copied()
             .unwrap_or(surface_caps.formats[0]);
+        let present_mode = surface_caps
+            .present_modes
+            .iter()
+            .cloned()
+            .find(|mode| mode.eq(&settings.prefered_present_mode))
+            .unwrap_or(wgpu::PresentMode::Fifo);
         let config = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
             format: surface_format,
             width: size.width,
             height: size.height,
-            // enable vsync: (PresentMode::Fifo)
-            present_mode: settings.vsync.select(
-                wgpu::PresentMode::Fifo,
-                wgpu::PresentMode::Immediate,
-            ),
+            present_mode,
             alpha_mode: surface_caps.alpha_modes[0],
             view_formats: vec![],
             desired_maximum_frame_latency: 2,
@@ -214,10 +219,11 @@ impl<'a> Engine<'a> {
         }
     }
 
-    pub fn run(
-        settings: EngineSettings,
+    pub fn run<T: Into<String>, R: Into<Resolution>, F: Into<Option<u32>>>(
+        settings: EngineSettings<T, R, F>,
     ) {
         #![allow(unused)]
+        let settings = settings.resolve();
         let mut event_loop = EventLoop::new().unwrap();
         event_loop.set_control_flow(winit::event_loop::ControlFlow::Poll);
         let window = WindowBuilder::new()
@@ -249,7 +255,32 @@ impl<'a> Engine<'a> {
         } else {
             None
         };
-        let mut frametime_averager = hexmath::average::AverageBuffer::<Duration>::new(20, monitor_refresh_time);
+        let mut frametime_averager = hexmath::average::AverageBuffer::<Duration>::new(15, monitor_refresh_time);
+        let mut frame_timer = hexcore::time::timer::Timer::start();
+        let mut loop_timer = hexcore::time::timer::Timer::start();
+        let mut frame_limiter = FrameLimiter::start_new(settings.max_framerate.map(|fps| Duration::from_secs(1) / fps));
+
+        let mut frame_space = FrameSpace {
+            last_fixed_time: Instant::now(),
+            fixed_timestep: Duration::from_secs(1) / 120,
+            last_frame_time: Instant::now(),
+            frame_spacing: if matches!(
+                settings.prefered_present_mode,
+                wgpu::PresentMode::Fifo
+                | wgpu::PresentMode::Mailbox
+            ) {
+                Spacing::Fixed(monitor_refresh_time.unwrap_or_else(|| Duration::from_secs(1) / 60))
+            } else {
+                match settings.max_framerate {
+                    Some(framerate) => {
+                        Spacing::Fixed(Duration::from_secs(1) / framerate)
+                    }
+                    None => Spacing::Immediate,
+                }
+            },
+            average_frame_time: AverageBuffer::new(20, None),
+        };
+        
         let mut frame = FrameInfo {
             index: 0,
             // TODO: Adjust average_fps and delta_time according to refresh rate.
@@ -258,31 +289,33 @@ impl<'a> Engine<'a> {
             run_time: Duration::ZERO,
         };
         let start_time = Instant::now();
-        let mut frame_timer = hexcore::time::timer::Timer::start();
-        let mut counter = 0u64;
-        let mut loop_timer = hexcore::time::timer::Timer::start();
-        // let mut frame_limiter = hexcore::time::timer::Timer::start();
-        let mut frame_limiter = FrameLimiter::start_new(settings.max_framerate.map(|fps| Duration::from_secs(1) / fps));
-        let min_frametime = Duration::from_secs(1) / 180;
-
         let loop_state = GameLoopState {
             frame,
+            refresh_rate: monitor_refresh_time.unwrap_or_else(|| Duration::from_secs(1) / 60),
             start_time: Local::now(),
         };
 
         let mut engine = Engine::build(&window, settings, loop_state);
+        // if engine.engine_settings.borrow().vsync {
+        //     engine.config.present_mode = wgpu::PresentMode::Fifo;
+        //     engine.surface.configure(&engine.device, &engine.config);
+        //     let timing = engine.vsync_timer().expect("Failed to perform VSync render.");
+        //     engine.loop_state.borrow_mut().refresh_rate = timing;
+        //     engine.config.present_mode = wgpu::PresentMode::Mailbox;
+        //     engine.surface.configure(&engine.device, &engine.config);
+        // }
         event_loop.run(move |event, control_flow| {
             let request_exit = std::sync::atomic::AtomicBool::new(false);
             let control = Control::new(control_flow, &request_exit);
             // Process Event in Engine
             engine.process_event(&event, control);
-            if !engine.window_state.borrow().minimized {
-                engine.window.request_redraw();
-            }
             while let Some(event) = engine.gamepad.next_event() {
                 if engine.process_gamepad_event(&event, control).should_propagate() {
                     engine.scenes_process_gamepad_event(&event, control);
                 }
+            }
+            if !engine.window_state.borrow().minimized {
+                engine.window.request_redraw();
             }
             // Main event match
             match event {
@@ -294,23 +327,35 @@ impl<'a> Engine<'a> {
                         WindowEvent::CloseRequested if engine.close_requested() => {
                             control_flow.exit();
                         }
-                        WindowEvent::RedrawRequested if frame_limiter.should_begin_frame() => {
-                            frame_limiter.frame_start();
-                            let frame_time = frame_timer.time();
-                            let run_time = start_time.elapsed();
-                            engine.loop_state.borrow_mut().frame.run_time = run_time;
-                            engine.loop_state.borrow_mut().frame.delta_time = FrameTime::new(frame_time);
-                            let average_frame_time = frametime_averager.push(frame_time);
-                            engine.loop_state.borrow_mut().frame.average_frame_time = FrameTime::new(average_frame_time);
-                            (|| {
-                                engine.begin_update(control);
-                                engine.update(control);
-                                engine.end_update(control);
-                            })();
-                            engine.begin_render(control);
-                            engine.render(control).expect("Render Failed :(");
-                            engine.end_render(control);
-                            engine.loop_state.borrow_mut().frame.index += 1;
+                        WindowEvent::RedrawRequested if !engine.window_state.borrow().minimized => {
+                            // {
+                            //     let mut engine = &mut engine;
+                            //     frame_space.fixed_updates(move |timestep| {
+                            //         engine.begin_fixed_update(control, timestep);
+                            //         engine.fixed_update(control, timestep);
+                            //         engine.end_fixed_update(control, timestep);
+                            //     });
+                            // }
+                            // {
+                            //     let mut engine = &mut engine;
+                            //     let mut frametime_averager = &mut frametime_averager;
+                            //     let mut frame_timer = &mut frame_timer;
+                            //     frame_space.frame(move || {
+                            //         let frame_time = frame_timer.time();
+                            //         let run_time = start_time.elapsed();
+                            //         engine.loop_state.borrow_mut().frame.run_time = run_time;
+                            //         engine.loop_state.borrow_mut().frame.delta_time = FrameTime::new(frame_time);
+                            //         let average_frame_time = frametime_averager.push(frame_time);
+                            //         engine.loop_state.borrow_mut().frame.average_frame_time = FrameTime::new(average_frame_time);
+                            //         engine.begin_update(control);
+                            //         engine.update(control);
+                            //         engine.end_update(control);
+                            //         engine.begin_render(control);
+                            //         engine.render(control).expect("Render Failed :(");
+                            //         engine.end_render(control);
+                            //         engine.loop_state.borrow_mut().frame.index += 1;
+                            //     });
+                            // }
                         }
                         &WindowEvent::Resized(new_size) => {
                             if new_size.width == 0 && new_size.height == 0 {
@@ -328,6 +373,7 @@ impl<'a> Engine<'a> {
                                     // back to poll.
                                     control_flow.set_control_flow(winit::event_loop::ControlFlow::Poll);
                                     engine.minimized_changed(false);
+                                    engine.window.request_redraw();
                                 }
                                 engine.resized(new_size);
                             }
@@ -338,18 +384,55 @@ impl<'a> Engine<'a> {
                             }
                             engine.window_state.borrow_mut().focused = focus;
                             engine.focus_changed(focus);
+                            engine.window.request_redraw();
+                        }
+                        &WindowEvent::Moved(_) => {
+                            engine.window.request_redraw();
                         }
                         _ => (),
                     }
                 }
                 _ => (),
             }
+            if !engine.window_state.borrow().minimized {
+                {
+                    let mut engine = &mut engine;
+                    frame_space.fixed_updates(move |timestep| {
+                        engine.begin_fixed_update(control, timestep);
+                        engine.fixed_update(control, timestep);
+                        engine.end_fixed_update(control, timestep);
+                    });
+                }
+                {
+                    let mut engine = &mut engine;
+                    let mut frametime_averager = &mut frametime_averager;
+                    let mut frame_timer = &mut frame_timer;
+                    frame_space.frame(move || {
+                        let frame_time = frame_timer.time();
+                        let run_time = start_time.elapsed();
+                        engine.loop_state.borrow_mut().frame.run_time = run_time;
+                        engine.loop_state.borrow_mut().frame.delta_time = FrameTime::new(frame_time);
+                        let average_frame_time = frametime_averager.push(frame_time);
+                        engine.loop_state.borrow_mut().frame.average_frame_time = FrameTime::new(average_frame_time);
+                        engine.begin_update(control);
+                        engine.update(control);
+                        engine.end_update(control);
+                        engine.begin_render(control);
+                        engine.render(control).expect("Render Failed :(");
+                        engine.end_render(control);
+                        engine.loop_state.borrow_mut().frame.index += 1;
+                    });
+                }
+            }
             // End main event match
             // Check if exit was requested.
             if request_exit.load(std::sync::atomic::Ordering::Relaxed)
             && engine.close_requested() {
                 control_flow.exit();
+            } else if !engine.window_state.borrow().minimized {
+                engine.window.request_redraw();
             }
+            // spin_sleep::sleep(Duration::from_micros(100));
         }).expect("Me event loop broken :(");
     }
 
@@ -447,10 +530,14 @@ impl<'a> Engine<'a> {
     }
 
     fn update(&mut self, control: Control<'_>) {
+        const DELAYS: [u64; 6] = [3, 5, 8, 6, 4, 13];
         // println!("Average FPS: {:.0} {}", self.loop_state.frame.average_frame_time.fps(), self.loop_state.frame.index);
-        if self.loop_state.borrow().frame.index >= 20
-        && (60.0 - self.loop_state.borrow().frame.average_frame_time.fps()).abs() >= 2.0 {
-            println!("Framerate Difference: {:.0}", self.loop_state.borrow().frame.average_frame_time.fps());
+        if self.frame_index() >= 20 {
+            let framerate = FrameTime::new(self.loop_state.borrow().refresh_rate);
+            let fps = self.loop_state.borrow().frame.average_frame_time.fps();
+            if (framerate.fps() - fps).abs() > 0.5 {
+                println!("Framerate +/- 1 ({:.0}) FPS: {:.0}", framerate.fps(), fps);
+            }
         }
     }
 
@@ -458,15 +545,15 @@ impl<'a> Engine<'a> {
 
     }
 
-    fn begin_fixed_update(&mut self, control: Control<'_>) {
+    fn begin_fixed_update(&mut self, control: Control<'_>, timestep: Duration) {
 
     }
 
-    fn fixed_update(&mut self, control: Control<'_>) {
+    fn fixed_update(&mut self, control: Control<'_>, timestep: Duration) {
 
     }
 
-    fn end_fixed_update(&mut self, control: Control<'_>) {
+    fn end_fixed_update(&mut self, control: Control<'_>, timestep: Duration) {
 
     }
 
@@ -502,6 +589,8 @@ impl<'a> Engine<'a> {
         }
         self.queue.submit(std::iter::once(encoder.finish()));
         let duration = start_time.elapsed();
+        // Artificial Delay
+        std::thread::sleep(Duration::from_millis(5));
         output.present();
         Ok(duration)
     }
