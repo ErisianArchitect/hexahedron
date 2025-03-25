@@ -43,6 +43,7 @@ impl std::cmp::Ord for Layer {
 mod tests {
     use super::*;
 
+    #[derive(Debug, Default, Clone)]
     pub struct LayerBuffer {
         opaque: Vec<Layer>,
         transparent: Vec<Layer>,
@@ -52,8 +53,34 @@ mod tests {
         // First pass, create sorted buffer.
         let mut sorted = layers.iter().cloned().collect::<Vec<_>>();
         sorted.sort();
-
-
+        // Collect all opaque and transparent layers that exist on the same layer.
+        let mut cur_level = sorted.first().cloned().unwrap().level();
+        let mut buffers = Vec::new();
+        let mut cur_buff = LayerBuffer::default();
+        for layer in sorted {
+            match layer {
+                Layer::Opaque(level) if level == cur_level => {
+                    cur_buff.opaque.push(layer);
+                },
+                Layer::Transparent(level) if level == cur_level => {
+                    cur_buff.transparent.push(layer);
+                },
+                Layer::Opaque(level) => {
+                    let new_buff = LayerBuffer::default();
+                    buffers.push(std::mem::replace(&mut cur_buff, new_buff));
+                    cur_level = level;
+                    cur_buff.opaque.push(layer);
+                }
+                Layer::Transparent(level) => {
+                    let new_buff = LayerBuffer::default();
+                    buffers.push(std::mem::replace(&mut cur_buff, new_buff));
+                    cur_level = level;
+                    cur_buff.transparent.push(layer);
+                }
+            }
+        }
+        buffers.push(cur_buff);
+        buffers
     }
 
     #[test]
@@ -70,12 +97,19 @@ mod tests {
             t(3),
             t(8),
             t(4),
+            o(1),
+            t(3),
             o(3),
             o(4),
             o(1),
             o(8),
         ];
-        layers.sort();
-        println!("{layers:#?}");
+        let start = std::time::Instant::now();
+        let buffers = collect_layers(&layers);
+        let elapsed = start.elapsed();
+        println!("Finished in {elapsed:?}");
+        println!("{buffers:#?}");
+        // layers.sort();
+        // println!("{layers:#?}");
     }
 }
