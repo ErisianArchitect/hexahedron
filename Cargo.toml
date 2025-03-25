@@ -20,6 +20,10 @@ path = "./bin/calc.rs"
 name = "engine-test"
 path = "./bin/engine_test/main.rs"
 
+[[bin]]
+name = "codegen"
+path = "./bin/codegen.rs"
+
 # [[bin]]
 # name = "codegen"
 # path = "./bin/codegen.rs"
@@ -48,6 +52,7 @@ path = "./bin/engine_test/main.rs"
 
 # Internal Crates
 hexmacros.workspace = true
+hexorient.workspace = true
 # External Crates
 thiserror.workspace = true
 wgpu.workspace = true
@@ -75,6 +80,7 @@ itertools.workspace = true
 hexcore = { path = "hexcore" }
 hexmacros = { path = "hexmacros" }
 hexmath = { path = "hexmath" }
+hexorient = { path = "hexorient" }
 # External Crates
 thiserror = "1.0.63"
 wgpu = "24.0.1"
