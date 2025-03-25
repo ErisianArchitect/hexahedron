@@ -31,6 +31,7 @@ pub(crate) mod private;
 
 pub use log;
 pub use env_logger;
+pub use hexorient;
 
 // i=int(not())
 // def ch(*args):
