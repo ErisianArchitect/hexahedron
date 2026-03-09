@@ -55,6 +55,16 @@ impl GraphId {
             GraphId::new(((i * step as usize) + start as usize) as u32)
         })
     }
+
+    #[inline]
+    pub const fn needs_order(self) -> Dependency {
+        Dependency::NeedsOrder(self)
+    }
+
+    #[inline]
+    pub const fn needs_active(self) -> Dependency {
+        Dependency::NeedsActive(self)
+    }
 }
 
 // I prefer being explicit, but I'll leave this macro here unless I want it later.
@@ -458,43 +468,90 @@ mod tests {
 
     #[test]
     fn scene_graph_test() {
-        let ids = GraphId::make_ids();
-        /* Potential Scenes
-        - Main Menu
-        - Loading Screen
-        - Pause Menu
-        - Game Screen
-        */
+
         let [
-            root_0,
-            root_1,
-            child_0,
-            child_1,
-            child_2
-        ] = ids;
-        println!("IDS: {:#?}", ids);
-        println!("********************************");
-        println!("IDs: {:#?}", GraphId::make_id_range::<3>(0, 3));
-        println!("IDs: {:#?}", GraphId::make_id_range::<3>(1, 3));
-        println!("IDs: {:#?}", GraphId::make_id_range::<3>(2, 3));
-        return;
+            main_menu,
+            singleplayer,
+            multiplayer,
+            game_pause,
+            cutscene,
+            load_screen,
+        ] = GraphId::make_ids();
+
         let mut graph = ActiveDependencyGraph::new();
-        graph.insert_root(root_0, SharedScene::new(TestScene("Foo")), false);
-        graph.insert_root(root_1, SharedScene::new(TestScene("Bar")), true);
-        graph.insert_node(child_0, SharedScene::new(TestScene("Child of Foo")), true, [Dependency::NeedsActive(root_0)]);
-        graph.insert_node(child_1, SharedScene::new(TestScene("Order of Foo")), true, [Dependency::NeedsOrder(root_0)]);
-        graph.insert_node(child_2, SharedScene::new(TestScene("Child of Bar")), true, [Dependency::NeedsActive(root_1)]);
-        let names: HashMap<GraphId, &'static str> = HashMap::from([
-            (root_0, "Foo"),
-            (root_1, "Bar"),
-            (child_0, "Child of Foo"),
-            (child_1, "Order of Foo"),
-            (child_2, "Child of Bar"),
-        ]);
-        let top_sort = graph.topological_sort();
+        graph.insert_root(load_screen, "load_screen", true);
+        graph.insert_root(cutscene, "cutscene", true);
+        graph.insert_root(game_pause, "game_pause", true);
+        graph.insert_node(singleplayer, "singleplayer", true, [game_pause.needs_order(), cutscene.needs_order()]);
+        graph.insert_node(multiplayer, "multiplayer", true, [game_pause.needs_order(), cutscene.needs_order()]);
+        graph.insert_root(main_menu, "main_menu", true);
+        
+        let top_sort = graph.topological_sort().into_iter().cloned().collect::<Vec<_>>();
         for node in top_sort {
-            println!("{}", names[node]);
+            if let Some(&node) = graph.get(node) {
+                println!("{node}");
+            }
         }
+
+        hexmacros::prototype!(
+            let [
+                main_menu,
+                singleplayer,
+                multiplayer,
+                pause_menu,
+                cutscene,
+                load_screen,
+            ] = GraphId::make_ids();
+            let main_menu_order = SceneOrder::new([main_menu]);
+            let singleplayer_order = SceneOrder::builder()
+                .update([pause_menu, singleplayer])
+                // .events([pause_menu, singleplayer]) // events order should inherit from update order by default.
+                .render([singpleplayer, pause_menu])
+                .build();
+            let multiplayer_order = SceneOrder::builder()
+                .update([pause_menu, multiplayer])
+                .render([multiplayer, pause_menu])
+                .build();
+
+        );
+
+        // let ids = GraphId::make_ids();
+        // /* Potential Scenes
+        // - Main Menu
+        // - Loading Screen
+        // - Pause Menu
+        // - Game Screen
+        // */
+        // let [
+        //     root_0,
+        //     root_1,
+        //     child_0,
+        //     child_1,
+        //     child_2
+        // ] = ids;
+        // println!("IDS: {:#?}", ids);
+        // println!("********************************");
+        // println!("IDs: {:#?}", GraphId::make_id_range::<3>(0, 3));
+        // println!("IDs: {:#?}", GraphId::make_id_range::<3>(1, 3));
+        // println!("IDs: {:#?}", GraphId::make_id_range::<3>(2, 3));
+        // return;
+        // let mut graph = ActiveDependencyGraph::new();
+        // graph.insert_root(root_0, SharedScene::new(TestScene("Foo")), false);
+        // graph.insert_root(root_1, SharedScene::new(TestScene("Bar")), true);
+        // graph.insert_node(child_0, SharedScene::new(TestScene("Child of Foo")), true, [Dependency::NeedsActive(root_0)]);
+        // graph.insert_node(child_1, SharedScene::new(TestScene("Order of Foo")), true, [Dependency::NeedsOrder(root_0)]);
+        // graph.insert_node(child_2, SharedScene::new(TestScene("Child of Bar")), true, [Dependency::NeedsActive(root_1)]);
+        // let names: HashMap<GraphId, &'static str> = HashMap::from([
+        //     (root_0, "Foo"),
+        //     (root_1, "Bar"),
+        //     (child_0, "Child of Foo"),
+        //     (child_1, "Order of Foo"),
+        //     (child_2, "Child of Bar"),
+        // ]);
+        // let top_sort = graph.topological_sort();
+        // for node in top_sort {
+        //     println!("{}", names[node]);
+        // }
         
     }
 }

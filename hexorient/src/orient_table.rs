@@ -1201,7 +1201,6 @@ pub const MAP_COORD_TABLE: [CoordMap; 1152] = [
     CoordMap::new(AxisMap::NegX, AxisMap::PosY),
     CoordMap::new(AxisMap::NegY, AxisMap::NegX),
     CoordMap::new(AxisMap::NegY, AxisMap::NegX),
-    
 ];
 
 pub const SOURCE_FACE_COORD_TABLE: [CoordMap; 1152] = [

@@ -109,13 +109,13 @@ pub struct EngineRunner<'a> {
 }
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum EventPropagation {
+pub enum Propagation {
     #[default]
     Propagate,
     Halt,
 }
 
-impl EventPropagation {
+impl Propagation {
     #[inline]
     pub const fn should_propagate(self) -> bool {
         matches!(self, Self::Propagate)
@@ -478,8 +478,8 @@ impl<'a> Engine<'a> {
         // TODO Propagate event to scenes
     }
 
-    fn process_gamepad_event(&mut self, event: &gilrs::Event, control: Control<'_>) -> EventPropagation {
-        EventPropagation::Propagate
+    fn process_gamepad_event(&mut self, event: &gilrs::Event, control: Control<'_>) -> Propagation {
+        Propagation::Propagate
     }
 
     fn scenes_process_gamepad_event(&mut self, event: &gilrs::Event, control: Control<'_>) {
@@ -490,7 +490,7 @@ impl<'a> Engine<'a> {
 
     }
 
-    fn process_window_event(&mut self, event: &WindowEvent, control: Control<'_>) -> EventPropagation {
+    fn process_window_event(&mut self, event: &WindowEvent, control: Control<'_>) -> Propagation {
         match event {
             WindowEvent::KeyboardInput { device_id, event, is_synthetic } => {
                 match event.physical_key {
@@ -498,12 +498,12 @@ impl<'a> Engine<'a> {
                         KeyCode::F11 if !event.repeat && event.state == ElementState::Pressed => {
                             let fullscreen = self.window_state.borrow().fullscreen;
                             self.set_fullscreen(!fullscreen);
-                            return EventPropagation::Halt;
+                            return Propagation::Halt;
                         }
                         // TODO This is for testing purposes. Remove later.
                         KeyCode::Escape if event.state == ElementState::Pressed => {
                             control.request_exit();
-                            return EventPropagation::Halt;
+                            return Propagation::Halt;
                         }
                         _ => (),
                     },
@@ -518,7 +518,7 @@ impl<'a> Engine<'a> {
             }
             _ => (),
         }
-        EventPropagation::Propagate
+        Propagation::Propagate
     }
 
     fn close_requested(&mut self) -> bool {
@@ -616,3 +616,5 @@ impl<'a> Engine<'a> {
     }
 
 }
+
+pub const MOD_ID: u64 = hexmacros::unique_id!();

@@ -1,3 +1,5 @@
+pub const MOD_ID: u64 = hexmacros::unique_id!();
+
 pub trait StrToOwned {
     fn owned_string(self) -> String;
 }

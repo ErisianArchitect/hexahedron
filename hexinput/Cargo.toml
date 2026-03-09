@@ -1,12 +1,12 @@
 [package]
-name = "hexorient"
+name = "hexinput"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
 # Internal Dependencies
 hexmacros.workspace = true
 # External Dependencies
-serde.workspace = true
-bytemuck.workspace = true
-glam.workspace = true
+gilrs.workspace = true
+winit.workspace = true
+hashbrown.workspace = true

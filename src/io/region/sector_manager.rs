@@ -16,6 +16,7 @@ use super::{
 pub struct SectorManager {
     start_sectors: HashMap<u32, u32>,
     end_sectors: HashMap<u32, u32>,
+    // This can be changed to a BTreeMap<(u32, u32), u32> where <(size, offset), end_offset>
     sized_sectors: BTreeMap<u32, BTreeMap<u32, u32>>,
 }
 

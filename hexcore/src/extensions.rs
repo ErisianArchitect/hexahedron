@@ -24,11 +24,11 @@ impl<T: Sized> ArrayOfOne for T {
 }
 
 pub trait AsSliceOfOne: Sized {
-    fn as_slice_of_one(&self) -> &[Self];
+    fn as_slice_of_one<'a>(&'a self) -> &'a [Self];
 }
 
 impl<T: Sized> AsSliceOfOne for T {
-    fn as_slice_of_one(&self) -> &[Self] {
+    fn as_slice_of_one<'a>(&'a self) -> &'a [Self] {
         unsafe {
             std::slice::from_raw_parts(self, 1)
         }
@@ -36,11 +36,11 @@ impl<T: Sized> AsSliceOfOne for T {
 }
 
 pub trait AsSliceOfOneMut: Sized {
-    fn as_slice_of_one_mut(&mut self) -> &mut [Self];
+    fn as_slice_of_one_mut<'a>(&'a mut self) -> &'a mut [Self];
 }
 
 impl<T: Sized> AsSliceOfOneMut for T {
-    fn as_slice_of_one_mut(&mut self) -> &mut [Self] {
+    fn as_slice_of_one_mut<'a>(&'a mut self) -> &'a mut [Self] {
         unsafe {
             std::slice::from_raw_parts_mut(self, 1)
         }

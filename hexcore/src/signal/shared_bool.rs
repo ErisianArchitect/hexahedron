@@ -2,27 +2,25 @@ use std::sync::{Arc, atomic::{AtomicBool, Ordering}};
 
 #[derive(Debug, Clone)]
 pub struct SharedBool {
-    value: Arc<AtomicBool>,
-    ordering: Ordering,
+    shared: Arc<(AtomicBool, Ordering)>,
 }
 
 impl SharedBool {
     pub fn new(value: bool, ordering: Ordering) -> Self {
         Self {
-            value: Arc::new(AtomicBool::new(value)),
-            ordering,
+            shared: Arc::new((AtomicBool::new(value), ordering)),
         }
     }
 
     pub fn load(&self) -> bool {
-        self.value.load(self.ordering)
+        self.shared.0.load(self.shared.1)
     }
 
     pub fn store(&self, value: bool) {
-        self.value.store(value, self.ordering);
+        self.shared.0.store(value, self.shared.1);
     }
 
     pub fn swap(&self, value: bool) -> bool {
-        self.value.swap(value, self.ordering)
+        self.shared.0.swap(value, self.shared.1)
     }
 }

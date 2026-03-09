@@ -2,7 +2,7 @@
 [workspace]
 members = [
     "hexcolor",
-    "hexcore", "hexgpu", "hexhash", "hexio",
+    "hexcore", "hexgpu", "hexhash", "hexinput", "hexio",
     "hexmacros", "hexmath", "hexorient", "hexregion",
 ]
 
@@ -53,6 +53,9 @@ path = "./bin/codegen.rs"
 # Internal Crates
 hexmacros.workspace = true
 hexorient.workspace = true
+hexmath.workspace = true
+hexcore.workspace = true
+hexinput.workspace = true
 # External Crates
 thiserror.workspace = true
 wgpu.workspace = true
@@ -67,8 +70,6 @@ glam.workspace = true
 bytemuck.workspace = true
 serde.workspace = true
 serde_json.workspace = true
-hexmath.workspace = true
-hexcore.workspace = true
 env_logger.workspace = true
 log.workspace = true
 chrono.workspace = true
@@ -81,6 +82,7 @@ hexcore = { path = "hexcore" }
 hexmacros = { path = "hexmacros" }
 hexmath = { path = "hexmath" }
 hexorient = { path = "hexorient" }
+hexinput = { path = "hexinput" }
 # External Crates
 thiserror = "1.0.63"
 wgpu = "24.0.1"

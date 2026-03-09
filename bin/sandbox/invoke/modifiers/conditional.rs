@@ -80,8 +80,8 @@ F: VariadicCallback<Args, bool> {
 #[derive(Debug, Clone)]
 pub struct Trigger {
     trigger: Arc<AtomicBool>,
-    eval_ordering: Ordering,
-    update_ordering: Ordering,
+    pub eval_ordering: Ordering,
+    pub update_ordering: Ordering,
 }
 
 impl Trigger {
@@ -104,6 +104,11 @@ impl Trigger {
             eval_ordering,
             update_ordering
         }
+    }
+
+    #[inline]
+    pub fn get(&self) -> bool {
+        self.trigger.load(self.eval_ordering)
     }
 
     #[inline]

@@ -1,5 +1,8 @@
 
+use std::sync::atomic::AtomicU64;
+
 use proc_macro::TokenStream;
+use proc_macro2::Literal;
 use quote::quote;
 use syn::{parse::Parse, parse_macro_input, Attribute};
 mod util;
@@ -226,6 +229,16 @@ pub fn table(input: TokenStream) -> TokenStream {
 pub fn define(input: TokenStream) -> TokenStream {
     let define_input = parse_macro_input!(input as define::DefineInput);
     quote!( #define_input ).into()
+}
+
+#[proc_macro]
+pub fn unique_id(input: TokenStream) -> TokenStream {
+    assert!(input.is_empty(), "Unexpected tokens.");
+    // Start at 1 so that 0 can be reserved for null.
+    static ID_COUNTER: std::sync::atomic::AtomicU64 = AtomicU64::new(1);
+    let next_id = ID_COUNTER.fetch_add(1, std::sync::atomic::Ordering::AcqRel);
+    let lit_u64 = Literal::u64_suffixed(next_id);
+    quote!{ #lit_u64 }.into()
 }
 
 /// For testing syntax.

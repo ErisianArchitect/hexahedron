@@ -12,7 +12,7 @@ use std::any::Any;
 use std::{rc::Rc, sync::atomic::AtomicBool};
 use std::cell::{RefCell, UnsafeCell};
 
-use super::{Engine, EventPropagation, frames::frame_info::FrameInfo};
+use super::{Engine, Propagation, frames::frame_info::FrameInfo};
 
 
 #[allow(unused)]
@@ -72,8 +72,8 @@ pub trait Scene: Any {
         &mut self,
         engine: &Engine,
         event: &winit::event::WindowEvent,
-    ) -> EventPropagation {
-        EventPropagation::Propagate
+    ) -> Propagation {
+        Propagation::Propagate
     }
 
     fn begin_frame(
@@ -258,7 +258,7 @@ impl SharedScene {
         &self,
         engine: &Engine,
         event: &winit::event::WindowEvent,
-    ) -> EventPropagation {
+    ) -> Propagation {
         self.cell.get_scene_mut().process_window_event(engine, event)
     }
 
@@ -341,14 +341,6 @@ impl SharedScene {
             scene_obj.as_any().downcast_ref()
         }
     }
-
-    #[inline]
-    pub unsafe fn cast_mut<S: Scene>(&self) -> Option<&mut S> {
-        unsafe {
-            let scene_obj: &mut dyn Scene = &mut *self.cell.scene.get();
-            scene_obj.as_any_mut().downcast_mut()
-        }
-    }
 }
 
 #[cfg(test)]
@@ -389,9 +381,7 @@ mod tests {
             let engine = MaybeUninit::uninit().assume_init();
             scene.load(&engine);
             scene.unload(&engine);
-            unsafe {
-                scene.cast_mut::<TestScene>().unwrap().value = "this is a test.".to_owned();
-            }
+            
             scene.unload(&engine);
             std::mem::forget(engine);
         }

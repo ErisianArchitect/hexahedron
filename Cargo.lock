@@ -1029,6 +1029,7 @@ dependencies = [
  "glam",
  "hashbrown 0.14.5",
  "hexcore",
+ "hexinput",
  "hexmacros",
  "hexmath",
  "hexorient",
@@ -1093,6 +1094,16 @@ dependencies = [
  "hexmacros",
  "sha2",
  "twox-hash",
+]
+
+[[package]]
+name = "hexinput"
+version = "0.1.0"
+dependencies = [
+ "gilrs",
+ "hashbrown 0.14.5",
+ "hexmacros",
+ "winit",
 ]
 
 [[package]]

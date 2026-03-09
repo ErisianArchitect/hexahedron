@@ -45,3 +45,16 @@ pub use hexorient;
 // ln=lambda:(s(chr(ord(max(str(not())))-ord(min(str(not())))^i),chr(sum(range(ord(min(str(not())))))),cb(*next(vi))) for _ in range(0xf+i))
 // print(''.join(ch(*(ch(ln(),o(chr(0xa))) for _ in range(0xf+i)))))
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn unique_id_test() {
+        let id1 = hexmacros::unique_id!();
+        let id2 = hexmacros::unique_id!();
+        println!("{id1}, {id2}");
+        let m1 = crate::engine::MOD_ID;
+        let m2 = crate::util::traits::MOD_ID;
+        println!("{m1}, {m2}");
+    }
+}
